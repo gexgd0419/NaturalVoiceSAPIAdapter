@@ -1,0 +1,28 @@
+﻿// NaturalVoiceSAPIAdapter.idl: NaturalVoiceSAPIAdapter 的 IDL 源
+//
+
+// 此文件将由 MIDL 工具处理以
+// 生成类型库(NaturalVoiceSAPIAdapter.tlb)和封送处理代码。
+
+import "oaidl.idl";
+import "ocidl.idl";
+import "sapiddk.idl";
+
+[
+	uuid(19d3bf0c-aad3-4348-8fc3-bd439f0da852),
+	version(1.0),
+]
+library NaturalVoiceSAPIAdapterLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(013ab33b-ad1a-401c-8bee-f6e2b046a94e)
+	]
+	coclass TTSEngine
+	{
+		[default] interface ISpTTSEngine;
+		interface ISpObjectWithToken;
+	};
+};
+
+import "shobjidl.idl";
