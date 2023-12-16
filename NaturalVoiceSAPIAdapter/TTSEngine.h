@@ -20,20 +20,6 @@ using namespace Microsoft::CognitiveServices::Speech::Audio;
 
 
 
-class CoMemPWSTR
-{
-	PWSTR m_p;
-public:
-	CoMemPWSTR() : m_p() { }
-	CoMemPWSTR(const CoMemPWSTR&) = delete;
-	CoMemPWSTR& operator=(const CoMemPWSTR&) = delete;
-	operator PWSTR() { return m_p; }
-	operator std::string() { return Microsoft::CognitiveServices::Speech::Utils::Details::to_string(m_p); }
-	PWSTR* operator&() { return &m_p; }
-	~CoMemPWSTR() { if (m_p) CoTaskMemFree(m_p); }
-};
-
-
 struct TextOffsetMapping
 {
 	ULONG ulSAPITextOffset; // offset in source string from SAPI

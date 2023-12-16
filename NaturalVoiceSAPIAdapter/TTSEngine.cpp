@@ -122,7 +122,7 @@ HRESULT CTTSEngine::InitPhoneConverter()
     HRESULT hr = m_cpToken->OpenKey(L"Attributes", &pAttrKey);
     if (FAILED(hr)) return hr;
 
-    CoMemPWSTR pszLang;
+    CSpDynamicString pszLang;
     hr = pAttrKey->GetStringValue(L"Language", &pszLang);
     if (FAILED(hr)) return hr;
 
@@ -141,7 +141,7 @@ HRESULT CTTSEngine::InitPhoneConverter()
 HRESULT CTTSEngine::InitSynthesizer()
 {
     CComPtr<ISpDataKey> pConfigKey;
-    CoMemPWSTR pszRegion, pszKey, pszPath, pszVoice;
+    CSpDynamicString pszRegion, pszKey, pszPath, pszVoice;
 
     auto audioConfig = AudioConfig::FromStreamOutput(AudioOutputStream::CreatePushStream(
         [=](uint8_t* data, uint32_t len) -> int // returns bytes written
@@ -163,40 +163,50 @@ HRESULT CTTSEngine::InitSynthesizer()
     hr = pConfigKey->GetStringValue(L"Key", &pszKey);
     if (FAILED(hr)) return hr;
 
+    using Microsoft::CognitiveServices::Speech::Utils::Details::to_string;
+
     if (SUCCEEDED(hr = pConfigKey->GetStringValue(L"Region", &pszRegion)))
     {
         // if Region is specified, use online Azure service, Key is the subscription key
-        auto config = SpeechConfig::FromSubscription(pszKey, pszRegion);
+        auto config = SpeechConfig::FromSubscription(to_string((LPCWSTR)pszKey), to_string((LPCWSTR)pszRegion));
+
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+
         if (SUCCEEDED(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
-            config->SetSpeechSynthesisVoiceName(pszVoice);
+            config->SetSpeechSynthesisVoiceName(to_string((LPCWSTR)pszVoice));
+
         if (m_errorMode == ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
             hr = CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
             if (FAILED(hr)) return hr;
         }
+
         m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
     }
     else if (SUCCEEDED(hr = pConfigKey->GetStringValue(L"Path", &pszPath)))
     {
         // if Path is specified, use local voice model stored in Path, Key is the decryption key
-        auto config = EmbeddedSpeechConfig::FromPath(pszPath);
+        auto config = EmbeddedSpeechConfig::FromPath(to_string((LPCWSTR)pszPath));
+
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+
         // get the voice name by loading it first
         auto synthesizer = SpeechSynthesizer::FromConfig(config);
         auto result = synthesizer->GetVoicesAsync().get();
         if (result->Voices.empty())
             return E_INVALIDARG;
-        config->SetSpeechSynthesisVoice(result->Voices[0]->Name, pszKey);
+        config->SetSpeechSynthesisVoice(result->Voices[0]->Name, to_string((LPCWSTR)pszKey));
+
         if (m_errorMode == ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
             hr = CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
             if (FAILED(hr)) return hr;
         }
+
         m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
     }
     else
