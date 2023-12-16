@@ -20,7 +20,6 @@
 #include <atlcom.h>
 #include <atlctl.h>
 
-#include <spcollec.h>
 #include <speechapi_cxx.h>
 
 using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
