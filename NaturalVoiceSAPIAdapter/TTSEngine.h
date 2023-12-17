@@ -105,6 +105,7 @@ private: // Member variables
 
 	ErrorMode m_errorMode = ProbeForError;
 	std::wstring m_localeName;
+	std::wstring m_onlineVoiceName;
 
 	std::wstring m_ssml; // translated SSML
 

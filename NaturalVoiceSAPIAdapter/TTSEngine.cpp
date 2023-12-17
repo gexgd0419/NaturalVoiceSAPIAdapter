@@ -173,8 +173,11 @@ HRESULT CTTSEngine::InitSynthesizer()
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
 
-        if (SUCCEEDED(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
-            config->SetSpeechSynthesisVoiceName(to_string((LPCWSTR)pszVoice));
+        hr = pConfigKey->GetStringValue(L"Voice", &pszVoice);
+        if (FAILED(hr)) return hr;
+        
+        config->SetSpeechSynthesisVoiceName(to_string((LPCWSTR)pszVoice));
+        m_onlineVoiceName = pszVoice;
 
         if (m_errorMode == ProbeForError)
         {
@@ -368,6 +371,14 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
     m_offsetMappings.clear();
     m_mappingIndex = 0;
 
+    // online voices requires a <voice> tag, even after calling SetSpeechSynthesisVoiceName
+    if (!m_onlineVoiceName.empty())
+    {
+        m_ssml.append(L"<voice name='");
+        m_ssml.append(m_onlineVoiceName);
+        m_ssml.append(L"'>");
+    }
+
     for (auto pTextFrag = pTextFragList; pTextFrag; pTextFrag = pTextFrag->pNext)
     {
         // tag structure: <prosody><emphasis><say-as></say-as></emphasis></prosody>
@@ -507,6 +518,11 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             m_ssml.append(L"</prosody>");
             isInProsodyTag = false;
         }
+    }
+
+    if (!m_onlineVoiceName.empty())
+    {
+        m_ssml.append(L"</voice>");
     }
 
     m_ssml.append(L"</speak>");
