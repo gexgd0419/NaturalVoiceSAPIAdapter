@@ -40,7 +40,19 @@
     <ClInclude Include="TTSEngine.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="VoiceToken.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataKey.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="delaydll.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataKeyAutomation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceTokenAutomation.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

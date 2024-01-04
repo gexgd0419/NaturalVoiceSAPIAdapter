@@ -242,6 +242,10 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TTSEngine.h" />
+    <ClInclude Include="DataKey.h" />
+    <ClInclude Include="DataKeyAutomation.h" />
+    <ClInclude Include="VoiceToken.h" />
+    <ClInclude Include="VoiceTokenAutomation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="delaydll.cpp" />
