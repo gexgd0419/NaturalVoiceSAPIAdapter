@@ -92,6 +92,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -114,6 +115,8 @@
       <ModuleDefinitionFile>.\NaturalVoiceSAPIAdapter.def</ModuleDefinitionFile>
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
+      <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -125,6 +128,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -148,6 +152,8 @@
       <ModuleDefinitionFile>.\NaturalVoiceSAPIAdapter.def</ModuleDefinitionFile>
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
+      <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -159,6 +165,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -184,6 +191,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
+      <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -195,6 +204,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -219,9 +229,12 @@
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
+      <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="delaydll.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="NaturalVoiceSAPIAdapter_i.h" />
@@ -231,6 +244,7 @@
     <ClInclude Include="TTSEngine.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="delaydll.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
@@ -282,18 +296,18 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.1.33.0\build\native\Microsoft.CognitiveServices.Speech.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.1.33.0\build\native\Microsoft.CognitiveServices.Speech.targets')" />
-    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets')" />
-    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets')" />
-    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets')" />
+    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.1.34.0\build\native\Microsoft.CognitiveServices.Speech.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.1.34.0\build\native\Microsoft.CognitiveServices.Speech.targets')" />
+    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets')" />
+    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets')" />
+    <Import Project="..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets" Condition="Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.1.33.0\build\native\Microsoft.CognitiveServices.Speech.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.1.33.0\build\native\Microsoft.CognitiveServices.Speech.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets'))" />
-    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.33.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.1.34.0\build\native\Microsoft.CognitiveServices.Speech.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.1.34.0\build\native\Microsoft.CognitiveServices.Speech.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.ONNX.Runtime.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.Telemetry.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Telemetry.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.1.34.0\build\native\Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS.targets'))" />
   </Target>
 </Project>

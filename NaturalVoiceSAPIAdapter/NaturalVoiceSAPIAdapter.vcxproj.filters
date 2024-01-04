@@ -40,6 +40,9 @@
     <ClInclude Include="TTSEngine.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="delaydll.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter.cpp">
@@ -55,6 +58,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TTSEngine.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="delaydll.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

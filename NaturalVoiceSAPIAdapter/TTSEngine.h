@@ -5,9 +5,7 @@
 
 #include "pch.h"
 
-
 #include "NaturalVoiceSAPIAdapter_i.h"
-
 
 
 #if defined(_WIN32_WCE) && !defined(_CE_DCOM) && !defined(_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA)
@@ -75,21 +73,21 @@ END_COM_MAP()
 public: // Interface implementation
 
 	// ISpObjectWithToken 
-	STDMETHODIMP SetObjectToken(ISpObjectToken* pToken);
-	STDMETHODIMP GetObjectToken(ISpObjectToken** ppToken)
+	STDMETHODIMP SetObjectToken(ISpObjectToken* pToken) noexcept;
+	STDMETHODIMP GetObjectToken(ISpObjectToken** ppToken) noexcept
 	{
 		return SpGenericGetObjectToken(ppToken, m_cpToken);
 	}
 
 	// ISpTTSEngine
-	STDMETHOD(Speak)(DWORD dwSpeakFlags,
+	STDMETHODIMP Speak(DWORD dwSpeakFlags,
 		REFGUID rguidFormatId, const WAVEFORMATEX* pWaveFormatEx,
-		const SPVTEXTFRAG* pTextFragList, ISpTTSEngineSite* pOutputSite);
-	STDMETHOD(GetOutputFormat)(const GUID* pTargetFormatId, const WAVEFORMATEX* pTargetWaveFormatEx,
-		GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx);
+		const SPVTEXTFRAG* pTextFragList, ISpTTSEngineSite* pOutputSite) noexcept;
+	STDMETHODIMP GetOutputFormat(const GUID* pTargetFormatId, const WAVEFORMATEX* pTargetWaveFormatEx,
+		GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx) noexcept;
 
 	// ISupportErrorInfo
-	STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid)
+	STDMETHODIMP InterfaceSupportsErrorInfo(REFIID riid) noexcept
 	{
 		if (InlineIsEqualGUID(riid, IID_ISpTTSEngine) || InlineIsEqualGUID(riid, IID_ISpObjectWithToken))
 			return S_OK;
@@ -116,7 +114,7 @@ private: // Member variables
 
 	size_t m_mappingIndex = 0;
 
-	bool m_synthesisCompleted = false;
+	std::atomic_bool m_synthesisCompleted = false;
 	std::shared_ptr<SpeechSynthesisResult> m_synthesisResult;
 
 private: // Private methods
@@ -136,7 +134,7 @@ private: // Private methods
 private: // Static members
 
 	// 24kHz 16Bit mono
-	static const DWORD nWaveBytesPerMSec = 24000 * 16 / 8 / 1000;
+	static constexpr DWORD nWaveBytesPerMSec = 24000 * 16 / 8 / 1000;
 	static inline ULONGLONG WaveTicksToBytes(uint64_t ticks)
 	{
 		return ticks * nWaveBytesPerMSec / 10000;

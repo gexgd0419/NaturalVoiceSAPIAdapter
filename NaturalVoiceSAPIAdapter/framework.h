@@ -20,6 +20,8 @@
 #include <atlcom.h>
 #include <atlctl.h>
 
+#define RETONFAIL(hresult) if (HRESULT hr = hresult; FAILED(hr)) return hr
+
 #include <speechapi_cxx.h>
 
 using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h

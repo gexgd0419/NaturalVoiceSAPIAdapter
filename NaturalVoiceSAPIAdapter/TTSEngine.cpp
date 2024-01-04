@@ -2,6 +2,7 @@
 
 #include "pch.h"
 #include "TTSEngine.h"
+#include "delaydll.h"
 
 // CTTSEngine
 
@@ -9,20 +10,17 @@
 // ISpObjectWithToken Implementation
 
 // Initializes this instance of CTTSEngine to use the voice specified in registry
-STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken)
+STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken) noexcept
 {
     try
     {
-        HRESULT hr = SpGenericSetObjectToken(pToken, m_cpToken);
-        if (FAILED(hr)) return hr;
+        RETONFAIL(SpGenericSetObjectToken(pToken, m_cpToken));
 
-        hr = InitSynthesizer();
-        if (FAILED(hr)) return hr;
+        RETONFAIL(InitSynthesizer());
 
         SetupSynthesizerEvents();
 
-        hr = InitPhoneConverter();
-        if (FAILED(hr)) return hr;
+        RETONFAIL(InitPhoneConverter());
 
         return S_OK;
     }
@@ -35,11 +33,15 @@ STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken)
         Error(ex.what());
         return E_FAIL;
     }
+    catch (const DllDelayLoadError& ex)
+    {
+        return HRESULT_FROM_WIN32(ex.code());
+    }
     catch (AZACHR hr)
     {
         return hr == AZAC_ERR_INVALID_ARG ? E_INVALIDARG : E_FAIL;
     }
-    catch (...) // exceptions should not cross COM boundary
+    catch (...) // C++ exceptions should not cross COM boundary
     {
         return E_FAIL;
     }
@@ -52,30 +54,29 @@ STDMETHODIMP CTTSEngine::Speak(DWORD dwSpeakFlags,
     REFGUID rguidFormatId,
     const WAVEFORMATEX* pWaveFormatEx,
     const SPVTEXTFRAG* pTextFragList,
-    ISpTTSEngineSite* pOutputSite)
+    ISpTTSEngineSite* pOutputSite) noexcept
 {
-    HRESULT hr = S_OK;
-
-    // Check args
-    if (SP_IS_BAD_INTERFACE_PTR(pOutputSite) ||
-        SP_IS_BAD_READ_PTR(pTextFragList))
-    {
-        return E_INVALIDARG;
-    }
-    if (!m_synthesizer)
-    {
-        return SPERR_UNINITIALIZED;
-    }
-
     try
     {
+        HRESULT hr = S_OK;
+
+        // Check args
+        if (SP_IS_BAD_INTERFACE_PTR(pOutputSite) ||
+            SP_IS_BAD_READ_PTR(pTextFragList))
+        {
+            return E_INVALIDARG;
+        }
+        if (!m_synthesizer)
+        {
+            return SPERR_UNINITIALIZED;
+        }
+
         m_pOutputSite = pOutputSite;
         BuildSSML(pTextFragList);
         m_synthesisCompleted = false;
         m_synthesisResult.reset();
 
-        hr = CheckSynthesisResult(m_synthesizer->StartSpeakingSsml(m_ssml));
-        if (FAILED(hr)) return hr;
+        RETONFAIL(CheckSynthesisResult(m_synthesizer->StartSpeakingSsml(m_ssml)));
 
         while (!(pOutputSite->GetActions() & SPVES_ABORT) && !m_synthesisCompleted)
         {
@@ -84,14 +85,14 @@ STDMETHODIMP CTTSEngine::Speak(DWORD dwSpeakFlags,
                 // Skipping is not supported
                 pOutputSite->CompleteSkip(0);
             }
+            Sleep(50); // reduce CPU usage
         }
 
         m_synthesizer->StopSpeakingAsync().wait();
 
         if (m_synthesisResult)
         {
-            hr = CheckSynthesisResult(m_synthesisResult);
-            if (FAILED(hr)) return hr;
+            RETONFAIL(CheckSynthesisResult(m_synthesisResult));
         }
 
         return S_OK;
@@ -100,14 +101,14 @@ STDMETHODIMP CTTSEngine::Speak(DWORD dwSpeakFlags,
     {
         return E_OUTOFMEMORY;
     }
-    catch (...) // exceptions should not cross COM boundary
+    catch (...) // C++ exceptions should not cross COM boundary
     {
         return E_FAIL;
     }
 } /* CTTSEngine::Speak */
 
 STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* pTargetFormatId, const WAVEFORMATEX* pTargetWaveFormatEx,
-    GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx)
+    GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx) noexcept
 {
     // Embedded voice only supports 24kHz 16Bit mono
     return SpConvertStreamFormatEnum(SPSF_24kHz16BitMono, pDesiredFormatId, ppCoMemDesiredWaveFormatEx);
@@ -119,12 +120,10 @@ STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* pTargetFormatId, const WAVE
 HRESULT CTTSEngine::InitPhoneConverter()
 {
     CComPtr<ISpDataKey> pAttrKey;
-    HRESULT hr = m_cpToken->OpenKey(L"Attributes", &pAttrKey);
-    if (FAILED(hr)) return hr;
+    RETONFAIL(m_cpToken->OpenKey(SPTOKENKEY_ATTRIBUTES, &pAttrKey));
 
     CSpDynamicString pszLang;
-    hr = pAttrKey->GetStringValue(L"Language", &pszLang);
-    if (FAILED(hr)) return hr;
+    RETONFAIL(pAttrKey->GetStringValue(L"Language", &pszLang));
 
     LANGID lang = (LANGID)wcstoul(pszLang, nullptr, 16); // hexadecimal without 0x prefix, e.g. 409 (=0x409)
     if (lang == 0)
@@ -152,16 +151,14 @@ HRESULT CTTSEngine::InitSynthesizer()
         }
     ));
 
-    HRESULT hr = m_cpToken->OpenKey(L"NaturalVoiceConfig", &pConfigKey); // this key must exist
-    if (FAILED(hr)) return hr;
+    RETONFAIL(m_cpToken->OpenKey(L"NaturalVoiceConfig", &pConfigKey)); // this key must exist
 
     DWORD dwErrorMode;
-    hr = pConfigKey->GetDWORD(L"ErrorMode", &dwErrorMode);
+    HRESULT hr = pConfigKey->GetDWORD(L"ErrorMode", &dwErrorMode);
     if (FAILED(hr)) dwErrorMode = 0;
     m_errorMode = (ErrorMode)std::clamp(dwErrorMode, 0UL, 2UL);
 
-    hr = pConfigKey->GetStringValue(L"Key", &pszKey);
-    if (FAILED(hr)) return hr;
+    RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
 
     using Microsoft::CognitiveServices::Speech::Utils::Details::to_string;
 
@@ -173,8 +170,7 @@ HRESULT CTTSEngine::InitSynthesizer()
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
 
-        hr = pConfigKey->GetStringValue(L"Voice", &pszVoice);
-        if (FAILED(hr)) return hr;
+        RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
         
         config->SetSpeechSynthesisVoiceName(to_string((LPCWSTR)pszVoice));
         m_onlineVoiceName = pszVoice;
@@ -182,8 +178,7 @@ HRESULT CTTSEngine::InitSynthesizer()
         if (m_errorMode == ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            hr = CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
-            if (FAILED(hr)) return hr;
+            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
         }
 
         m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
@@ -206,8 +201,7 @@ HRESULT CTTSEngine::InitSynthesizer()
         if (m_errorMode == ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            hr = CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
-            if (FAILED(hr)) return hr;
+            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
         }
 
         m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
@@ -470,6 +464,8 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             break;
 
         case SPVA_ParseUnknownTag: // insert it into SSML as-is
+            // TODO: Custom XML tags may not be closed properly
+            // when using VOICE tags to switch away from this voice
             m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
             break;
         }
