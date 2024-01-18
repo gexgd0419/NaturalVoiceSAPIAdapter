@@ -22,17 +22,12 @@ public:
 private:
 	CComPtr<ISpObjectToken> m_token;
 public:
-	HRESULT FinalConstruct()
-	{
-		return S_OK;
-	}
-
-	void SetParent(IUnknown* pOuterUnknown)
+	void SetParent(IUnknown* pOuterUnknown) override
 	{
 		pOuterUnknown->QueryInterface(&m_token);
 	}
 
-	STDMETHODIMP get_Id(__RPC__deref_out_opt BSTR* ObjectId)
+	STDMETHODIMP get_Id(__RPC__deref_out_opt BSTR* ObjectId) noexcept override
 	{
 		if (!ObjectId)
 			return E_POINTER;
@@ -41,7 +36,7 @@ public:
 		return id.CopyToBSTR(ObjectId);
 	}
 
-	STDMETHODIMP get_DataKey(__RPC__deref_out_opt ISpeechDataKey** DataKey)
+	STDMETHODIMP get_DataKey(__RPC__deref_out_opt ISpeechDataKey** DataKey) noexcept override
 	{
 		if (!DataKey)
 			return E_POINTER;
@@ -51,14 +46,14 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP get_Category(__RPC__deref_out_opt ISpeechObjectTokenCategory** Category)
+	STDMETHODIMP get_Category(__RPC__deref_out_opt ISpeechObjectTokenCategory** Category) noexcept override
 	{
 		CComPtr<ISpObjectTokenCategory> pCat;
 		RETONFAIL(m_token->GetCategory(&pCat));
 		return pCat->QueryInterface(Category);
 	}
 
-	STDMETHODIMP GetDescription(long Locale, __RPC__deref_out_opt BSTR* Description)
+	STDMETHODIMP GetDescription(long Locale, __RPC__deref_out_opt BSTR* Description) noexcept override
 	{
 		if (!Description)
 			return E_POINTER;
@@ -67,12 +62,13 @@ public:
 		return desc.CopyToBSTR(Description);
 	}
 
-	STDMETHODIMP SetId(__RPC__in BSTR Id, __RPC__in BSTR CategoryID = (BSTR)L"", VARIANT_BOOL CreateIfNotExist = 0)
+	STDMETHODIMP SetId(__RPC__in BSTR /*Id*/, __RPC__in BSTR /*CategoryID*/ = (BSTR)L"",
+		VARIANT_BOOL /*CreateIfNotExist*/ = 0) noexcept override
 	{
 		return SPERR_ALREADY_INITIALIZED;
 	}
 
-	STDMETHODIMP GetAttribute(__RPC__in BSTR AttributeName, __RPC__deref_out_opt BSTR* AttributeValue)
+	STDMETHODIMP GetAttribute(__RPC__in BSTR AttributeName, __RPC__deref_out_opt BSTR* AttributeValue) noexcept override
 	{
 		if (!AttributeValue)
 			return E_POINTER;
@@ -83,12 +79,12 @@ public:
 		return strValue.CopyToBSTR(AttributeValue);
 	}
 
-	STDMETHODIMP CreateInstance(__RPC__in_opt IUnknown* pUnkOuter, SpeechTokenContext ClsContext, __RPC__deref_out_opt IUnknown** Object)
+	STDMETHODIMP CreateInstance(__RPC__in_opt IUnknown* pUnkOuter, SpeechTokenContext ClsContext, __RPC__deref_out_opt IUnknown** Object) noexcept override
 	{
 		return m_token->CreateInstance(pUnkOuter, ClsContext, IID_IUnknown, reinterpret_cast<LPVOID*>(Object));
 	}
 
-	STDMETHODIMP Remove(__RPC__in BSTR ObjectStorageCLSID)
+	STDMETHODIMP Remove(__RPC__in BSTR ObjectStorageCLSID) noexcept override
 	{
 		if (!ObjectStorageCLSID || !*ObjectStorageCLSID)
 			return m_token->Remove(nullptr);
@@ -97,19 +93,21 @@ public:
 		return m_token->Remove(&clsid);
 	}
 
-	STDMETHODIMP GetStorageFileName(__RPC__in BSTR ObjectStorageCLSID, __RPC__in BSTR KeyName, __RPC__in BSTR FileName,
-		SpeechTokenShellFolder Folder, __RPC__deref_out_opt BSTR* FilePath)
+	STDMETHODIMP GetStorageFileName(__RPC__in BSTR /*ObjectStorageCLSID*/, __RPC__in BSTR /*KeyName*/,
+		__RPC__in BSTR /*FileName*/, SpeechTokenShellFolder /*Folder*/,
+		__RPC__deref_out_opt BSTR* /*FilePath*/) noexcept override
 	{
 		return E_NOTIMPL;
 	}
 
-	STDMETHODIMP RemoveStorageFileName(__RPC__in BSTR ObjectStorageCLSID, __RPC__in BSTR KeyName, VARIANT_BOOL DeleteFile)
+	STDMETHODIMP RemoveStorageFileName(__RPC__in BSTR /*ObjectStorageCLSID*/, __RPC__in BSTR /*KeyName*/,
+		VARIANT_BOOL /*DeleteFile*/) noexcept override
 	{
 		return E_NOTIMPL;
 	}
 
-	STDMETHODIMP IsUISupported(__RPC__in const BSTR TypeOfUI, __RPC__in const VARIANT* ExtraData, __RPC__in_opt IUnknown* Object,
-		__RPC__out VARIANT_BOOL* Supported)
+	STDMETHODIMP IsUISupported(__RPC__in const BSTR /*TypeOfUI*/, __RPC__in const VARIANT* /*ExtraData*/,
+		__RPC__in_opt IUnknown* /*Object*/, __RPC__out VARIANT_BOOL* Supported) noexcept override
 	{
 		if (!Supported)
 			return E_POINTER;
@@ -117,13 +115,14 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP DisplayUI(long hWnd, __RPC__in BSTR Title, __RPC__in const BSTR TypeOfUI, __RPC__in const VARIANT* ExtraData = 0,
-		__RPC__in_opt IUnknown* Object = 0)
+	STDMETHODIMP DisplayUI(long /*hWnd*/, __RPC__in BSTR /*Title*/, __RPC__in const BSTR /*TypeOfUI*/,
+		__RPC__in const VARIANT* /*ExtraData*/ = 0,
+		__RPC__in_opt IUnknown* /*Object*/ = 0) noexcept override
 	{
 		return E_NOTIMPL;
 	}
 
-	STDMETHODIMP MatchesAttributes(__RPC__in BSTR Attributes, __RPC__out VARIANT_BOOL* Matches)
+	STDMETHODIMP MatchesAttributes(__RPC__in BSTR Attributes, __RPC__out VARIANT_BOOL* Matches) noexcept override
 	{
 		if (!Matches)
 			return E_POINTER;

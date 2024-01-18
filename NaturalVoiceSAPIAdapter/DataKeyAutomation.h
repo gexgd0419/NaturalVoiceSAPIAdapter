@@ -29,17 +29,12 @@ public:
 private:
 	CComPtr<ISpDataKey> m_dataKey;
 public:
-	HRESULT FinalConstruct()
+	void SetParent(IUnknown* pOuterUnknown) override
 	{
-		return S_OK;
+		pOuterUnknown->QueryInterface(&m_dataKey);
 	}
 
-	void SetParent(IUnknown* pOuterUnknown)
-	{
-		m_pOuterUnknown->QueryInterface(&m_dataKey);
-	}
-
-	STDMETHODIMP SetBinaryValue(__RPC__in const BSTR ValueName, VARIANT Value)
+	STDMETHODIMP SetBinaryValue(__RPC__in const BSTR ValueName, VARIANT Value) noexcept override
 	{
 		int cbElem;
 		switch (Value.vt & VT_TYPEMASK)
@@ -80,7 +75,7 @@ public:
 		}
 	}
 
-	STDMETHODIMP GetBinaryValue(__RPC__in const BSTR ValueName, __RPC__out VARIANT* Value)
+	STDMETHODIMP GetBinaryValue(__RPC__in const BSTR ValueName, __RPC__out VARIANT* Value) noexcept override
 	{
 		if (!Value)
 			return E_POINTER;
@@ -104,12 +99,12 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP SetStringValue(__RPC__in const BSTR ValueName, __RPC__in const BSTR Value)
+	STDMETHODIMP SetStringValue(__RPC__in const BSTR ValueName, __RPC__in const BSTR Value) noexcept override
 	{
 		return m_dataKey->SetStringValue(ValueName, Value);
 	}
 
-	STDMETHODIMP GetStringValue(__RPC__in const BSTR ValueName, __RPC__deref_out_opt BSTR* Value)
+	STDMETHODIMP GetStringValue(__RPC__in const BSTR ValueName, __RPC__deref_out_opt BSTR* Value) noexcept override
 	{
 		if (!Value) return E_POINTER;
 		CSpDynamicString value;
@@ -117,41 +112,41 @@ public:
 		return value.CopyToBSTR(Value);
 	}
 
-	STDMETHODIMP SetLongValue(__RPC__in const BSTR ValueName, long Value)
+	STDMETHODIMP SetLongValue(__RPC__in const BSTR ValueName, long Value) noexcept override
 	{
 		return m_dataKey->SetDWORD(ValueName, Value);
 	}
 
-	STDMETHODIMP GetLongValue(__RPC__in const BSTR ValueName, __RPC__out long* Value)
+	STDMETHODIMP GetLongValue(__RPC__in const BSTR ValueName, __RPC__out long* Value) noexcept override
 	{
 		return m_dataKey->GetDWORD(ValueName, reinterpret_cast<DWORD*>(Value));
 	}
 
-	STDMETHODIMP OpenKey(__RPC__in const BSTR SubKeyName, __RPC__deref_out_opt ISpeechDataKey** SubKey)
+	STDMETHODIMP OpenKey(__RPC__in const BSTR SubKeyName, __RPC__deref_out_opt ISpeechDataKey** SubKey) noexcept override
 	{
 		CComPtr<ISpDataKey> subkey;
 		RETONFAIL(m_dataKey->OpenKey(SubKeyName, &subkey));
 		return subkey->QueryInterface(SubKey);
 	}
 
-	STDMETHODIMP CreateKey(__RPC__in const BSTR SubKeyName, __RPC__deref_out_opt ISpeechDataKey** SubKey)
+	STDMETHODIMP CreateKey(__RPC__in const BSTR SubKeyName, __RPC__deref_out_opt ISpeechDataKey** SubKey) noexcept override
 	{
 		ISpDataKey* subkey = nullptr;
 		RETONFAIL(m_dataKey->CreateKey(SubKeyName, &subkey));
 		return subkey->QueryInterface(SubKey);
 	}
 
-	STDMETHODIMP DeleteKey(__RPC__in const BSTR SubKeyName)
+	STDMETHODIMP DeleteKey(__RPC__in const BSTR SubKeyName) noexcept override
 	{
 		return m_dataKey->DeleteKey(SubKeyName);
 	}
 
-	STDMETHODIMP DeleteValue(__RPC__in const BSTR ValueName)
+	STDMETHODIMP DeleteValue(__RPC__in const BSTR ValueName) noexcept override
 	{
 		return m_dataKey->DeleteValue(ValueName);
 	}
 
-	STDMETHODIMP EnumKeys(long Index, __RPC__deref_out_opt BSTR* SubKeyName)
+	STDMETHODIMP EnumKeys(long Index, __RPC__deref_out_opt BSTR* SubKeyName) noexcept override
 	{
 		if (!SubKeyName) return E_POINTER;
 		CSpDynamicString name;
@@ -159,7 +154,7 @@ public:
 		return name.CopyToBSTR(SubKeyName);
 	}
 
-	STDMETHODIMP EnumValues(long Index, __RPC__deref_out_opt BSTR* ValueName)
+	STDMETHODIMP EnumValues(long Index, __RPC__deref_out_opt BSTR* ValueName) noexcept override
 	{
 		if (!ValueName) return E_POINTER;
 		CSpDynamicString name;

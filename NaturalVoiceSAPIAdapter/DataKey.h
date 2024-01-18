@@ -48,7 +48,7 @@ END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct()
+	HRESULT FinalConstruct() noexcept
 	{
 		RETONFAIL(CDataKeyAutomation::_CreatorClass::CreateInstance(GetControllingUnknown(), IID_IUnknown,
 			reinterpret_cast<LPVOID*>(&m_pAutomation)));
@@ -67,13 +67,13 @@ protected:
 	SubkeyCollection m_subkeys;
 	CComPtr<IUnknown> m_pAutomation;
 
-	void InitKey(const StringPairCollection& values, const SubkeyCollection& subkeys)
+	void InitKey(const StringPairCollection& values, const SubkeyCollection& subkeys) override
 	{
 		m_values = values;
 		m_subkeys = subkeys;
 	}
 
-	void SetPath(LPCWSTR lpszCurrentPath)
+	void SetPath(LPCWSTR lpszCurrentPath) override
 	{
 		m_subkeyPath = lpszCurrentPath;
 		m_pKey.Release();
@@ -87,6 +87,10 @@ protected:
 			{
 				pKey->QueryInterface(&m_pKey);
 			}
+			else
+			{
+				RegCloseKey(hKey);
+			}
 		}
 		for (const auto& subkey : m_subkeys)
 		{
@@ -94,7 +98,7 @@ protected:
 		}
 	}
 
-	HRESULT EnsureKey()
+	HRESULT EnsureKey() noexcept
 	{
 		if (m_pKey) return S_OK;
 		CComPtr<ISpRegDataKey> pKey;
@@ -107,7 +111,7 @@ protected:
 		return pKey->QueryInterface(&m_pKey);
 	}
 
-	ISpDataKey* FindSubkey(LPCWSTR pszSubKeyName)
+	ISpDataKey* FindSubkey(LPCWSTR pszSubKeyName) noexcept
 	{
 		for (const auto& pair : m_subkeys)
 		{
@@ -117,7 +121,7 @@ protected:
 		return nullptr;
 	}
 
-	LPCWSTR FindValue(LPCWSTR pszValueName)
+	LPCWSTR FindValue(LPCWSTR pszValueName) noexcept
 	{
 		if (!pszValueName)
 			pszValueName = L"";
@@ -132,26 +136,26 @@ protected:
 public:
 	// ISpDataKey implementation
 
-	STDMETHODIMP SetData(LPCWSTR pszValueName, ULONG cbData, const BYTE* pData)
+	STDMETHODIMP SetData(LPCWSTR pszValueName, ULONG cbData, const BYTE* pData) noexcept override
 	{
 		RETONFAIL(EnsureKey());
 		return m_pKey->SetData(pszValueName, cbData, pData);
 	}
 
-	STDMETHODIMP GetData(LPCWSTR pszValueName, ULONG* pcbData, BYTE* pData)
+	STDMETHODIMP GetData(LPCWSTR pszValueName, ULONG* pcbData, BYTE* pData) noexcept override
 	{
 		if (m_pKey)
 			return m_pKey->GetData(pszValueName, pcbData, pData);
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP SetStringValue(_In_opt_ LPCWSTR pszValueName, LPCWSTR pszValue)
+	STDMETHODIMP SetStringValue(_In_opt_ LPCWSTR pszValueName, LPCWSTR pszValue) noexcept override
 	{
 		RETONFAIL(EnsureKey());
 		return m_pKey->SetStringValue(pszValueName, pszValue);
 	}
 
-	STDMETHODIMP GetStringValue(_In_opt_ LPCWSTR pszValueName, _Outptr_ LPWSTR* ppszValue)
+	STDMETHODIMP GetStringValue(_In_opt_ LPCWSTR pszValueName, _Outptr_ LPWSTR* ppszValue) noexcept override
 	{
 		if (!ppszValue)
 			return E_POINTER;
@@ -178,13 +182,13 @@ public:
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP SetDWORD(LPCWSTR pszValueName, DWORD dwValue)
+	STDMETHODIMP SetDWORD(LPCWSTR pszValueName, DWORD dwValue) noexcept override
 	{
 		RETONFAIL(EnsureKey());
 		return m_pKey->SetDWORD(pszValueName, dwValue);
 	}
 
-	STDMETHODIMP GetDWORD(LPCWSTR pszValueName, DWORD* pdwValue)
+	STDMETHODIMP GetDWORD(LPCWSTR pszValueName, DWORD* pdwValue) noexcept override
 	{
 		if (!pdwValue)
 			return E_POINTER;
@@ -201,7 +205,7 @@ public:
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP OpenKey(LPCWSTR pszSubKeyName, _Outptr_ ISpDataKey** ppSubKey)
+	STDMETHODIMP OpenKey(LPCWSTR pszSubKeyName, _Outptr_ ISpDataKey** ppSubKey) noexcept override
 	{
 		if (!pszSubKeyName || !ppSubKey)
 			return E_POINTER;
@@ -216,7 +220,7 @@ public:
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP CreateKey(LPCWSTR pszSubKey, _Outptr_ ISpDataKey** ppSubKey)
+	STDMETHODIMP CreateKey(LPCWSTR pszSubKey, _Outptr_ ISpDataKey** ppSubKey) noexcept override
 	{
 		HRESULT hr = OpenKey(pszSubKey, ppSubKey);
 		if (hr == SPERR_NOT_FOUND && m_pKey)
@@ -224,7 +228,7 @@ public:
 		return hr;
 	}
 
-	STDMETHODIMP DeleteKey(LPCWSTR pszSubKey)
+	STDMETHODIMP DeleteKey(LPCWSTR pszSubKey) noexcept override
 	{
 		if (!pszSubKey)
 			return E_POINTER;
@@ -235,7 +239,7 @@ public:
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP DeleteValue(LPCWSTR pszValueName)
+	STDMETHODIMP DeleteValue(LPCWSTR pszValueName) noexcept override
 	{
 		if (!pszValueName)
 			return E_POINTER;
@@ -246,7 +250,7 @@ public:
 		return SPERR_NOT_FOUND;
 	}
 
-	STDMETHODIMP EnumKeys(ULONG Index, _Outptr_ LPWSTR* ppszSubKeyName)
+	STDMETHODIMP EnumKeys(ULONG Index, _Outptr_ LPWSTR* ppszSubKeyName) noexcept override
 	{
 		// Enumerated keys include both virtual keys and actual registry keys
 		// Virtual keys come first, indexes greater are for actual keys
@@ -288,7 +292,7 @@ public:
 		return SPERR_NO_MORE_ITEMS;
 	}
 
-	STDMETHODIMP EnumValues(ULONG Index, _Outptr_ LPWSTR* ppszValueName)
+	STDMETHODIMP EnumValues(ULONG Index, _Outptr_ LPWSTR* ppszValueName) noexcept override
 	{
 		// Enumerated values include both virtual values and actual registry values
 		// Virtual values come first, indexes greater are for actual values

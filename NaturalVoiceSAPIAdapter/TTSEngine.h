@@ -73,8 +73,8 @@ END_COM_MAP()
 public: // Interface implementation
 
 	// ISpObjectWithToken 
-	STDMETHODIMP SetObjectToken(ISpObjectToken* pToken) noexcept;
-	STDMETHODIMP GetObjectToken(ISpObjectToken** ppToken) noexcept
+	STDMETHODIMP SetObjectToken(ISpObjectToken* pToken) noexcept override;
+	STDMETHODIMP GetObjectToken(ISpObjectToken** ppToken) noexcept override
 	{
 		return SpGenericGetObjectToken(ppToken, m_cpToken);
 	}
@@ -82,12 +82,12 @@ public: // Interface implementation
 	// ISpTTSEngine
 	STDMETHODIMP Speak(DWORD dwSpeakFlags,
 		REFGUID rguidFormatId, const WAVEFORMATEX* pWaveFormatEx,
-		const SPVTEXTFRAG* pTextFragList, ISpTTSEngineSite* pOutputSite) noexcept;
+		const SPVTEXTFRAG* pTextFragList, ISpTTSEngineSite* pOutputSite) noexcept override;
 	STDMETHODIMP GetOutputFormat(const GUID* pTargetFormatId, const WAVEFORMATEX* pTargetWaveFormatEx,
-		GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx) noexcept;
+		GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx) noexcept override;
 
 	// ISupportErrorInfo
-	STDMETHODIMP InterfaceSupportsErrorInfo(REFIID riid) noexcept
+	STDMETHODIMP InterfaceSupportsErrorInfo(REFIID riid) noexcept override
 	{
 		if (InlineIsEqualGUID(riid, IID_ISpTTSEngine) || InlineIsEqualGUID(riid, IID_ISpObjectWithToken))
 			return S_OK;

@@ -18,7 +18,7 @@ struct VoiceKeyTraits
 {
 	static constexpr HKEY RegRoot = HKEY_CURRENT_USER;
 	static constexpr LPCWSTR RegPrefix = L"Software\\NaturalVoiceSAPIAdapter\\VoiceTokens\\";
-	static HRESULT GetStringValueOverride(LPCWSTR pszSubkey, LPCWSTR pszValueName, LPWSTR* ppszValue)
+	static HRESULT GetStringValueOverride(LPCWSTR pszSubkey, LPCWSTR pszValueName, LPWSTR* ppszValue) noexcept
 	{
 		if (*pszSubkey == '\0' && _wcsicmp(pszValueName, L"CLSID") == 0)
 			return StringFromCLSID(CLSID_TTSEngine, ppszValue);
@@ -54,7 +54,7 @@ END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct()
+	HRESULT FinalConstruct() noexcept
 	{
 		RETONFAIL(CVoiceTokenAutomation::_CreatorClass::CreateInstance(GetControllingUnknown(), IID_IUnknown,
 			reinterpret_cast<LPVOID*>(&m_pAutomation)));
@@ -62,17 +62,17 @@ END_COM_MAP()
 		return S_OK;
 	}
 
-	void FinalRelease()
+	void FinalRelease() noexcept
 	{
 	}
 
 public:
-	STDMETHODIMP SetId(_In_opt_ LPCWSTR pszCategoryId, LPCWSTR pszTokenId, BOOL fCreateIfNotExist)
+	STDMETHODIMP SetId(_In_opt_ LPCWSTR /*pszCategoryId*/, LPCWSTR /*pszTokenId*/, BOOL /*fCreateIfNotExist*/) noexcept override
 	{
 		return SPERR_ALREADY_INITIALIZED;
 	}
 
-	STDMETHODIMP GetId(_Outptr_ LPWSTR* ppszCoMemTokenId)
+	STDMETHODIMP GetId(_Outptr_ LPWSTR* ppszCoMemTokenId) noexcept override
 	{
 		if (!ppszCoMemTokenId)
 			return E_POINTER;
@@ -83,14 +83,14 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP GetCategory(_Outptr_ ISpObjectTokenCategory** ppTokenCategory)
+	STDMETHODIMP GetCategory(_Outptr_ ISpObjectTokenCategory** ppTokenCategory) noexcept override
 	{
 		if (!ppTokenCategory)
 			return E_POINTER;
 		return SpGetCategoryFromId(SPCAT_VOICES, ppTokenCategory);
 	}
 
-	STDMETHODIMP CreateInstance(IUnknown* pUnkOuter, DWORD dwClsContext, REFIID riid, void** ppvObject)
+	STDMETHODIMP CreateInstance(IUnknown* pUnkOuter, DWORD /*dwClsContext*/, REFIID riid, void** ppvObject) noexcept override
 	{
 		if (!ppvObject)
 			return E_POINTER;
@@ -100,22 +100,23 @@ public:
 		return pInst->QueryInterface(riid, ppvObject);
 	}
 
-	STDMETHODIMP GetStorageFileName(REFCLSID clsidCaller, _In_  LPCWSTR pszValueName,
-		_In_opt_ LPCWSTR pszFileNameSpecifier, ULONG nFolder,
-		_Outptr_ LPWSTR* ppszFilePath)
+	STDMETHODIMP GetStorageFileName(REFCLSID /*clsidCaller*/, _In_  LPCWSTR /*pszValueName*/,
+		_In_opt_ LPCWSTR /*pszFileNameSpecifier*/, ULONG /*nFolder*/,
+		_Outptr_ LPWSTR* /*ppszFilePath*/) noexcept override
 	{ return E_NOTIMPL; }
 
-	STDMETHODIMP RemoveStorageFileName(REFCLSID clsidCaller, _In_ LPCWSTR pszKeyName, BOOL fDeleteFile)
+	STDMETHODIMP RemoveStorageFileName(REFCLSID /*clsidCaller*/, _In_ LPCWSTR /*pszKeyName*/, BOOL /*fDeleteFile*/)
+		noexcept override
 	{ return E_NOTIMPL; }
 
-	STDMETHODIMP Remove(_In_opt_ const CLSID* pclsidCaller)
+	STDMETHODIMP Remove(_In_opt_ const CLSID* pclsidCaller) noexcept override
 	{
 		// Removing the token programmatically (when pclsidCaller is null) is not allowed
 		return pclsidCaller ? E_NOTIMPL : E_ACCESSDENIED;
 	}
 
-	STDMETHODIMP IsUISupported(LPCWSTR pszTypeOfUI, void* pvExtraData, ULONG cbExtraData, IUnknown* punkObject,
-		BOOL* pfSupported)
+	STDMETHODIMP IsUISupported(LPCWSTR /*pszTypeOfUI*/, void* /*pvExtraData*/, ULONG /*cbExtraData*/,
+		IUnknown* /*punkObject*/, BOOL* pfSupported) noexcept override
 	{
 		if (!pfSupported)
 			return E_POINTER;
@@ -123,11 +124,11 @@ public:
 		return S_OK;
 	}
 
-	STDMETHODIMP DisplayUI(HWND hwndParent, LPCWSTR pszTitle, LPCWSTR pszTypeOfUI, void* pvExtraData,
-		ULONG cbExtraData, IUnknown* punkObject)
+	STDMETHODIMP DisplayUI(HWND /*hwndParent*/, LPCWSTR /*pszTitle*/, LPCWSTR /*pszTypeOfUI*/, void* /*pvExtraData*/,
+		ULONG /*cbExtraData*/, IUnknown* /*punkObject*/) noexcept override
 	{ return E_NOTIMPL; }
 
-	STDMETHODIMP MatchesAttributes(LPCWSTR pszAttributes, BOOL* pfMatches)
+	STDMETHODIMP MatchesAttributes(LPCWSTR pszAttributes, BOOL* pfMatches) noexcept override
 	{
 		if (!pfMatches)
 			return E_POINTER;
@@ -135,9 +136,9 @@ public:
 		// Use SpObjectTokenEnumBuilder to help us do the property matching
 		CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
 		RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-		pEnumBuilder->SetAttribs(pszAttributes, nullptr);
+		RETONFAIL(pEnumBuilder->SetAttribs(pszAttributes, nullptr));
 		CComQIPtr<ISpObjectToken> pSelf(this);
-		pEnumBuilder->AddTokens(1, &pSelf.p); // Add this token itself to the enum
+		RETONFAIL(pEnumBuilder->AddTokens(1, &pSelf.p)); // Add this token itself to the enum
 		ULONG count = 0;
 		CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder)->GetCount(&count);
 		*pfMatches = count != 0; // If this token gets filtered out, it does not match the attributes
