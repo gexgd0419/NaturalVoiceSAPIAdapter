@@ -5,6 +5,7 @@
 #define IDS_PROJNAME                    100
 #define IDR_NATURALVOICESAPIADAPTER     101
 #define IDR_TTSENGINE                   106
+#define IDR_VOICETOKENENUMERATOR        107
 
 // Next default values for new objects
 // 

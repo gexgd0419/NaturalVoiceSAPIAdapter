@@ -2,7 +2,9 @@
 
 #include "pch.h"
 #include "TTSEngine.h"
-#include "delaydll.h"
+#include "SpeechRestAPI.h"
+#include "NetUtils.h"
+#include "SpeechServiceConstants.h"
 
 // CTTSEngine
 
@@ -16,9 +18,7 @@ STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken) noexcept
     {
         RETONFAIL(SpGenericSetObjectToken(pToken, m_cpToken));
 
-        RETONFAIL(InitSynthesizer());
-
-        SetupSynthesizerEvents();
+        RETONFAIL(InitVoice());
 
         RETONFAIL(InitPhoneConverter());
 
@@ -28,14 +28,19 @@ STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken) noexcept
     {
         return E_OUTOFMEMORY;
     }
+    catch (const std::system_error& ex)
+    {
+        Error(ex.what());
+        auto& cat = ex.code().category();
+        if (cat == std::system_category() || cat == asio::system_category())
+            return HRESULT_FROM_WIN32(ex.code().value());
+        return E_FAIL;
+    }
     catch (const std::exception& ex)
     {
         Error(ex.what());
+        MessageBoxA(NULL, ex.what(), NULL, 0);
         return E_FAIL;
-    }
-    catch (const DllDelayLoadError& ex)
-    {
-        return HRESULT_FROM_WIN32(ex.code());
     }
     catch (AZACHR hr)
     {
@@ -50,45 +55,63 @@ STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken) noexcept
 
 // ISpTTSEngine Implementation 
 
-STDMETHODIMP CTTSEngine::Speak(DWORD dwSpeakFlags,
-    REFGUID rguidFormatId,
-    const WAVEFORMATEX* pWaveFormatEx,
+STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
+    REFGUID /*rguidFormatId*/,
+    const WAVEFORMATEX* /*pWaveFormatEx*/,
     const SPVTEXTFRAG* pTextFragList,
     ISpTTSEngineSite* pOutputSite) noexcept
 {
     try
     {
-        HRESULT hr = S_OK;
-
         // Check args
         if (SP_IS_BAD_INTERFACE_PTR(pOutputSite) ||
             SP_IS_BAD_READ_PTR(pTextFragList))
         {
             return E_INVALIDARG;
         }
-        if (!m_synthesizer)
+        if (!m_synthesizer && !m_restApi)
         {
             return SPERR_UNINITIALIZED;
         }
+
+        ULONGLONG eventInterests = 0;
+        pOutputSite->GetEventInterest(&eventInterests);
+        if (m_synthesizer)
+            SetupSynthesizerEvents(eventInterests);
+        else
+            SetupRestAPIEvents(eventInterests);
 
         m_pOutputSite = pOutputSite;
         BuildSSML(pTextFragList);
         m_synthesisCompleted = false;
         m_synthesisResult.reset();
 
-        RETONFAIL(CheckSynthesisResult(m_synthesizer->StartSpeakingSsml(m_ssml)));
+        std::future<void> future;
 
-        while (!(pOutputSite->GetActions() & SPVES_ABORT) && !m_synthesisCompleted)
+        if (m_synthesizer)
+        {
+            future = std::async(std::launch::async, [this]() { CheckSynthesisResult(m_synthesizer->SpeakSsml(m_ssml)); });
+        }
+        else
+        {
+            future = m_restApi->SpeakAsync(m_ssml);
+        }
+
+        while (!(pOutputSite->GetActions() & SPVES_ABORT)
+            && future.wait_for(std::chrono::milliseconds(50)) == std::future_status::timeout)
         {
             if (pOutputSite->GetActions() & SPVES_SKIP)
             {
                 // Skipping is not supported
                 pOutputSite->CompleteSkip(0);
             }
-            Sleep(50); // reduce CPU usage
         }
 
-        m_synthesizer->StopSpeakingAsync().wait();
+        if (m_synthesizer)
+            m_synthesizer->StopSpeakingAsync().wait();
+        else
+            m_restApi->Disconnect();
+        future.get(); // wait for the future and get its stored exception thrown
 
         if (m_synthesisResult)
         {
@@ -101,13 +124,26 @@ STDMETHODIMP CTTSEngine::Speak(DWORD dwSpeakFlags,
     {
         return E_OUTOFMEMORY;
     }
+    catch (const std::system_error& ex)
+    {
+        Error(ex.what());
+        auto& cat = ex.code().category();
+        if (cat == std::system_category() || cat == asio::system_category())
+            return HRESULT_FROM_WIN32(ex.code().value());
+        return E_FAIL;
+    }
+    catch (const std::exception& ex)
+    {
+        Error(ex.what());
+        return E_FAIL;
+    }
     catch (...) // C++ exceptions should not cross COM boundary
     {
         return E_FAIL;
     }
 } /* CTTSEngine::Speak */
 
-STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* pTargetFormatId, const WAVEFORMATEX* pTargetWaveFormatEx,
+STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* /*pTargetFormatId*/, const WAVEFORMATEX* /*pTargetWaveFormatEx*/,
     GUID* pDesiredFormatId, WAVEFORMATEX** ppCoMemDesiredWaveFormatEx) noexcept
 {
     // Embedded voice only supports 24kHz 16Bit mono
@@ -119,15 +155,8 @@ STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* pTargetFormatId, const WAVE
 
 HRESULT CTTSEngine::InitPhoneConverter()
 {
-    CComPtr<ISpDataKey> pAttrKey;
-    RETONFAIL(m_cpToken->OpenKey(SPTOKENKEY_ATTRIBUTES, &pAttrKey));
-
-    CSpDynamicString pszLang;
-    RETONFAIL(pAttrKey->GetStringValue(L"Language", &pszLang));
-
-    LANGID lang = (LANGID)wcstoul(pszLang, nullptr, 16); // hexadecimal without 0x prefix, e.g. 409 (=0x409)
-    if (lang == 0)
-        return E_INVALIDARG;
+    LANGID lang = 0;
+    RETONFAIL(SpGetLanguageFromToken(m_cpToken, &lang));
 
     WCHAR szLocale[LOCALE_NAME_MAX_LENGTH] = { 0 };
     if (LCIDToLocaleName(MAKELCID(lang, SORT_DEFAULT), szLocale, LOCALE_NAME_MAX_LENGTH, 0) == 0)
@@ -137,20 +166,11 @@ HRESULT CTTSEngine::InitPhoneConverter()
     return SpCreatePhoneConverter(lang, nullptr, nullptr, &m_phoneConverter);
 }
 
-HRESULT CTTSEngine::InitSynthesizer()
+HRESULT CTTSEngine::InitVoice()
 {
     CComPtr<ISpDataKey> pConfigKey;
     CSpDynamicString pszRegion, pszKey, pszPath, pszVoice;
-
-    auto audioConfig = AudioConfig::FromStreamOutput(AudioOutputStream::CreatePushStream(
-        [=](uint8_t* data, uint32_t len) -> int // returns bytes written
-        {
-            ULONG written = 0;
-            m_pOutputSite->Write(data, len, &written);
-            return written;
-        }
-    ));
-
+    
     RETONFAIL(m_cpToken->OpenKey(L"NaturalVoiceConfig", &pConfigKey)); // this key must exist
 
     DWORD dwErrorMode;
@@ -158,115 +178,233 @@ HRESULT CTTSEngine::InitSynthesizer()
     if (FAILED(hr)) dwErrorMode = 0;
     m_errorMode = (ErrorMode)std::clamp(dwErrorMode, 0UL, 2UL);
 
-    RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+    hr = InitLocalVoice(pConfigKey);
+    if (SUCCEEDED(hr))
+        return hr;
+    hr = InitCloudVoiceSynthesizer(pConfigKey);
+    if (SUCCEEDED(hr))
+        return hr;
+    hr = InitCloudVoiceRestAPI(pConfigKey);
+    return hr;
+}
 
-    using Microsoft::CognitiveServices::Speech::Utils::Details::to_string;
-
-    if (SUCCEEDED(hr = pConfigKey->GetStringValue(L"Region", &pszRegion)))
+HRESULT CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
+{
+    try
     {
-        // if Region is specified, use online Azure service, Key is the subscription key
-        auto config = SpeechConfig::FromSubscription(to_string((LPCWSTR)pszKey), to_string((LPCWSTR)pszRegion));
+        CSpDynamicString pszPath, pszKey;
+        RETONFAIL(pConfigKey->GetStringValue(L"Path", &pszPath));
+        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+
+        auto config = EmbeddedSpeechConfig::FromPath(WStringToUTF8(pszPath.m_psz));
 
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
-
-        RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
-        
-        config->SetSpeechSynthesisVoiceName(to_string((LPCWSTR)pszVoice));
-        m_onlineVoiceName = pszVoice;
-
-        if (m_errorMode == ProbeForError)
-        {
-            auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
-        }
-
-        m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
-    }
-    else if (SUCCEEDED(hr = pConfigKey->GetStringValue(L"Path", &pszPath)))
-    {
-        // if Path is specified, use local voice model stored in Path, Key is the decryption key
-        auto config = EmbeddedSpeechConfig::FromPath(to_string((LPCWSTR)pszPath));
-
-        config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
-        config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+        config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
 
         // get the voice name by loading it first
         auto synthesizer = SpeechSynthesizer::FromConfig(config);
         auto result = synthesizer->GetVoicesAsync().get();
         if (result->Voices.empty())
             return E_INVALIDARG;
-        config->SetSpeechSynthesisVoice(result->Voices[0]->Name, to_string((LPCWSTR)pszKey));
+        config->SetSpeechSynthesisVoice(result->Voices[0]->Name, WStringToUTF8(pszKey.m_psz));
 
-        if (m_errorMode == ProbeForError)
+        if (m_errorMode == ErrorMode::ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
             RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
         }
 
-        m_synthesizer = SpeechSynthesizer::FromConfig(config, audioConfig);
-    }
-    else
-    {
-        // neither Region nor Path is specified
-        return E_INVALIDARG;
-    }
+        m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
+            AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
 
-    return hr;
+        return S_OK;
+    }
+    catch (const std::system_error&) // Possibly DLL loading error
+    {
+        return E_FAIL; // If so, just return an error code so we can fallback
+    }
 }
 
-void CTTSEngine::SetupSynthesizerEvents()
+HRESULT CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
 {
-    m_synthesizer->BookmarkReached += [=](const SpeechSynthesisBookmarkEventArgs& arg)
+    try
+    {
+        CSpDynamicString pszKey, pszRegion, pszVoice;
+        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+        RETONFAIL(pConfigKey->GetStringValue(L"Region", &pszRegion));
+        RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
+
+        auto config = SpeechConfig::FromSubscription(WStringToUTF8(pszKey.m_psz), WStringToUTF8(pszRegion.m_psz));
+
+        config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
+        config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+        config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
+
+        auto proxy = GetProxyForUrl("https://" + WStringToUTF8(pszRegion.m_psz) + AZURE_TTS_HOST_AFTER_REGION);
+        if (!proxy.empty())
         {
-            SPEVENT ev = { 0 };
-            ev.ullAudioStreamOffset = WaveTicksToBytes(arg.AudioOffset);
-            ev.eEventId = SPEI_TTS_BOOKMARK;
-            ev.elParamType = SPET_LPARAM_IS_STRING;
-            std::wstring bookmark = Microsoft::CognitiveServices::Speech::Utils::Details::to_string(arg.Text);
-            ev.lParam = (LPARAM)bookmark.c_str();
-            ev.wParam = atol(arg.Text.c_str());
-            m_pOutputSite->AddEvents(&ev, 1);
+            auto url = ParseUrl(proxy);
+            uint32_t port = 80;
+            std::from_chars(url.port.data(), url.port.data() + url.port.size(), port);
+            config->SetProxy(std::string(url.host), port);
+        }
+
+        config->SetSpeechSynthesisVoiceName(WStringToUTF8(pszVoice.m_psz));
+        m_onlineVoiceName = pszVoice;
+
+        if (m_errorMode == ErrorMode::ProbeForError)
+        {
+            auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
+            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
+            synthesizer->GetVoicesAsync().get();
+        }
+
+        m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
+            AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
+
+        return S_OK;
+    }
+    catch (const std::system_error&) // Possibly DLL loading error
+    {   
+        return E_FAIL; // If so, just return an error code so we can fallback
+    }
+}
+
+HRESULT CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
+{
+    m_restApi = std::make_unique<SpeechRestAPI>();
+
+    CSpDynamicString pszVoice, pszKey;
+    RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
+    m_onlineVoiceName = pszVoice;
+    
+    if (CSpDynamicString pszWebsocketUrl; SUCCEEDED(pConfigKey->GetStringValue(L"WebsocketURL", &pszWebsocketUrl)))
+    {
+        pConfigKey->GetStringValue(L"Key", &pszKey);
+        m_restApi->SetWebsocketUrl(
+            pszKey ? WStringToUTF8(pszKey.m_psz) : "",
+            WStringToUTF8(pszWebsocketUrl.m_psz)
+        );
+    }
+    else if (CSpDynamicString pszRegion; SUCCEEDED(pConfigKey->GetStringValue(L"Region", &pszRegion)))
+    {
+        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+        m_restApi->SetSubscription(
+            WStringToUTF8(pszKey.m_psz),
+            WStringToUTF8(pszRegion.m_psz)
+        );
+    }
+    else
+        return E_INVALIDARG;
+
+    return S_OK;
+}
+
+int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
+{
+    ULONG written = 0;
+    m_pOutputSite->Write(data, len, &written);
+    return written;
+}
+void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::string& bookmark)
+{
+    SPEVENT ev = { 0 };
+    ev.ullAudioStreamOffset = WaveTicksToBytes(offsetTicks);
+    ev.eEventId = SPEI_TTS_BOOKMARK;
+    ev.elParamType = SPET_LPARAM_IS_STRING;
+    std::wstring wbookmark = UTF8ToWString(bookmark);
+    ev.lParam = reinterpret_cast<LPARAM>(wbookmark.c_str());
+    ev.wParam = _wtol(wbookmark.c_str());
+    m_pOutputSite->AddEvents(&ev, 1);
+}
+void CTTSEngine::OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType)
+{
+    SPEVENT ev = { 0 };
+    ev.ullAudioStreamOffset = WaveTicksToBytes(audioOffsetTicks);
+    ev.eEventId = boundaryType;
+    ev.elParamType = SPET_LPARAM_IS_UNDEFINED;
+    ULONG offset = textOffset, length = textLength;
+    MapTextOffset(offset, length);
+    ev.lParam = offset;
+    ev.wParam = length;
+    m_pOutputSite->AddEvents(&ev, 1);
+}
+void CTTSEngine::OnViseme(uint64_t offsetTicks, uint32_t visemeId)
+{
+    SPEVENT ev = { 0 };
+    ev.ullAudioStreamOffset = WaveTicksToBytes(offsetTicks);
+    ev.eEventId = SPEI_VISEME;
+    ev.elParamType = SPET_LPARAM_IS_UNDEFINED;
+    ev.wParam = 0;
+    // Cognitive Speech uses the same viseme ID values as SAPI 
+    ev.lParam = MAKELONG(visemeId, 0);
+    m_pOutputSite->AddEvents(&ev, 1);
+}
+void CTTSEngine::OnSessionEnd(uint64_t offsetTicks)
+{
+    m_synthesisCompleted = true;
+}
+
+void CTTSEngine::SetupSynthesizerEvents(ULONGLONG interests)
+{
+    ClearSynthesizerEvents();
+
+    if (interests & SPEI_TTS_BOOKMARK)
+        m_synthesizer->BookmarkReached += [this](const SpeechSynthesisBookmarkEventArgs& arg)
+        {
+            OnBookmark(arg.AudioOffset, arg.Text);
         };
 
-    m_synthesizer->WordBoundary += [=](const SpeechSynthesisWordBoundaryEventArgs& arg)
+    if (interests & (SPEI_WORD_BOUNDARY | SPEI_SENTENCE_BOUNDARY))
+        m_synthesizer->WordBoundary += [this](const SpeechSynthesisWordBoundaryEventArgs& arg)
         {
             if (arg.BoundaryType == SpeechSynthesisBoundaryType::Punctuation)
                 return;
-            SPEVENT ev = { 0 };
-            ev.ullAudioStreamOffset = WaveTicksToBytes(arg.AudioOffset);
-            ev.eEventId = arg.BoundaryType == SpeechSynthesisBoundaryType::Sentence ? SPEI_SENTENCE_BOUNDARY : SPEI_WORD_BOUNDARY;
-            ev.elParamType = SPET_LPARAM_IS_UNDEFINED;
-            ULONG offset = arg.TextOffset, length = arg.WordLength;
-            MapTextOffset(offset, length);
-            ev.lParam = offset;
-            ev.wParam = length;
-            m_pOutputSite->AddEvents(&ev, 1);
+            OnBoundary(arg.AudioOffset, arg.TextOffset, arg.WordLength,
+                arg.BoundaryType == SpeechSynthesisBoundaryType::Sentence ? SPEI_SENTENCE_BOUNDARY : SPEI_WORD_BOUNDARY);
         };
 
-    m_synthesizer->VisemeReceived += [=](const SpeechSynthesisVisemeEventArgs& arg)
+    if (interests & SPEI_VISEME)
+        m_synthesizer->VisemeReceived += [this](const SpeechSynthesisVisemeEventArgs& arg)
         {
-            SPEVENT ev = { 0 };
-            ev.ullAudioStreamOffset = WaveTicksToBytes(arg.AudioOffset);
-            ev.eEventId = SPEI_VISEME;
-            ev.elParamType = SPET_LPARAM_IS_UNDEFINED;
-            ev.wParam = 0;
-            // Cognitive Speech uses the same viseme ID values as SAPI 
-            ev.lParam = MAKELONG(arg.VisemeId, 0);
-            m_pOutputSite->AddEvents(&ev, 1);
+            OnViseme(arg.AudioOffset, arg.VisemeId);
         };
 
-    m_synthesizer->SynthesisCompleted += [=](const SpeechSynthesisEventArgs& arg)
-        {
-            m_synthesisResult = arg.Result;
-            m_synthesisCompleted = true;
-        };
+    m_synthesizer->SynthesisCompleted += [this](const SpeechSynthesisEventArgs& arg)
+    {
+        m_synthesisResult = arg.Result;
+        m_synthesisCompleted = true;
+    };
 
-    m_synthesizer->SynthesisCanceled += [=](const SpeechSynthesisEventArgs& arg)
-        {
-            m_synthesisResult = arg.Result;
-            m_synthesisCompleted = true;
-        };
+    m_synthesizer->SynthesisCanceled += [this](const SpeechSynthesisEventArgs& arg)
+    {
+        m_synthesisResult = arg.Result;
+        m_synthesisCompleted = true;
+    };
+}
+
+void CTTSEngine::ClearSynthesizerEvents()
+{
+    m_synthesizer->BookmarkReached.DisconnectAll();
+    m_synthesizer->WordBoundary.DisconnectAll();
+    m_synthesizer->VisemeReceived.DisconnectAll();
+    m_synthesizer->SynthesisCompleted.DisconnectAll();
+    m_synthesizer->SynthesisCanceled.DisconnectAll();
+}
+
+void CTTSEngine::SetupRestAPIEvents(ULONGLONG interests)
+{
+    m_restApi->AudioReceivedCallback = std::bind_front(&CTTSEngine::OnAudioData, this);
+    m_restApi->SessionEndCallback = std::bind_front(&CTTSEngine::OnSessionEnd, this);
+    if (interests & SPEI_TTS_BOOKMARK)
+        m_restApi->BookmarkCallback = std::bind_front(&CTTSEngine::OnBookmark, this);
+    if (interests & SPEI_WORD_BOUNDARY)
+        m_restApi->WordBoundaryCallback = [this](auto a, auto b, auto c) { OnBoundary(a, b, c, SPEI_WORD_BOUNDARY); };
+    if (interests & SPEI_SENTENCE_BOUNDARY)
+        m_restApi->SentenceBoundaryCallback = [this](auto a, auto b, auto c) { OnBoundary(a, b, c, SPEI_SENTENCE_BOUNDARY); };
+    if (interests & SPEI_VISEME)
+        m_restApi->VisemeCallback = std::bind_front(&CTTSEngine::OnViseme, this);
 }
 
 void CTTSEngine::AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag)
@@ -275,6 +413,7 @@ void CTTSEngine::AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag)
     // these entities are processed: &lt;&gt;&amp;&quot;&apos;
 
     LPCWSTR pEnd = pTextFrag->pTextStart + pTextFrag->ulTextLen;
+    m_ssml.reserve(m_ssml.size() + pTextFrag->ulTextLen);
 
     for (LPCWSTR pCh = pTextFrag->pTextStart; pCh != pEnd && *pCh; pCh++)
     {
@@ -289,7 +428,7 @@ void CTTSEngine::AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag)
         }
 
         // match the next character in SAPI text with the character after the inserted entity in SSML text
-        m_offsetMappings.push_back({ pTextFrag->ulTextSrcOffset + (ULONG)(pCh - pTextFrag->pTextStart) + 1, (ULONG)m_ssml.size() });
+        m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + (ULONG)(pCh - pTextFrag->pTextStart) + 1, (ULONG)m_ssml.size());
     }
 }
 
@@ -321,25 +460,26 @@ void CTTSEngine::AppendSAPIContextToSsml(const SPVCONTEXT& context)
 
     m_ssml.append(L"<say-as interpret-as='");
 
-    LPCWSTR cat = context.pCategory;
+    std::wstring_view cat = context.pCategory;
 
     // standard: 'date_xxx'
     // when parsed from SSML, 'date:xxx' is used when format isn't standard
-    if (_wcsnicmp(cat, L"date", 4) == 0
+    if (EqualsIgnoreCase(cat.substr(0, 4), L"date")
         && (cat[4] == '_' || cat[4] == ':')) 
     {
         // <context id='date_dmy'> to <say-as interpret-as='date' format='dmy'>
         m_ssml.append(L"date' format='");
-        if (_wcsicmp(cat + 5, L"year") == 0)
+        auto fmt = cat.substr(5);
+        if (EqualsIgnoreCase(fmt, L"year"))
             m_ssml.push_back('y');
         else
-            m_ssml.append(cat + 5);
+            m_ssml.append(fmt);
     }
-    else if (_wcsicmp(cat, L"number_cardinal") == 0)
+    else if (EqualsIgnoreCase(cat, L"number_cardinal"))
         m_ssml.append(L"cardinal");
-    else if (_wcsicmp(cat, L"number_fraction") == 0)
+    else if (EqualsIgnoreCase(cat, L"number_fraction"))
         m_ssml.append(L"fraction");
-    else if (_wcsicmp(cat, L"phone_number") == 0)
+    else if (EqualsIgnoreCase(cat, L"phone_number"))
         m_ssml.append(L"telephone");
     else
         m_ssml.append(cat); // other category IDs are passed as-is
@@ -431,7 +571,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         switch (pTextFrag->State.eAction)
         {
         case SPVA_Speak:
-            m_offsetMappings.push_back({ pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size() });
+            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
             AppendTextFragToSsml(pTextFrag);
             break;
 
@@ -449,7 +589,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
         case SPVA_SpellOut: // insert a <say-as interpret-as='characters'>...</say-as>
             m_ssml.append(L"<say-as interpret-as='characters'>");
-            m_offsetMappings.push_back({ pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size() });
+            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
             AppendTextFragToSsml(pTextFrag);
             m_ssml.append(L"</say-as>");
             break;
@@ -458,7 +598,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             m_ssml.append(L"<phoneme alphabet='sapi' ph='");
             AppendPhonemesToSsml(pTextFrag->State.pPhoneIds);
             m_ssml.append(L"'>");
-            m_offsetMappings.push_back({ pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size() });
+            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
             AppendTextFragToSsml(pTextFrag);
             m_ssml.append(L"</phoneme>");
             break;
@@ -575,7 +715,7 @@ HRESULT CTTSEngine::CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisRe
         return S_OK;
 
     Error(details->ErrorDetails.c_str());
-    if (m_errorMode == ShowMessageOnError)
+    if (m_errorMode == ErrorMode::ShowMessageOnError)
     {
         MessageBoxA(NULL, details->ErrorDetails.c_str(), "NaturalVoiceSAPIAdapter", MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
     }

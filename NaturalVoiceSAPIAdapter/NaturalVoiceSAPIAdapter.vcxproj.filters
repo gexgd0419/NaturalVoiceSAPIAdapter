@@ -40,19 +40,43 @@
     <ClInclude Include="TTSEngine.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SpeechRestAPI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceTokenEnumerator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="VoiceToken.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DataKey.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="delaydll.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="DataKeyAutomation.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="VoiceTokenAutomation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeechServiceConstants.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Mp3Decoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="StringTokenizer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="NetUtils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="StrUtils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LangUtils.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -72,7 +96,19 @@
     <ClCompile Include="TTSEngine.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SpeechRestAPI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="delaydll.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="VoiceTokenEnumerator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Mp3Decoder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="NetUtils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -92,6 +128,9 @@
       <Filter>资源文件</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="VoiceTokenEnumerator.rgs">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl">

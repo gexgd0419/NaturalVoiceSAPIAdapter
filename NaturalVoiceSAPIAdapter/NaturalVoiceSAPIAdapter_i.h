@@ -60,6 +60,18 @@ typedef struct TTSEngine TTSEngine;
 #endif 	/* __TTSEngine_FWD_DEFINED__ */
 
 
+#ifndef __VoiceTokenEnumerator_FWD_DEFINED__
+#define __VoiceTokenEnumerator_FWD_DEFINED__
+
+#ifdef __cplusplus
+typedef class VoiceTokenEnumerator VoiceTokenEnumerator;
+#else
+typedef struct VoiceTokenEnumerator VoiceTokenEnumerator;
+#endif /* __cplusplus */
+
+#endif 	/* __VoiceTokenEnumerator_FWD_DEFINED__ */
+
+
 /* header files for imported files */
 #include "oaidl.h"
 #include "ocidl.h"
@@ -87,6 +99,14 @@ EXTERN_C const CLSID CLSID_TTSEngine;
 
 class DECLSPEC_UUID("013ab33b-ad1a-401c-8bee-f6e2b046a94e")
 TTSEngine;
+#endif
+
+EXTERN_C const CLSID CLSID_VoiceTokenEnumerator;
+
+#ifdef __cplusplus
+
+class DECLSPEC_UUID("b8b9e38f-e5a2-4661-9fde-4ac7377aa6f6")
+VoiceTokenEnumerator;
 #endif
 #endif /* __NaturalVoiceSAPIAdapterLib_LIBRARY_DEFINED__ */
 

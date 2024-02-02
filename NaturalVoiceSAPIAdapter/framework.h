@@ -4,6 +4,8 @@
 #define STRICT
 #endif
 
+#define NOMINMAX
+
 #include "targetver.h"
 
 #define _ATL_APARTMENT_THREADED
@@ -20,9 +22,11 @@
 #include <atlcom.h>
 #include <atlctl.h>
 
-#define RETONFAIL(hresult) if (HRESULT hr = hresult; FAILED(hr)) return hr
+#define RETONFAIL(hresult) if (HRESULT __hr = hresult; FAILED(__hr)) return __hr
 
-#include <speechapi_cxx.h>
+#include <memory>
+#include <string>
+#include <vector>
 
 using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
 #pragma warning(suppress : 4996) // 'GetVersionExW' deprecated

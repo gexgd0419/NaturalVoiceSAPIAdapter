@@ -23,6 +23,13 @@ library NaturalVoiceSAPIAdapterLib
 		[default] interface ISpTTSEngine;
 		interface ISpObjectWithToken;
 	};
+	[
+		uuid(b8b9e38f-e5a2-4661-9fde-4ac7377aa6f6)
+	]
+	coclass VoiceTokenEnumerator
+	{
+		[default] interface IEnumSpObjectTokens;
+	};
 };
 
 import "shobjidl.idl";

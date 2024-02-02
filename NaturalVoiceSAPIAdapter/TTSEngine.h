@@ -4,6 +4,8 @@
 #include "resource.h"       // 主符号
 
 #include "pch.h"
+#include <speechapi_cxx.h>
+#include "SpeechRestAPI.h"
 
 #include "NaturalVoiceSAPIAdapter_i.h"
 
@@ -22,10 +24,12 @@ struct TextOffsetMapping
 {
 	ULONG ulSAPITextOffset; // offset in source string from SAPI
 	ULONG ulSSMLTextOffset; // offset in our SSML buffer
+	constexpr TextOffsetMapping(ULONG ulSAPITextOffset, ULONG ulSSMLTextOffset) noexcept
+		: ulSAPITextOffset(ulSAPITextOffset), ulSSMLTextOffset(ulSSMLTextOffset) {}
 };
 
 
-enum ErrorMode : DWORD
+enum class ErrorMode : DWORD
 {
 	ProbeForError = 0,
 	StopOnError,
@@ -99,9 +103,10 @@ private: // Member variables
 	CComPtr<ISpObjectToken> m_cpToken;
 	CComPtr<ISpPhoneConverter> m_phoneConverter;
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
+	std::unique_ptr<SpeechRestAPI> m_restApi;
 	ISpTTSEngineSite* m_pOutputSite = nullptr;
 
-	ErrorMode m_errorMode = ProbeForError;
+	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	std::wstring m_localeName;
 	std::wstring m_onlineVoiceName;
 
@@ -117,11 +122,23 @@ private: // Member variables
 	std::atomic_bool m_synthesisCompleted = false;
 	std::shared_ptr<SpeechSynthesisResult> m_synthesisResult;
 
+private:
+	int OnAudioData(uint8_t* data, uint32_t len);
+	void OnBookmark(uint64_t offsetTicks, const std::string& bookmark);
+	void OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType);
+	void OnViseme(uint64_t offsetTicks, uint32_t visemeId);
+	void OnSessionEnd(uint64_t offsetTicks);
+
 private: // Private methods
 
 	HRESULT InitPhoneConverter();
-	HRESULT InitSynthesizer();
-	void SetupSynthesizerEvents();
+	HRESULT InitVoice();
+	HRESULT InitLocalVoice(ISpDataKey* pConfigKey);
+	HRESULT InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey);
+	HRESULT InitCloudVoiceRestAPI(ISpDataKey* pConfigKey);
+	void SetupSynthesizerEvents(ULONGLONG interests);
+	void ClearSynthesizerEvents();
+	void SetupRestAPIEvents(ULONGLONG interests);
 
 	void AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag);
 	void AppendPhonemesToSsml(const SPPHONEID* pPhoneIds);
