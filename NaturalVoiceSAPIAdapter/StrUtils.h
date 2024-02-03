@@ -3,9 +3,11 @@
 #include <stringapiset.h>
 
 template <typename CharT>
-constexpr bool EqualsIgnoreCaseInternal(std::basic_string_view<CharT> a, const CharT* b) noexcept
+constexpr bool EqualsIgnoreCase(std::basic_string_view<CharT> a, std::basic_string_view<CharT> b) noexcept
 {
-	const CharT* pa = a.data(), * pb = b, * paend = pa + a.size();
+	if (a.size() != b.size())
+		return false;
+	const CharT* pa = a.data(), * pb = b.data(), * paend = pa + a.size();
 	for (; pa != paend; pa++, pb++)
 	{
 		CharT ca = *pa, cb = *pb;
@@ -17,20 +19,16 @@ constexpr bool EqualsIgnoreCaseInternal(std::basic_string_view<CharT> a, const C
 	return true;
 }
 
-template <typename CharT>
-constexpr bool EqualsIgnoreCase(std::basic_string_view<CharT> a, std::basic_string_view<CharT> b) noexcept
+// these two overloads are added because the template cannot accept types convertible to string_view
+
+constexpr bool EqualsIgnoreCase(std::string_view a, std::string_view b) noexcept
 {
-	if (a.size() != b.size())
-		return false;
-	return EqualsIgnoreCaseInternal(a, b.data());
+	return EqualsIgnoreCase<char>(a, b);
 }
 
-template <typename CharT, size_t N>
-constexpr bool EqualsIgnoreCase(std::basic_string_view<CharT> a, const CharT(&b)[N]) noexcept
+constexpr bool EqualsIgnoreCase(std::wstring_view a, std::wstring_view b) noexcept
 {
-	if (a.size() != N)
-		return false;
-	return EqualsIgnoreCaseInternal(a, b);
+	return EqualsIgnoreCase<wchar_t>(a, b);
 }
 
 inline std::wstring UTF8ToWString(std::string_view str)
