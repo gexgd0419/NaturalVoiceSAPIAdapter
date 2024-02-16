@@ -16,7 +16,7 @@ typedef std::vector<std::pair<LPCWSTR, std::wstring>> StringPairCollection;
 MIDL_INTERFACE("4B88C5F0-B73A-41D9-9439-E229AB8A7C6D")
 IDataKeyInit : public IUnknown
 {
-	virtual void InitKey(const StringPairCollection& values, const SubkeyCollection& subkeys) = 0;
+	virtual void InitKey(StringPairCollection&& values, SubkeyCollection&& subkeys) = 0;
 	virtual void SetPath(LPCWSTR lpszCurrentPath) = 0;
 };
 
@@ -40,25 +40,13 @@ DECLARE_NOT_AGGREGATABLE(CDataKey)
 BEGIN_COM_MAP(CDataKey)
 	COM_INTERFACE_ENTRY(ISpDataKey)
 	COM_INTERFACE_ENTRY(IDataKeyInit)
-	COM_INTERFACE_ENTRY_AGGREGATE(IID_IDispatch, m_pAutomation)
-	COM_INTERFACE_ENTRY_AGGREGATE(IID_ISpeechDataKey, m_pAutomation)
+	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_IDispatch, m_pAutomation, CLSID_DataKeyAutomation)
+	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_ISpeechDataKey, m_pAutomation, CLSID_DataKeyAutomation)
 END_COM_MAP()
 
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
-
-	HRESULT FinalConstruct() noexcept
-	{
-		RETONFAIL(CDataKeyAutomation::_CreatorClass::CreateInstance(GetControllingUnknown(), IID_IUnknown,
-			reinterpret_cast<LPVOID*>(&m_pAutomation)));
-		CComQIPtr<IDataKeyAutomationInit>(m_pAutomation)->SetParent(GetUnknown());
-		return S_OK;
-	}
-
-	void FinalRelease()
-	{
-	}
 
 protected:
 	CComPtr<ISpDataKey> m_pKey;
@@ -67,10 +55,10 @@ protected:
 	SubkeyCollection m_subkeys;
 	CComPtr<IUnknown> m_pAutomation;
 
-	void InitKey(const StringPairCollection& values, const SubkeyCollection& subkeys) override
+	void InitKey(StringPairCollection&& values, SubkeyCollection&& subkeys) override
 	{
-		m_values = values;
-		m_subkeys = subkeys;
+		m_values = std::move(values);
+		m_subkeys = std::move(subkeys);
 	}
 
 	void SetPath(LPCWSTR lpszCurrentPath) override

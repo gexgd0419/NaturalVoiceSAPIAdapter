@@ -339,10 +339,12 @@
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="DataKeyAutomation.rgs" />
     <None Include="NaturalVoiceSAPIAdapter.def" />
     <None Include="NaturalVoiceSAPIAdapter.rgs" />
     <None Include="packages.config" />
     <None Include="TTSEngine.rgs" />
+    <None Include="VoiceTokenAutomation.rgs" />
     <None Include="VoiceTokenEnumerator.rgs" />
   </ItemGroup>
   <ItemGroup>

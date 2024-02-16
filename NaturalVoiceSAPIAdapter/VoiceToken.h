@@ -46,25 +46,13 @@ BEGIN_COM_MAP(CVoiceToken)
 	COM_INTERFACE_ENTRY(ISpDataKey)
 	COM_INTERFACE_ENTRY(ISpObjectToken)
 	COM_INTERFACE_ENTRY(IDataKeyInit)
-	COM_INTERFACE_ENTRY_AGGREGATE(IID_IDispatch, m_pAutomation)
-	COM_INTERFACE_ENTRY_AGGREGATE(IID_ISpeechObjectToken, m_pAutomation)
+	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_IDispatch, m_pAutomation, CLSID_VoiceTokenAutomation)
+	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_ISpeechObjectToken, m_pAutomation, CLSID_VoiceTokenAutomation)
 END_COM_MAP()
 
 
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
-
-	HRESULT FinalConstruct() noexcept
-	{
-		RETONFAIL(CVoiceTokenAutomation::_CreatorClass::CreateInstance(GetControllingUnknown(), IID_IUnknown,
-			reinterpret_cast<LPVOID*>(&m_pAutomation)));
-		CComQIPtr<IDataKeyAutomationInit>(m_pAutomation)->SetParent(GetUnknown());
-		return S_OK;
-	}
-
-	void FinalRelease() noexcept
-	{
-	}
 
 public:
 	STDMETHODIMP SetId(_In_opt_ LPCWSTR /*pszCategoryId*/, LPCWSTR /*pszTokenId*/, BOOL /*fCreateIfNotExist*/) noexcept override

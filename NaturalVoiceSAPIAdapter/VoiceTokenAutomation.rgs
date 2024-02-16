@@ -1,0 +1,15 @@
+HKCR
+{
+	NoRemove CLSID
+	{
+		ForceRemove {799e1686-86d6-4257-acd8-04d0da289182} = s 'VoiceTokenAutomation class'
+		{
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Both'
+			}
+			TypeLib = s '{19d3bf0c-aad3-4348-8fc3-bd439f0da852}'
+			Version = s '1.0'
+		}
+	}
+}

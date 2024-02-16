@@ -1,78 +1,91 @@
 #pragma once
 #include "pch.h"
 #include <atlsafe.h>
+#include "NaturalVoiceSAPIAdapter_i.h"
 
 using namespace ATL;
 
-MIDL_INTERFACE("495582EE-0AB5-4C2D-8A91-B31B375E4AE1")
-IDataKeyAutomationInit : public IUnknown
+template <typename Func>
+	// requires std::convertible_to<Func, std::function<HRESULT(LPCVOID data, ULONG size)>>
+HRESULT GetVariantData(const VARIANT* pvar, Func dataRecvFunc)
 {
-	virtual void SetParent(IUnknown * pOuterUnknown) = 0;
-};
+	if (!pvar)
+		return dataRecvFunc(nullptr, 0);
+
+	ULONG cbElem;
+	switch (pvar->vt & VT_TYPEMASK)
+	{
+	case VT_I1:
+	case VT_UI1:
+		cbElem = 1; break;
+	case VT_I2:
+	case VT_UI2:
+		cbElem = 2; break;
+	case VT_I4:
+	case VT_UI4:
+		cbElem = 4; break;
+	case VT_I8:
+	case VT_UI8:
+		cbElem = 8; break;
+	default: // other types are not accepted
+		return E_INVALIDARG;
+	}
+	VARTYPE vtFlags = pvar->vt & ~VT_TYPEMASK;
+	if (vtFlags == VT_ARRAY)
+	{
+		if (pvar->parray->cDims == 0)
+			return E_INVALIDARG;
+		ULONG cElems = pvar->parray->rgsabound[0].cElements;
+		for (USHORT i = 1; i < pvar->parray->cDims; i++)
+			cElems *= pvar->parray->rgsabound[i].cElements;
+		if (cElems == 0)
+			return E_INVALIDARG;
+		void* pArrayData;
+		RETONFAIL(SafeArrayAccessData(pvar->parray, &pArrayData));
+		HRESULT hr = dataRecvFunc(static_cast<LPCVOID>(pArrayData), cbElem * cElems);
+		SafeArrayUnaccessData(pvar->parray);
+		return hr;
+	}
+	else if (vtFlags == 0) // only a single element
+	{
+		return dataRecvFunc(static_cast<LPCVOID>(&pvar->bVal), cbElem);
+	}
+	else // if other flags such as VT_BYREF exist
+	{
+		return E_INVALIDARG;
+	}
+}
 
 // Implements IDispatch and ISpeechDataKey - the automation interface of ISpDataKey
 // so that it is accessible to languages such as Visual Basic and scripting languages
 
+inline const CLSID CLSID_DataKeyAutomation = { 0x3ffa3701, 0x95b0, 0x4628, 0x98, 0xec, 0x47, 0x84, 0x91, 0x97, 0x30, 0x9e };
+
 class CDataKeyAutomation :
 	public CComObjectRootEx<CComMultiThreadModel>,
-	public IDispatchImpl<ISpeechDataKey, &IID_ISpeechDataKey, &LIBID_SpeechLib, /*wMajor =*/ 0xFFFF, /*wMinor =*/ 0xFFFF>,
-	public IDataKeyAutomationInit
+	public CComCoClass<CDataKeyAutomation, &CLSID_DataKeyAutomation>,
+	public IDispatchImpl<ISpeechDataKey, &IID_ISpeechDataKey, &LIBID_SpeechLib, /*wMajor =*/ 0xFFFF, /*wMinor =*/ 0xFFFF>
 {
 public:
-	DECLARE_AGGREGATABLE(CDataKeyAutomation)
+	DECLARE_REGISTRY_RESOURCEID(IDR_DATAKEYAUTOMATION)
+	DECLARE_ONLY_AGGREGATABLE(CDataKeyAutomation)
 	BEGIN_COM_MAP(CDataKeyAutomation)
 		COM_INTERFACE_ENTRY(ISpeechDataKey)
 		COM_INTERFACE_ENTRY(IDispatch)
-		COM_INTERFACE_ENTRY(IDataKeyAutomationInit)
 	END_COM_MAP()
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 private:
 	CComPtr<ISpDataKey> m_dataKey;
 public:
-	void SetParent(IUnknown* pOuterUnknown) override
+	HRESULT FinalConstruct() noexcept
 	{
-		pOuterUnknown->QueryInterface(&m_dataKey);
+		return m_pOuterUnknown->QueryInterface(&m_dataKey);
 	}
 
 	STDMETHODIMP SetBinaryValue(__RPC__in const BSTR ValueName, VARIANT Value) noexcept override
 	{
-		int cbElem;
-		switch (Value.vt & VT_TYPEMASK)
-		{
-		case VT_I1:
-		case VT_UI1:
-			cbElem = 1; break;
-		case VT_I2:
-		case VT_UI2:
-			cbElem = 2; break;
-		case VT_I4:
-		case VT_UI4:
-			cbElem = 4; break;
-		case VT_I8:
-		case VT_UI8:
-			cbElem = 8; break;
-		default:
-			return E_INVALIDARG;
-		}
-		if (Value.vt & VT_ARRAY)
-		{
-			if (Value.parray->cDims == 0)
-				return E_INVALIDARG;
-			ULONG cElem = Value.parray->rgsabound[0].cElements;
-			for (USHORT i = 1; i < Value.parray->cDims; i++)
-				cElem *= Value.parray->rgsabound[i].cElements;
-			if (cElem == 0)
-				return E_INVALIDARG;
-			void* pArrayData;
-			RETONFAIL(SafeArrayAccessData(Value.parray, &pArrayData));
-			HRESULT hr = m_dataKey->SetData(ValueName, cbElem * cElem, reinterpret_cast<const BYTE*>(pArrayData));
-			SafeArrayUnaccessData(Value.parray);
-			return hr;
-		}
-		else
-		{
-			return m_dataKey->SetData(ValueName, cbElem, &Value.bVal);
-		}
+		return GetVariantData(&Value, [this, ValueName](LPCVOID data, ULONG size)
+			{ return m_dataKey->SetData(ValueName, size, static_cast<const BYTE*>(data)); });
 	}
 
 	STDMETHODIMP GetBinaryValue(__RPC__in const BSTR ValueName, __RPC__out VARIANT* Value) noexcept override
@@ -162,3 +175,5 @@ public:
 		return name.CopyToBSTR(ValueName);
 	}
 };
+
+OBJECT_ENTRY_AUTO(CLSID_DataKeyAutomation, CDataKeyAutomation)

@@ -1,30 +1,33 @@
 #pragma once
 #include "pch.h"
+#include "DataKeyAutomation.h"
 
 using namespace ATL;
 
 // Implements IDispatch and ISpeechObjectToken - the automation interface of ISpObjectToken
 // so that it is accessible to languages such as Visual Basic and scripting languages
 
+inline const CLSID CLSID_VoiceTokenAutomation = { 0x799e1686, 0x86d6, 0x4257, 0xac, 0xd8, 0x04, 0xd0, 0xda, 0x28, 0x91, 0x82 };
+
 class CVoiceTokenAutomation :
 	public CComObjectRootEx<CComMultiThreadModel>,
-	public IDispatchImpl<ISpeechObjectToken, &IID_ISpeechObjectToken, &LIBID_SpeechLib, /*wMajor =*/ 0xFFFF, /*wMinor =*/ 0xFFFF>,
-	public IDataKeyAutomationInit
+	public CComCoClass<CVoiceTokenAutomation, &CLSID_VoiceTokenAutomation>,
+	public IDispatchImpl<ISpeechObjectToken, &IID_ISpeechObjectToken, &LIBID_SpeechLib, /*wMajor =*/ 0xFFFF, /*wMinor =*/ 0xFFFF>
 {
 public:
-	DECLARE_AGGREGATABLE(CVoiceTokenAutomation)
+	DECLARE_REGISTRY_RESOURCEID(IDR_VOICETOKENAUTOMATION)
+	DECLARE_ONLY_AGGREGATABLE(CVoiceTokenAutomation)
 	BEGIN_COM_MAP(CVoiceTokenAutomation)
 		COM_INTERFACE_ENTRY(ISpeechObjectToken)
 		COM_INTERFACE_ENTRY(IDispatch)
-		COM_INTERFACE_ENTRY(IDataKeyAutomationInit)
 	END_COM_MAP()
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 private:
 	CComPtr<ISpObjectToken> m_token;
 public:
-	void SetParent(IUnknown* pOuterUnknown) override
+	HRESULT FinalConstruct() noexcept
 	{
-		pOuterUnknown->QueryInterface(&m_token);
+		return m_pOuterUnknown->QueryInterface(&m_token);
 	}
 
 	STDMETHODIMP get_Id(__RPC__deref_out_opt BSTR* ObjectId) noexcept override
@@ -40,10 +43,8 @@ public:
 	{
 		if (!DataKey)
 			return E_POINTER;
-		// Create a non-aggregated instance of CDataKeyAutomation
-		RETONFAIL(CDataKeyAutomation::_CreatorClass::CreateInstance(nullptr, IID_ISpeechDataKey, reinterpret_cast<LPVOID*>(DataKey)));
-		CComQIPtr<IDataKeyAutomationInit>(*DataKey)->SetParent(m_token);
-		return S_OK;
+		// Create a CDataKeyAutomation that connects to the same parent
+		return CDataKeyAutomation::_CreatorClass::CreateInstance(m_token, IID_ISpeechDataKey, reinterpret_cast<LPVOID*>(DataKey));
 	}
 
 	STDMETHODIMP get_Category(__RPC__deref_out_opt ISpeechObjectTokenCategory** Category) noexcept override
@@ -62,10 +63,10 @@ public:
 		return desc.CopyToBSTR(Description);
 	}
 
-	STDMETHODIMP SetId(__RPC__in BSTR /*Id*/, __RPC__in BSTR /*CategoryID*/ = (BSTR)L"",
-		VARIANT_BOOL /*CreateIfNotExist*/ = 0) noexcept override
+	STDMETHODIMP SetId(__RPC__in BSTR Id, __RPC__in BSTR CategoryID = (BSTR)L"",
+		VARIANT_BOOL CreateIfNotExist = 0) noexcept override
 	{
-		return SPERR_ALREADY_INITIALIZED;
+		return m_token->SetId(Id, CategoryID, CreateIfNotExist);
 	}
 
 	STDMETHODIMP GetAttribute(__RPC__in BSTR AttributeName, __RPC__deref_out_opt BSTR* AttributeValue) noexcept override
@@ -93,33 +94,49 @@ public:
 		return m_token->Remove(&clsid);
 	}
 
-	STDMETHODIMP GetStorageFileName(__RPC__in BSTR /*ObjectStorageCLSID*/, __RPC__in BSTR /*KeyName*/,
-		__RPC__in BSTR /*FileName*/, SpeechTokenShellFolder /*Folder*/,
-		__RPC__deref_out_opt BSTR* /*FilePath*/) noexcept override
+	STDMETHODIMP GetStorageFileName(__RPC__in BSTR ObjectStorageCLSID, __RPC__in BSTR KeyName,
+		__RPC__in BSTR FileName, SpeechTokenShellFolder Folder,
+		__RPC__deref_out_opt BSTR* FilePath) noexcept override
 	{
-		return E_NOTIMPL;
+		if (!FilePath)
+			return E_POINTER;
+		CLSID clsid;
+		RETONFAIL(CLSIDFromString(ObjectStorageCLSID, &clsid));
+		CSpDynamicString strFileName;
+		RETONFAIL(m_token->GetStorageFileName(clsid, KeyName, FileName, Folder, &strFileName));
+		return strFileName.CopyToBSTR(FilePath);
 	}
 
-	STDMETHODIMP RemoveStorageFileName(__RPC__in BSTR /*ObjectStorageCLSID*/, __RPC__in BSTR /*KeyName*/,
-		VARIANT_BOOL /*DeleteFile*/) noexcept override
+	STDMETHODIMP RemoveStorageFileName(__RPC__in BSTR ObjectStorageCLSID, __RPC__in BSTR KeyName,
+		VARIANT_BOOL fDeleteFile) noexcept override
 	{
-		return E_NOTIMPL;
+		CLSID clsid;
+		RETONFAIL(CLSIDFromString(ObjectStorageCLSID, &clsid));
+		return m_token->RemoveStorageFileName(clsid, KeyName, fDeleteFile);
 	}
 
-	STDMETHODIMP IsUISupported(__RPC__in const BSTR /*TypeOfUI*/, __RPC__in const VARIANT* /*ExtraData*/,
-		__RPC__in_opt IUnknown* /*Object*/, __RPC__out VARIANT_BOOL* Supported) noexcept override
+	STDMETHODIMP IsUISupported(__RPC__in const BSTR TypeOfUI, __RPC__in const VARIANT* ExtraData,
+		__RPC__in_opt IUnknown* Object, __RPC__out VARIANT_BOOL* Supported) noexcept override
 	{
 		if (!Supported)
 			return E_POINTER;
-		*Supported = VARIANT_FALSE;
+		BOOL bSupported = FALSE;
+		RETONFAIL(GetVariantData(ExtraData, [=, this, &bSupported](LPCVOID data, ULONG size)
+			{ return m_token->IsUISupported(TypeOfUI, const_cast<LPVOID>(data), size, Object, &bSupported); }));
+		*Supported = bSupported ? VARIANT_TRUE : VARIANT_FALSE;
 		return S_OK;
 	}
 
-	STDMETHODIMP DisplayUI(long /*hWnd*/, __RPC__in BSTR /*Title*/, __RPC__in const BSTR /*TypeOfUI*/,
-		__RPC__in const VARIANT* /*ExtraData*/ = 0,
-		__RPC__in_opt IUnknown* /*Object*/ = 0) noexcept override
+	STDMETHODIMP DisplayUI(long hWnd, __RPC__in BSTR Title, __RPC__in const BSTR TypeOfUI,
+		__RPC__in const VARIANT* ExtraData = 0,
+		__RPC__in_opt IUnknown* Object = 0) noexcept override
 	{
-		return E_NOTIMPL;
+		// We are converting long to possibly larger HWND.
+		// Fortunately, handles are 32-bit even on 64-bit Windows.
+		return GetVariantData(ExtraData, [=, this](LPCVOID data, ULONG size)
+			{ return m_token->DisplayUI(static_cast<HWND>(LongToHandle(hWnd)),
+				(Title && !*Title) ? nullptr : Title, // if Title is empty string, convert to nullptr
+				TypeOfUI, const_cast<LPVOID>(data), size, Object); });
 	}
 
 	STDMETHODIMP MatchesAttributes(__RPC__in BSTR Attributes, __RPC__out VARIANT_BOOL* Matches) noexcept override
@@ -132,3 +149,5 @@ public:
 		return S_OK;
 	}
 };
+
+OBJECT_ENTRY_AUTO(CLSID_VoiceTokenAutomation, CVoiceTokenAutomation)
