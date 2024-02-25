@@ -21,30 +21,6 @@ Mp3Decoder::~Mp3Decoder() noexcept
 	// Other members will be cleaned up by their destructors
 }
 
-// assume bitfield is from least significant to most significant
-// so bitfield order in each byte is reversed
-// Reference: https://id3lib.sourceforge.net/id3/mp3frame.html
-struct Mp3Frame
-{
-	BYTE FrameSync;
-
-	BYTE Protection : 1;
-	BYTE Layer : 2; // 1: Layer 3; 2: Layer 2; 3: Layer 1
-	BYTE Version : 2; // 0: MPEG 2.5; 2: MPEG 2; 3: MPEG 1
-	BYTE FrameSync2 : 3;
-
-	BYTE Private : 1;
-	BYTE Padding : 1;
-	BYTE SampleRateIndex : 2;
-	BYTE BitrateIndex : 4;
-
-	BYTE Emphasis : 2;
-	BYTE Original : 1;
-	BYTE Copyright : 1;
-	BYTE ModeExtension : 2;
-	BYTE Channel : 2;
-};
-
 static constexpr WORD BitRates[2][3][16] =
 {
 	{ // Version 1
@@ -88,29 +64,52 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	if (!pMp3Chunk || cbChunkSize == 0)
 		return; // Ignore without initializing
 
-	const BYTE* pFrameStart = pMp3Chunk;
+	/*
+	* MP3 frame format (4 bytes): AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
+	* where:
+	* A: sync bits, all 1's
+	* B: MPEG version
+	* C: layer
+	* D: protection
+	* E: bitrate index
+	* F: sample rate index
+	* G: padding
+	* H: private
+	* I: channel mode
+	* J: mode extension
+	* K: copyright
+	* L: original
+	* M: emphasis
+	* Reference: https://id3lib.sourceforge.net/id3/mp3frame.html
+	*/
+
+	const BYTE* pFrame = pMp3Chunk;
 	// If the first 11 bits are not all 1's (sync bits)
-	while (!(*pFrameStart == 0xFF && (*(pFrameStart + 1) & 0b11100000) == 0b11100000))
+	while (!(pFrame[0] == 0xFF && (pFrame[1] & 0b11100000) == 0b11100000))
 	{
 		// Look for next possible header position
-		pFrameStart = static_cast<const BYTE*>(memchr(pFrameStart + 1, 0xFF, cbChunkSize - (pFrameStart - pMp3Chunk) - 1));
-		if (!pFrameStart) // No valid MP3 frame header found
+		pFrame = static_cast<const BYTE*>(memchr(pFrame + 1, 0xFF, cbChunkSize - (pFrame - pMp3Chunk) - 1));
+		if (!pFrame) // No valid MP3 frame header found
 			throw std::system_error(ACMERR_NOTPOSSIBLE, mci_category());
 	}
 
-	const Mp3Frame* pFrame = reinterpret_cast<const Mp3Frame*>(pFrameStart);
+	int mpegVersion		= (pFrame[1] & 0b00011000) >> 3; // 0: MPEG 2.5; 2: MPEG 2; 3: MPEG 1
+	int layer			= (pFrame[1] & 0b00000110) >> 1; // 1: Layer 3; 2: Layer 2; 3: Layer 1
+	int bitRateIndex	= (pFrame[2] & 0b11110000) >> 4;
+	int sampleRateIndex	= (pFrame[2] & 0b00001100) >> 2;
+	int padding			= (pFrame[2] & 0b00000010) >> 1;
+	int channelMode		= (pFrame[3] & 0b11000000) >> 6; // 0: Stereo; 1: Joint stereo; 2: Dual channel (2 mono); 3: Single channel (mono)
+	int versionIndex	= mpegVersion == 3 ? 0 : 1;
+	int layerIndex		= layer == 3 ? 0 : layer == 2 ? 1 : 2;
 
-	int version = pFrame->Version == 3 ? 0 : 1;
-	int layer = pFrame->Layer == 3 ? 0 : pFrame->Layer == 2 ? 1 : 2;
-
-	DWORD Mp3BitRate = BitRates[version][layer][pFrame->BitrateIndex] * 1000;
-	DWORD SamplesPerSec = SampleRates[pFrame->Version][pFrame->SampleRateIndex];
-	WORD FrameLength = (WORD)(SamplesPerFrame[version][layer] * (Mp3BitRate / CHAR_BIT) / SamplesPerSec + pFrame->Padding);
-	if (layer == 0) // For Layer 1, this is needed. See: https://stackoverflow.com/questions/72416908/mp3-exact-frame-size-calculation
+	DWORD Mp3BitRate = BitRates[versionIndex][layerIndex][bitRateIndex] * 1000;
+	DWORD SamplesPerSec = SampleRates[mpegVersion][sampleRateIndex];
+	WORD FrameLength = (WORD)(SamplesPerFrame[versionIndex][layerIndex] * (Mp3BitRate / CHAR_BIT) / SamplesPerSec + padding);
+	if (layerIndex == 0) // For Layer 1, this is needed. See: https://stackoverflow.com/questions/72416908/mp3-exact-frame-size-calculation
 		FrameLength *= 4;
 
 	constexpr WORD BitsPerSample = 16;
-	WORD Channels = pFrame->Channel == 3 ? 1 : 2;
+	WORD Channels = channelMode == 3 ? 1 : 2;
 
 	MPEGLAYER3WAVEFORMAT mp3fmt =
 	{
