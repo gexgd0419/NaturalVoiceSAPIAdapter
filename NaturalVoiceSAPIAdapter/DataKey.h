@@ -211,8 +211,11 @@ public:
 	STDMETHODIMP CreateKey(LPCWSTR pszSubKey, _Outptr_ ISpDataKey** ppSubKey) noexcept override
 	{
 		HRESULT hr = OpenKey(pszSubKey, ppSubKey);
-		if (hr == SPERR_NOT_FOUND && m_pKey)
+		if (hr == SPERR_NOT_FOUND)
+		{
+			RETONFAIL(EnsureKey());
 			return m_pKey->CreateKey(pszSubKey, ppSubKey);
+		}
 		return hr;
 	}
 
