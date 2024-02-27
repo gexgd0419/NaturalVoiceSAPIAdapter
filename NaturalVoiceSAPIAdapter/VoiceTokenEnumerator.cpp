@@ -1,5 +1,4 @@
-﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator::Impl 的实现
-#include "safeint.h"
+﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
 #include "pch.h"
 #include "VoiceTokenEnumerator.h"
 #include <winrt/windows.management.deployment.h>
@@ -10,18 +9,31 @@
 #include "NetUtils.h"
 #include "StringTokenizer.h"
 #include "LangUtils.h"
+#include <condition_variable>
 
 
 // CVoiceTokenEnumerator
 
-inline void CheckHr(HRESULT hr)
+inline static void CheckHr(HRESULT hr)
 {
     if (FAILED(hr))
         throw std::system_error(hr, std::system_category());
 }
 
+static CComPtr<IEnumSpObjectTokens> s_pCachedEnum = nullptr;
+static std::mutex s_cacheMutex;
+static std::jthread s_cacheClearThread;
+
 HRESULT CVoiceTokenEnumerator::FinalConstruct()
 {
+    // Some programs assume that creating an enumerator is a low-cost operation,
+    // and re-create enumerators frequently during eumeration.
+    // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
+
+    std::lock_guard lock(s_cacheMutex);
+    if (s_pCachedEnum)
+        return s_pCachedEnum->Clone(&m_pEnum);
+
     CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
     RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
     RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
@@ -42,23 +54,38 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
     catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
     catch (...) { }
 
+    CComPtr<IEnumSpObjectTokens> temp;
+    RETONFAIL(pEnumBuilder->QueryInterface(&temp));
+    s_pCachedEnum = std::move(temp);
+    // discard the cache after 10 seconds
+    s_cacheClearThread = std::jthread([](std::stop_token token)
+        {
+            std::condition_variable_any cv;
+            std::mutex mtx;
+            std::unique_lock cvlock(mtx);
+            cv.wait_for(cvlock, token, std::chrono::seconds(10), []() { return false; });
+            std::lock_guard cachelock(s_cacheMutex);
+            s_pCachedEnum.Release();
+        }
+    );
+
     return pEnumBuilder->QueryInterface(&m_pEnum);
 }
 
-static CComPtr<ISpDataKey> MakeVoiceKey(const StringPairCollection& values, const SubkeyCollection& subkeys)
+static CComPtr<ISpDataKey> MakeVoiceKey(StringPairCollection&& values, SubkeyCollection&& subkeys)
 {
     CComPtr<ISpDataKey> pKey;
     CheckHr(CVoiceKey::_CreatorClass::CreateInstance(nullptr, IID_ISpDataKey, reinterpret_cast<LPVOID*>(&pKey)));
-    CComQIPtr<IDataKeyInit>(pKey)->InitKey(values, subkeys);
+    CComQIPtr<IDataKeyInit>(pKey)->InitKey(std::move(values), std::move(subkeys));
     return pKey;
 }
 
-static CComPtr<ISpObjectToken> MakeVoiceToken(LPCWSTR lpszPath, const StringPairCollection& values, const SubkeyCollection& subkeys)
+static CComPtr<ISpObjectToken> MakeVoiceToken(LPCWSTR lpszPath, StringPairCollection&& values, SubkeyCollection&& subkeys)
 {
     CComPtr<ISpObjectToken> pToken;
     CheckHr(CVoiceToken::_CreatorClass::CreateInstance(nullptr, IID_ISpObjectToken, reinterpret_cast<LPVOID*>(&pToken)));
     auto pInit = CComQIPtr<IDataKeyInit>(pToken);
-    pInit->InitKey(values, subkeys);
+    pInit->InitKey(std::move(values), std::move(subkeys));
     pInit->SetPath(lpszPath);
     return pToken;
 }
@@ -221,7 +248,8 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
                 StringPairCollection {
                     { L"ErrorMode", L"0" },
                     { L"WebsocketURL", EDGE_WEBSOCKET_URL },
-                    { L"Voice", shortName }
+                    { L"Voice", shortName },
+                    { L"IsEdgeVoice", L"1" }
                 },
                 SubkeyCollection {}
             ) }
