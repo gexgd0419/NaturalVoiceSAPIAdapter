@@ -83,8 +83,6 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
 
         m_pOutputSite = pOutputSite;
         BuildSSML(pTextFragList);
-        m_synthesisCompleted = false;
-        m_synthesisResult.reset();
 
         std::future<void> future;
 
@@ -110,13 +108,8 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         if (m_synthesizer)
             m_synthesizer->StopSpeakingAsync().wait();
         else
-            m_restApi->Disconnect();
+            m_restApi->Stop();
         future.get(); // wait for the future and get its stored exception thrown
-
-        if (m_synthesisResult)
-        {
-            RETONFAIL(CheckSynthesisResult(m_synthesisResult));
-        }
 
         return S_OK;
     }
@@ -278,6 +271,10 @@ HRESULT CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
     CSpDynamicString pszVoice, pszKey;
     RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
     m_onlineVoiceName = pszVoice;
+
+    DWORD dwValue = 0;
+    if (SUCCEEDED(pConfigKey->GetDWORD(L"IsEdgeVoice", &dwValue)))
+        m_isEdgeVoice = dwValue;
     
     if (CSpDynamicString pszWebsocketUrl; SUCCEEDED(pConfigKey->GetStringValue(L"WebsocketURL", &pszWebsocketUrl)))
     {
@@ -341,10 +338,6 @@ void CTTSEngine::OnViseme(uint64_t offsetTicks, uint32_t visemeId)
     ev.lParam = MAKELONG(visemeId, 0);
     m_pOutputSite->AddEvents(&ev, 1);
 }
-void CTTSEngine::OnSessionEnd(uint64_t offsetTicks)
-{
-    m_synthesisCompleted = true;
-}
 
 void CTTSEngine::SetupSynthesizerEvents(ULONGLONG interests)
 {
@@ -370,18 +363,6 @@ void CTTSEngine::SetupSynthesizerEvents(ULONGLONG interests)
         {
             OnViseme(arg.AudioOffset, arg.VisemeId);
         };
-
-    m_synthesizer->SynthesisCompleted += [this](const SpeechSynthesisEventArgs& arg)
-    {
-        m_synthesisResult = arg.Result;
-        m_synthesisCompleted = true;
-    };
-
-    m_synthesizer->SynthesisCanceled += [this](const SpeechSynthesisEventArgs& arg)
-    {
-        m_synthesisResult = arg.Result;
-        m_synthesisCompleted = true;
-    };
 }
 
 void CTTSEngine::ClearSynthesizerEvents()
@@ -396,7 +377,6 @@ void CTTSEngine::ClearSynthesizerEvents()
 void CTTSEngine::SetupRestAPIEvents(ULONGLONG interests)
 {
     m_restApi->AudioReceivedCallback = std::bind_front(&CTTSEngine::OnAudioData, this);
-    m_restApi->SessionEndCallback = std::bind_front(&CTTSEngine::OnSessionEnd, this);
     if (interests & SPEI_TTS_BOOKMARK)
         m_restApi->BookmarkCallback = std::bind_front(&CTTSEngine::OnBookmark, this);
     if (interests & SPEI_WORD_BOUNDARY)
@@ -502,6 +482,9 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
     bool isInProsodyTag = false, isInEmphasisTag = false, isInSayAsTag = false;
 
+    // Edge online voices only support a limited subset of SSML
+    bool isEdgeVoice = m_isEdgeVoice;
+
     m_offsetMappings.clear();
     m_mappingIndex = 0;
 
@@ -550,7 +533,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             }
         }
 
-        if (!isInEmphasisTag && pTextFrag->State.EmphAdj)
+        if (!isInEmphasisTag && pTextFrag->State.EmphAdj && !isEdgeVoice)
         {
             m_ssml.append(L"<emphasis>"); // (not supported by offline TTS)
             isInEmphasisTag = true;
@@ -560,7 +543,8 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         // if eAction is not Speak, a child tag will be added, which is incompatible with <say-as>
         // so only add <say-as> when eAction is Speak
         if (!isInSayAsTag && pTextFrag->State.Context.pCategory
-            && pTextFrag->State.eAction == SPVA_Speak)
+            && pTextFrag->State.eAction == SPVA_Speak
+            && !isEdgeVoice)
         {
             // map <context id='xxx'>...</context>
             // to <say-as interpret-as='xxx' format='xxx'>...</say-as>
@@ -568,46 +552,64 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             isInSayAsTag = true;
         }
 
-        switch (pTextFrag->State.eAction)
+        if (isEdgeVoice)
         {
-        case SPVA_Speak:
-            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
-            AppendTextFragToSsml(pTextFrag);
-            break;
+            // Edge online voices only support some SSML tags
+            // SSML that contains unrecognized tags will be rejected by the server
+            // so we only keep the text that can be processed, and ignore the XML tags around it
+            switch (pTextFrag->State.eAction)
+            {
+            case SPVA_Speak:
+            case SPVA_SpellOut:
+            case SPVA_Pronounce:
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
+                AppendTextFragToSsml(pTextFrag);
+                break;
+            }
+        }
+        else
+        {
+            switch (pTextFrag->State.eAction)
+            {
+            case SPVA_Speak:
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
+                AppendTextFragToSsml(pTextFrag);
+                break;
 
-        case SPVA_Silence: // insert a <break time='xxms'/> (not supported by offline TTS)
-            m_ssml.append(L"<break time='");
-            m_ssml.append(std::to_wstring(pTextFrag->State.SilenceMSecs));
-            m_ssml.append(L"ms'/>");
-            break;
+            case SPVA_Silence: // insert a <break time='xxms'/> (not supported by offline TTS)
+                m_ssml.append(L"<break time='");
+                m_ssml.append(std::to_wstring(pTextFrag->State.SilenceMSecs));
+                m_ssml.append(L"ms'/>");
+                break;
 
-        case SPVA_Bookmark: // insert a <bookmark mark='xx'/>
-            m_ssml.append(L"<bookmark mark='");
-            AppendTextFragToSsml(pTextFrag);
-            m_ssml.append(L"'/>");
-            break;
+            case SPVA_Bookmark: // insert a <bookmark mark='xx'/>
+                m_ssml.append(L"<bookmark mark='");
+                AppendTextFragToSsml(pTextFrag);
+                m_ssml.append(L"'/>");
+                break;
 
-        case SPVA_SpellOut: // insert a <say-as interpret-as='characters'>...</say-as>
-            m_ssml.append(L"<say-as interpret-as='characters'>");
-            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
-            AppendTextFragToSsml(pTextFrag);
-            m_ssml.append(L"</say-as>");
-            break;
+            case SPVA_SpellOut: // insert a <say-as interpret-as='characters'>...</say-as>
+                m_ssml.append(L"<say-as interpret-as='characters'>");
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
+                AppendTextFragToSsml(pTextFrag);
+                m_ssml.append(L"</say-as>");
+                break;
 
-        case SPVA_Pronounce: // insert a <phoneme alphabet='sapi' ph='xx'>...</phoneme>
-            m_ssml.append(L"<phoneme alphabet='sapi' ph='");
-            AppendPhonemesToSsml(pTextFrag->State.pPhoneIds);
-            m_ssml.append(L"'>");
-            m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
-            AppendTextFragToSsml(pTextFrag);
-            m_ssml.append(L"</phoneme>");
-            break;
+            case SPVA_Pronounce: // insert a <phoneme alphabet='sapi' ph='xx'>...</phoneme>
+                m_ssml.append(L"<phoneme alphabet='sapi' ph='");
+                AppendPhonemesToSsml(pTextFrag->State.pPhoneIds);
+                m_ssml.append(L"'>");
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
+                AppendTextFragToSsml(pTextFrag);
+                m_ssml.append(L"</phoneme>");
+                break;
 
-        case SPVA_ParseUnknownTag: // insert it into SSML as-is
-            // TODO: Custom XML tags may not be closed properly
-            // when using VOICE tags to switch away from this voice
-            m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
-            break;
+            case SPVA_ParseUnknownTag: // insert it into SSML as-is
+                // TODO: Custom XML tags may not be closed properly
+                // when using VOICE tags to switch away from this voice
+                m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+                break;
+            }
         }
 
         int preserveTagLevel = 0;

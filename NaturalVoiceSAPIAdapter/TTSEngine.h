@@ -107,6 +107,7 @@ private: // Member variables
 	ISpTTSEngineSite* m_pOutputSite = nullptr;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
+	bool m_isEdgeVoice = false;
 	std::wstring m_localeName;
 	std::wstring m_onlineVoiceName;
 
@@ -119,15 +120,11 @@ private: // Member variables
 
 	size_t m_mappingIndex = 0;
 
-	std::atomic_bool m_synthesisCompleted = false;
-	std::shared_ptr<SpeechSynthesisResult> m_synthesisResult;
-
 private:
 	int OnAudioData(uint8_t* data, uint32_t len);
 	void OnBookmark(uint64_t offsetTicks, const std::string& bookmark);
 	void OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType);
 	void OnViseme(uint64_t offsetTicks, uint32_t visemeId);
-	void OnSessionEnd(uint64_t offsetTicks);
 
 private: // Private methods
 

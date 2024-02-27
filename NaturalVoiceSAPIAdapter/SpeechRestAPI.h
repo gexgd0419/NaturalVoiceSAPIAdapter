@@ -3,60 +3,82 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
 #include <asio.hpp>
+#include <queue>
 #include <optional>
-#include "Mp3Decoder.h"
 #include "nlohmann/json.hpp"
 #include "SpeechServiceConstants.h"
 
 
 class SpeechRestAPI
 {
-private:
-	typedef websocketpp::client<websocketpp::config::asio_tls_client> WSClient;
-	WSClient m_client;
-	websocketpp::connection_hdl m_hConn;
-	std::wstring_view m_ssml;
-	std::string m_voiceListUrl, m_websocketUrl, m_key;
-	size_t m_lastWordPos = 0, m_lastSentencePos = 0;
-	Mp3Decoder m_mp3Decoder;
-public:
+public: // Public methods
 	SpeechRestAPI();
-	void Speak(const std::wstring& ssml);
-	std::future<void> SpeakAsync(const std::wstring& ssml)
-	{
-		return std::async(std::launch::async, [this, &ssml]() { Speak(ssml); });
-	}
-	void SetSubscription(std::string key, const std::string& region)
-	{
-		m_key = std::move(key);
-		m_voiceListUrl = std::string("https://") + region + AZURE_TTS_HOST_AFTER_REGION + AZURE_VOICE_LIST_PATH;
-		m_websocketUrl = std::string("wss://") + region + AZURE_TTS_HOST_AFTER_REGION + AZURE_WEBSOCKET_PATH;
-	}
-	void SetWebsocketUrl(std::string key, std::string websocketUrl)
-	{
-		m_key = std::move(key);
-		m_websocketUrl = std::move(websocketUrl);
-	}
-	void Disconnect()
-	{
-		std::error_code ec;
-		m_client.close(m_hConn, websocketpp::close::status::normal, {}, ec);
-	}
-private:
-	void OnOpen(websocketpp::connection_hdl hdl);
-	void OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg);
-	void OnSynthEvent(const nlohmann::json& metadata);
-	size_t FindWord(const std::string& utf8Word, size_t& lastPos);
-public:
+	~SpeechRestAPI();
+	std::future<void> SpeakAsync(const std::wstring& ssml);
+	void Stop();
+	void SetSubscription(std::string key, const std::string& region);
+	void SetWebsocketUrl(std::string key, std::string websocketUrl);
+
+public: // Event callbacks
 	typedef std::function<void(uint64_t offsetTicks, const std::string& bookmark)> BookmarkCallbackType;
 	typedef std::function<void(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength)> BoundaryCallbackType;
 	typedef std::function<void(uint64_t offsetTicks, uint32_t visemeId)> VisemeCallbackType;
 	typedef std::function<void(uint64_t offsetTicks)> SessionEndCallbackType;
 	typedef std::function<int(uint8_t* data, uint32_t length)> AudioReceivedCallbackType;
-public:
+
 	BookmarkCallbackType BookmarkCallback;
 	BoundaryCallbackType WordBoundaryCallback, SentenceBoundaryCallback, PunctuationBoundaryCallback;
 	VisemeCallbackType VisemeCallback;
 	SessionEndCallbackType SessionEndCallback;
 	AudioReceivedCallbackType AudioReceivedCallback;
+
+private:
+	std::wstring_view m_ssml;
+	std::string m_voiceListUrl, m_websocketUrl, m_key;
+	size_t m_lastWordPos = 0, m_lastSentencePos = 0;
+
+private:
+	typedef websocketpp::client<websocketpp::config::asio_tls_client> WSClient;
+	typedef websocketpp::connection<websocketpp::config::asio_tls_client> WSConnection;
+	WSClient m_client;
+	std::shared_ptr<WSConnection> m_connection;
+	bool IsCurrentConnection(const websocketpp::connection_hdl& hdl);
+
+private: // threading
+
+	// We use two background threads to run the IO loop for ASIO,
+	// and the MP3 decoder loop that sends audio to SAPI.
+	std::thread m_asioThread;
+	std::thread m_mp3Thread;
+
+	// We have to queue received audio data instead of sending them directly to SAPI.
+	// SAPI will block write calls before it needs more data,
+	// but the remote server disconnects after a few inactive seconds
+	// even if not all data are sent.
+	// So we have to store all received audio data in a queue temporarily,
+	// then use another thread for sending the data to SAPI.
+	std::queue<std::string> m_mp3Queue;
+	std::mutex m_mp3QueueMutex;
+	std::condition_variable m_mp3ThreadNotifier;
+	bool m_isStopping = false;
+	bool m_mp3QueueDone = false;
+
+	void AsioThread();
+	void Mp3Thread();
+	void Mp3QueuePush(std::string&& msg);
+	void Mp3QueueDone();
+
+	// asynchronous results returned through SpeakAsync()
+	std::atomic_flag m_isPromiseSet;
+	std::promise<void> m_speakPromise;
+	void SpeakComplete();
+	void SpeakError(std::exception_ptr ex);
+
+private:
+	void OnOpen(websocketpp::connection_hdl hdl);
+	void OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg);
+	void OnClose(websocketpp::connection_hdl hdl);
+	void OnFail(websocketpp::connection_hdl hdl);
+	void OnSynthEvent(const nlohmann::json& metadata);
+	size_t FindWord(const std::string& utf8Word, size_t& lastPos);
 };
