@@ -1,87 +1,115 @@
 # NaturalVoiceSAPIAdapter
 
-An [SAPI 5 text-to-speech (TTS) engine][1] that can utilize the [natural/neural voices][2] provided by the [Azure AI Speech Service][3].
+An [SAPI 5 text-to-speech (TTS) engine][1] that can utilize the [natural/neural voices][2] provided by the [Azure AI Speech Service][3], including:
 
-After installation, any program that supports SAPI 5 voices can use the natural voices via this TTS engine.
+- Installable natural voices for Narrator on Windows 11
+- Online natural voices from Microsoft Edge's Read Aloud feature
+- Online natural voices from the Azure AI Speech Service, if you have a proper subscription key
 
-This engine supports both online voices and [offline/embedded voices][4].
+Any program that supports SAPI 5 voices can use those natural voices via this TTS engine.
 
-连接 [Azure AI 语音服务][3]，使第三方程序也能使用微软[自然语音][2]的 SAPI 5 TTS 引擎。支持在线语音和[离线语音(嵌入式语音)][4]。
+See the [wiki pages][4] for some more technical information.
 
-## How this works
+## 简介
 
-This TTS engine works by converting SAPI commands to [Speech Synthesis Markup Language (SSML)][5] text, then send it to Azure AI Speech Service via the [Speech SDK][6].
+连接 [Azure AI 语音服务][3]，使第三方程序也能使用微软[自然语音][2]的 [SAPI 5 TTS 引擎][1]。支持如下自然语音：
 
-SAPI has a different XML format for TTS, see [XML TTS Tutorial (SAPI 5.3)][7]. Later versions of SAPI support SSML as well.
+- Windows 11 中的讲述人自然语音
+- Microsoft Edge 中“大声朗读”功能的在线自然语音
+- 来自 Azure AI 语音服务的在线自然语音，只要你有对应的 key
 
-The SAPI framework always parses the XML text into fragments before passing them into the TTS engine. So even if the input text is already in SSML, it will still be parsed into fragments by SAPI, then be reassembled into SSML by this engine, before it can be sent to Azure AI Speech Service.
+任何支持 SAPI 5 语音的程序都可以借助此引擎使用上述的自然语音。
 
-It also means that voice changing is handled locally by SAPI. `<voice>` elements won't be passed to the TTS engine or the Speech Service, so you cannot use `<voice>` to switch to an arbitrary voice supported by the Speech Service. You can still use `<voice>` to switch to another SAPI voice, including other NaturalVoiceSAPIAdapter voices.
+更多技术相关的信息可以参阅 [wiki 页面][4]。
 
-## Supported SAPI features
+## System Requirements
 
-- Basic TTS audio output. **Only the `24kHz 16Bit mono` audio format is supported**. If the SAPI client requests a different format, the SAPI framework will convert the audio to the specified format, but you can't get higher quality than `24kHz 16Bit mono`.
-- **Volume and Rate adjustment**. Volume can be 0 to 100, and rate can be -10 (1/3x speed) to 10 (3x speed).
-- **Pitch adjustment**. Pitch can be -10 (50% lower) to 10 (50% higher).
-- **Word boundary event** that tells the client which word is being spoken right now.
-- **Viseme event** that tells the client the current [viseme][8] being pronounced. The client can use them to show real-time mouth positions.
-- **Bookmark event** that will be sent to the client whenever a bookmark tag `<bookmark mark="xx"/>` is reached.
-- **`<silence>` tag** that pauses the voice for a specified duration.
-- **`<emph>` tag** that emphasizes a section of text.
-- **`<context>` tag** that tells the voice what a certain confusable part is supposed to mean. For example, what date `03/04/01` is.
-- **`<pron>` tag** that inserts a specified pronunciation, when the engine doesn't know how to pronounce a word.
+Windows XP SP3, or later versions of Windows. x86 32/64-bit.
 
+**I'm using Windows 10. Can I use the Narrator natural voices on Windows 11?**
 
-## Not supported SAPI features
+Yes, as long as your Windows 10 build number is 17763 or above (version 1809). You can choose and install Windows 11 Narrator voices [here][5].
 
-- **Skipping**. The engine ignores all skipping requests.
-- Applying volume and rate adjustments **during speaking**.
-- **Phoneme event**. Viseme event, however, is supported.
-- **`<partofsp>` tag** that specifies which part of speech a word is (noun, verb, etc.).
+Windows 10's Narrator doesn't support natural voices directly, but it does support SAPI 5 voices. So you can make Windows 11 Narrator voices work on Windows 10 via this engine.
 
+**Does it really work on Windows XP?**
 
-## Not supported features when using embedded voices
+Yes, although I only tested it on a virtual machine.
 
-If you are using the local/offline/embedded natural voices, these features will be unavailable.
+On Windows XP, Windows 11 Narrator voices don't work. But online Microsoft Edge voices and Azure voices work.
 
-- `<silence>` tag (SAPI) / `<break>` tag (SSML)
-- `<emph>` tag (SAPI) / `<emphasis>` tag (SSML)
+**Will it work on future versions of Windows?**
 
+This engine uses some encryption keys extracted from system files to use the voices, so it's more like a hack than a proper solution.
 
-## SAPI 5 TTS XML vs. SSML
+As for now, Microsoft hasn't yet allowed third-party apps to use the Narrator/Edge voices, and this can stop working at any time, for example, after a system update.
 
-The following table shows how this engine will translate SAPI 5 TTS XML into SSML.
+## 系统要求
 
-| SAPI XML | SSML |
-| - | - |
-| `<volume level="80">` | `<prosody volume="-20%">` |
-| `<rate speed="5">` | `<prosody rate="+100%">` |
-| `<pitch middle="5">` | `<prosody pitch="+25%">` |
-| `<emph>` | `<emphasize>` |
-| `<spell>` | `<say-as interpret-as="characters">` |
-| `<silence msec="500"/>` | `<break time="500ms"/>` |
-| `<pron sym="h eh 1 l ow">` | `<phoneme alphabet="sapi" ph="h eh 1 l ow">` |
-| `<bookmark mark="pos"/>` | `<bookmark mark="pos"/>` |
-| `<partofsp part="noun">` | Not supported |
-| `<context id="date_mdy">` | `<say-as interpret-as="date" format="mdy">` |
-| `<context id="date_year">` | `<say-as interpret-as="date" format="y">` |
-| `<context id="number_cardinal">` | `<say-as interpret-as="cardinal">` |
-| `<context id="number_fraction">` | `<say-as interpret-as="fraction">` |
-| `<context id="phone_number">` | `<say-as interpret-as="telephone">` |
-| `<context id="other_format">` | `<say-as interpret-as="other_format">` |
-| `<sapi>` | Handled by SAPI |
-| `<voice required="Gender=Female">` | Handled by SAPI |
-| `<lang langid="409">` | Handled by SAPI |
+Windows XP SP3 或更高版本。x86 32/64 位。
 
-Note:
-- Volume and rate can also be affected by the global settings set with `ISpVoice::SetVolume` and `ISpVoice::SetRate`.
-- Other XML tags will be inserted into the SSML text as-is.
+**我用的 Windows 10 系统，可以使用 Windows 11 系统的讲述人自然语音吗？**
+
+可以，只要系统版本为 1809 或更新版本。可以转到[这里][5]下载安装 Windows 11 系统的讲述人自然语音。
+
+Windows 10 系统的讲述人并不支持自然语音，但是支持 SAPI 5 语音，所以可以借助本引擎间接让 Windows 10 系统的讲述人也支持自然语音。
+
+**Windows XP 上真的能用？**
+
+可以，虽然我只在虚拟机上测试过。
+
+XP 上讲述人自然语音不能用，但是 Edge 和 Azure 的在线语音依然能用。
+
+**之后的 Windows 版本还能用吗？**
+
+本引擎使用了从系统文件中提取的解密密钥来使用语音，这并不是官方认可的行为。
+
+目前微软并没有允许第三方程序使用讲述人语音和 Edge 语音。因此，本引擎随时可能会在某次系统更新后停止工作。
+
+## Installation
+
+1. Download the zip file from the [Releases][6] section.
+2. Extract the files in a folder. Make sure not to move or rename the files after installation.
+3. Run the `install.bat` file **as administrator**.
+4. If you are using this on Windows XP, you can also merge the `PhoneConverters.reg` file to make the system support more TTS languages.
+5. Run the `uninstall.bat` file as administrator when you want to uninstall it.
+
+Or, you can use `regsvr32` to register the DLL files manually.
+
+## 安装
+
+1. 从 [Releases][6] 栏下载 zip 文件。
+2. 解压至一个文件夹。安装完成后，不要再移动或重命名这些文件。
+3. **以管理员身份**运行 `install.bat`。
+4. 若在 Windows XP 上使用，可以合并 `PhoneConverters.reg` 以让系统支持更多语音语言。
+5. 若要卸载，以管理员身份运行 `uninstall.bat`。
+
+也可以用 `regsvr32` 手动注册 DLL 文件。
+
+## Testing
+
+You can use the `TtsApplication-x86.exe` and `TtsApplication-x64.exe` to test the engine.
+
+It's a modified version of the [TtsApplication in Windows-classic-samples][7], which added Chinese translation, and more detailed information for phoneme/viseme events.
+
+## 测试
+
+可以使用 `TtsApplication-x86.exe` 和 `TtsApplication-x64.exe` 来测试本引擎。
+
+这个程序修改自 [Windows-classic-samples 中的 TtsApplication][7]，添加了中文翻译和更详细的语素口型事件信息。
+
+## Libraries used
+- Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS
+- [websocketpp](https://github.com/zaphoyd/websocketpp)
+- ASIO (standalone version)
+- OpenSSL
+- [nlohmann/json](https://github.com/nlohmann/json)
+- [YY-Thunks](https://github.com/Chuyu-Team/YY-Thunks) (for Windows XP compatibility)
 
 [1]: https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms717037(v=vs.85)
 [2]: https://speech.microsoft.com/portal/voicegallery
 [3]: https://learn.microsoft.com/azure/ai-services/speech-service/
-[4]: https://learn.microsoft.com/azure/ai-services/speech-service/embedded-speech
-[5]: https://learn.microsoft.com/azure/ai-services/speech-service/speech-synthesis-markup
-[6]: https://learn.microsoft.com/azure/ai-services/speech-service/speech-sdk
-[7]: https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms717077(v=vs.85)
-[8]: https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis-viseme
+[4]: https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/wiki
+[5]: https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/wiki/Narrator-natural-voice-download-links
+[6]: https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/releases
+[7]: https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/speech/ttsapplication
