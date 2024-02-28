@@ -22,7 +22,7 @@ inline static void CheckHr(HRESULT hr)
 
 static CComPtr<IEnumSpObjectTokens> s_pCachedEnum = nullptr;
 static std::mutex s_cacheMutex;
-static std::jthread s_cacheClearThread;
+static DWORD s_cacheTicks = GetTickCount();
 
 HRESULT CVoiceTokenEnumerator::FinalConstruct()
 {
@@ -31,8 +31,11 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
     // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
 
     std::lock_guard lock(s_cacheMutex);
-    if (s_pCachedEnum)
+
+#pragma warning (disable: 28159) // Windows XP doesn't have GetTickCount64()
+    if (s_pCachedEnum && GetTickCount() - s_cacheTicks <= 100000)
         return s_pCachedEnum->Clone(&m_pEnum);
+#pragma warning (default: 28159)
 
     CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
     RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
@@ -57,17 +60,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
     CComPtr<IEnumSpObjectTokens> temp;
     RETONFAIL(pEnumBuilder->QueryInterface(&temp));
     s_pCachedEnum = std::move(temp);
-    // discard the cache after 10 seconds
-    s_cacheClearThread = std::jthread([](std::stop_token token)
-        {
-            std::condition_variable_any cv;
-            std::mutex mtx;
-            std::unique_lock cvlock(mtx);
-            cv.wait_for(cvlock, token, std::chrono::seconds(10), []() { return false; });
-            std::lock_guard cachelock(s_cacheMutex);
-            s_pCachedEnum.Release();
-        }
-    );
 
     return pEnumBuilder->QueryInterface(&m_pEnum);
 }
@@ -414,6 +406,39 @@ static bool IsUniversalPhoneConverterSupported()
     return SUCCEEDED(converter.QueryInterface(&alphaSelector));
 }
 
+static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
+{
+    std::set<LANGID> langids;
+    ULONG numLangs = 0, cchBuffer = 0;
+
+    static const auto pfnGetUserPreferredUILanguages
+        = reinterpret_cast<decltype(GetUserPreferredUILanguages)*>
+        (GetProcAddress(GetModuleHandleW(L"kernel32"), "GetUserPreferredUILanguages"));
+
+    if (!pfnGetUserPreferredUILanguages)
+    {
+        LANGID langid = GetUserDefaultLangID();
+        langids.insert(langid);
+        if (includeFallbacks)
+            langids.insert(GetLangIDFallback(langid));
+        return langids;
+    }
+
+    pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, nullptr, &cchBuffer);
+    auto pBuffer = std::make_unique_for_overwrite<WCHAR[]>(cchBuffer);
+    pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, pBuffer.get(), &cchBuffer);
+
+    for (const auto& langidstr : TokenizeString(std::wstring_view(pBuffer.get(), cchBuffer - 2), L'\0'))
+    {
+        LANGID langid = HexLangToLangID(langidstr);
+        langids.insert(langid);
+        if (includeFallbacks)
+            langids.insert(GetLangIDFallback(langid));
+    }
+
+    return langids;
+}
+
 CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices()
 {
     CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
@@ -431,16 +456,20 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices()
     if (!universalSupported)
         supportedLangs = GetSupportedLanguageIDs();
 
+    std::set<LANGID> userLangs = GetUserPreferredLanguageIDs(false);
+
     for (const auto& voice : json)
     {
-        if (!universalSupported
-            && !supportedLangs.contains(LangIDFromLocaleName(UTF8ToWString(voice.at("Locale")))))
-        {
+        auto locale = UTF8ToWString(voice.at("Locale"));
+        LANGID langid = LangIDFromLocaleName(locale);
+        if (!universalSupported && !supportedLangs.contains(langid))
             continue;
-        }
+        //if (!userLangs.contains(langid) && !userLangs.contains(GetLangIDFallback(langid)))
+            //continue;
         auto pToken = MakeEdgeVoiceToken(voice);
         pEnumBuilder->AddTokens(1, &pToken.p);
     }
+
 
     return CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder);
 }
