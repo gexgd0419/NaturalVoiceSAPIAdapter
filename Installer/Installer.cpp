@@ -62,7 +62,7 @@ static bool GetInstalledPath(bool is64Bit, LPWSTR path, DWORD cchMax)
 
     DWORD cch = cb / 2;
     if (cch >= cchMax)
-        cch = MAX_PATH - 1;
+        cch = cchMax - 1;
     path[cch] = L'\0';
 
     RegCloseKey(hKey);
@@ -173,7 +173,7 @@ static BOOL MainDlgInit(HWND hDlg)
     EnableRange(hDlg, IDC_ALL_LANGS, IDC_CUR_LANG,
         SendDlgItemMessageW(hDlg, IDC_CHK_EDGE_VOICES, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
-    if  (SupportsNarratorVoices())
+    if (SupportsNarratorVoices())
     {
         SetFocus(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES));
     }
