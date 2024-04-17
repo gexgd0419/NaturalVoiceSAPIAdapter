@@ -1,7 +1,7 @@
 ﻿#include "framework.h"
 #include "Installer.h"
 
-BOOL Is64BitSystem()
+static BOOL Is64BitSystem()
 {
 #ifdef _WIN64
     return TRUE;
@@ -12,7 +12,7 @@ BOOL Is64BitSystem()
 #endif
 }
 
-BOOL SupportsUAC()
+static BOOL SupportsUAC()
 {
     OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
     DWORDLONG        const dwlConditionMask = VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL);
@@ -22,7 +22,7 @@ BOOL SupportsUAC()
     return VerifyVersionInfoW(&osvi, VER_MAJORVERSION, dwlConditionMask);
 }
 
-BOOL SupportsNarratorVoices()
+static BOOL SupportsNarratorVoices()
 {
     OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
     DWORDLONG        const dwlConditionMask = VerSetConditionMask(
@@ -35,7 +35,7 @@ BOOL SupportsNarratorVoices()
     return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_BUILDNUMBER, dwlConditionMask);
 }
 
-BOOL IsAdmin()
+static BOOL IsAdmin()
 {
     BOOL isAdmin = FALSE;
     BYTE adminSid[sizeof(SID) + sizeof(DWORD)];
@@ -45,7 +45,7 @@ BOOL IsAdmin()
     return isAdmin;
 }
 
-bool GetInstalledPath(bool is64Bit, LPWSTR path, DWORD cchMax)
+static bool GetInstalledPath(bool is64Bit, LPWSTR path, DWORD cchMax)
 {
     HKEY hKey;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
@@ -69,7 +69,7 @@ bool GetInstalledPath(bool is64Bit, LPWSTR path, DWORD cchMax)
     return true;
 }
 
-void CheckInstallation(bool is64Bit, HWND hDlg, UINT idStatic, UINT idUninstallBtn)
+static void CheckInstallation(bool is64Bit, HWND hDlg, UINT idStatic, UINT idUninstallBtn)
 {
     WCHAR path[MAX_PATH], szText[256], szFormat[256];
     LPVOID pVerData;
@@ -116,13 +116,13 @@ NotInstalled:
     EnableWindow(hBtn, FALSE);
 }
 
-void EnableRange(HWND hDlg, UINT idFrom, UINT idTo, BOOL enable)
+static void EnableRange(HWND hDlg, UINT idFrom, UINT idTo, BOOL enable)
 {
     for (UINT id = idFrom; id <= idTo; id++)
         EnableWindow(GetDlgItem(hDlg, id), enable);
 }
 
-BOOL MainDlgInit(HWND hDlg)
+static BOOL MainDlgInit(HWND hDlg)
 {
     if (!IsAdmin())
     {
@@ -196,7 +196,7 @@ BOOL MainDlgInit(HWND hDlg)
     return FALSE;
 }
 
-INT_PTR CALLBACK AboutDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK AboutDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
@@ -225,7 +225,7 @@ INT_PTR CALLBACK AboutDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void SetEnumeratorRegDWord(LPCWSTR name, DWORD value)
+static void SetEnumeratorRegDWord(LPCWSTR name, DWORD value)
 {
     HKEY hKey;
     if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0, nullptr, 0,
@@ -236,7 +236,7 @@ void SetEnumeratorRegDWord(LPCWSTR name, DWORD value)
     }
 }
 
-void ReportError(DWORD err)
+static void ReportError(DWORD err)
 {
     WCHAR buffer[512] = {};
     switch (err)
@@ -253,7 +253,7 @@ void ReportError(DWORD err)
     MessageBoxW(GetActiveWindow(), buffer, L"", err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
 }
 
-void Register(bool is64Bit)
+static void Register(bool is64Bit)
 {
     WCHAR dllpath[MAX_PATH];
     GetModuleFileNameW(nullptr, dllpath, MAX_PATH);
@@ -289,7 +289,7 @@ void Register(bool is64Bit)
     CloseHandle(info.hProcess);
 }
 
-void Unregister(bool is64Bit)
+static void Unregister(bool is64Bit)
 {
     WCHAR dllpath[MAX_PATH];
     if (!GetInstalledPath(is64Bit, dllpath, MAX_PATH))
@@ -319,7 +319,7 @@ void Unregister(bool is64Bit)
     CloseHandle(info.hProcess);
 }
 
-INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
