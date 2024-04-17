@@ -9,7 +9,6 @@
 // Windows 头文件
 #include <windows.h>
 #include <CommCtrl.h>
-#include <VersionHelpers.h>
 #include <shellapi.h>
 // C 运行时头文件
 #include <stdlib.h>

@@ -12,21 +12,23 @@ BOOL Is64BitSystem()
 #endif
 }
 
+BOOL SupportsUAC()
+{
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG        const dwlConditionMask = VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL);
+
+    osvi.dwMajorVersion = 6;
+
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION, dwlConditionMask) != FALSE;
+}
+
 BOOL IsAdmin()
 {
     BOOL isAdmin = FALSE;
-    HANDLE hToken;
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
-    {
-        PSID pAdminSid;
-        DWORD cb = 0;
-        if (CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr, &pAdminSid, &cb))
-        {
-            CheckTokenMembership(hToken, pAdminSid, &isAdmin);
-            FreeSid(pAdminSid);
-        }
-        CloseHandle(hToken);
-    }
+    BYTE adminSid[sizeof(SID) + sizeof(DWORD)];
+    DWORD cb = sizeof adminSid;
+    CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr, adminSid, &cb);
+    CheckTokenMembership(nullptr, adminSid, &isAdmin);
     return isAdmin;
 }
 
@@ -61,6 +63,9 @@ void CheckInstallation(bool is64Bit, HWND hDlg, UINT idStatic, UINT idUninstallB
     DWORD hVer, size;
     VS_FIXEDFILEINFO* pInfo;
     UINT uLen;
+
+    if (is64Bit && !Is64BitSystem())
+        return;
 
     if (!GetInstalledPath(is64Bit, path, MAX_PATH))
         goto NotInstalled;
@@ -108,14 +113,10 @@ BOOL MainDlgInit(HWND hDlg)
 {
     if (!IsAdmin())
     {
-        if (IsWindowsVistaOrGreater())
+        if (SupportsUAC())
         {
             for (UINT id = IDC_INSTALL_32BIT; id <= IDC_UNINSTALL_64BIT; id++)
                 SendDlgItemMessageW(hDlg, id, BCM_SETSHIELD, 0, TRUE);
-        }
-        else
-        {
-            EnableRange(hDlg, IDC_INSTALL_32BIT, IDC_UNINSTALL_64BIT, FALSE);
         }
     }
     if (!Is64BitSystem())
@@ -200,14 +201,19 @@ void SetEnumeratorRegDWord(LPCWSTR name, DWORD value)
 
 void ReportError(DWORD err)
 {
-    LPWSTR pBuffer = nullptr;
-    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-        nullptr, err, LANG_USER_DEFAULT, (LPWSTR)&pBuffer, 0, nullptr))
+    WCHAR buffer[512] = {};
+    switch (err)
     {
-        MessageBoxW(GetActiveWindow(), pBuffer, L"",
-            err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
-        LocalFree(pBuffer);
+    case ERROR_CANCELLED:
+        return;
+    case ERROR_ACCESS_DENIED:
+        LoadStringW(nullptr, IDS_PERMISSION, buffer, 512);
+        break;
+    default:
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, LANG_USER_DEFAULT, buffer, 512, nullptr);
+        break;
     }
+    MessageBoxW(GetActiveWindow(), buffer, L"", err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
 }
 
 void Register(bool is64Bit)
@@ -229,7 +235,7 @@ void Register(bool is64Bit)
     info.fMask = SEE_MASK_NOCLOSEPROCESS;
     info.lpFile = L"regsvr32";
     info.lpParameters = cmdline;
-    if (!IsAdmin())
+    if (!IsAdmin() && SupportsUAC())
         info.lpVerb = L"runas";
 
     if (!ShellExecuteExW(&info) || !info.hProcess)
@@ -259,7 +265,7 @@ void Unregister(bool is64Bit)
     info.fMask = SEE_MASK_NOCLOSEPROCESS;
     info.lpFile = L"regsvr32";
     info.lpParameters = cmdline;
-    if (!IsAdmin())
+    if (!IsAdmin() && SupportsUAC())
         info.lpVerb = L"runas";
 
     if (!ShellExecuteExW(&info) || !info.hProcess)

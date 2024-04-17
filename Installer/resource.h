@@ -10,6 +10,7 @@
 #define IDR_MAINFRAME                   128
 #define IDS_INSTALLED                   130
 #define IDS_NOT_INSTALLED               131
+#define IDS_PERMISSION                  132
 #define IDC_INSTALL_32BIT               1000
 #define IDC_UNINSTALL_32BIT             1001
 #define IDC_INSTALL_64BIT               1002
@@ -29,7 +30,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_RESOURCE_VALUE        133
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           110
