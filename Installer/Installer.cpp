@@ -19,7 +19,20 @@ BOOL SupportsUAC()
 
     osvi.dwMajorVersion = 6;
 
-    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION, dwlConditionMask) != FALSE;
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION, dwlConditionMask);
+}
+
+BOOL SupportsNarratorVoices()
+{
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG        const dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL)
+        , VER_BUILDNUMBER, VER_GREATER_EQUAL);
+
+    osvi.dwMajorVersion = 10;
+    osvi.dwBuildNumber  = 17763;
+
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_BUILDNUMBER, dwlConditionMask);
 }
 
 BOOL IsAdmin()
@@ -122,6 +135,10 @@ BOOL MainDlgInit(HWND hDlg)
     if (!Is64BitSystem())
     {
         EnableRange(hDlg, IDC_INSTALL_64BIT, IDC_UNINSTALL_64BIT, FALSE);
+        ShowWindow(GetDlgItem(hDlg, IDC_STATIC_64BIT_HEADER), SW_HIDE);
+        ShowWindow(GetDlgItem(hDlg, IDC_STATIC_64BIT_STATUS), SW_HIDE);
+        ShowWindow(GetDlgItem(hDlg, IDC_INSTALL_64BIT), SW_HIDE);
+        ShowWindow(GetDlgItem(hDlg, IDC_UNINSTALL_64BIT), SW_HIDE);
     }
 
     CheckInstallation(false, hDlg, IDC_STATIC_32BIT_STATUS, IDC_UNINSTALL_32BIT);
@@ -155,7 +172,27 @@ BOOL MainDlgInit(HWND hDlg)
 
     EnableRange(hDlg, IDC_ALL_LANGS, IDC_CUR_LANG,
         SendDlgItemMessageW(hDlg, IDC_CHK_EDGE_VOICES, BM_GETCHECK, 0, 0) == BST_CHECKED);
-    SetFocus(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES));
+
+    if  (SupportsNarratorVoices())
+    {
+        SetFocus(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES));
+    }
+    else
+    {
+        CheckDlgButton(hDlg, IDC_CHK_NARRATOR_VOICES, BST_UNCHECKED);
+        EnableWindow(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES), FALSE);
+        SetFocus(GetDlgItem(hDlg, IDC_CHK_EDGE_VOICES));
+        HWND hTooltip = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, hDlg, nullptr, nullptr, nullptr);
+        TOOLINFOW info = { sizeof info };
+        info.uFlags = TTF_SUBCLASS;
+        info.hwnd = hDlg;
+        info.uId = 1;
+        GetWindowRect(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES), &info.rect);
+        MapWindowPoints(nullptr, hDlg, (LPPOINT)&info.rect, 2);
+        info.lpszText = MAKEINTRESOURCEW(IDS_NARRATOR_VOICE_NOT_SUPPORTED);
+        SendMessageW(hTooltip, TTM_ADDTOOLW, 0, (LPARAM)&info);
+    }
     return FALSE;
 }
 
