@@ -246,6 +246,10 @@ static void ReportError(DWORD err)
     case ERROR_ACCESS_DENIED:
         LoadStringW(nullptr, IDS_PERMISSION, buffer, 512);
         break;
+    case ERROR_FILE_NOT_FOUND:
+    case ERROR_PATH_NOT_FOUND:
+        LoadStringW(nullptr, IDS_FILE_NOT_FOUND, buffer, 512);
+        break;
     default:
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, LANG_USER_DEFAULT, buffer, 512, nullptr);
         break;
@@ -253,40 +257,54 @@ static void ReportError(DWORD err)
     MessageBoxW(GetActiveWindow(), buffer, L"", err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
 }
 
-static void Register(bool is64Bit)
+// Returns the exit code, or -1 if failed to launch.
+static DWORD LaunchAsAdmin(LPCWSTR pszApp, LPCWSTR pszCmdLine)
 {
-    WCHAR dllpath[MAX_PATH];
-    GetModuleFileNameW(nullptr, dllpath, MAX_PATH);
-    LPWSTR pSlash = wcsrchr(dllpath, L'\\');
-    if (pSlash)
-        *pSlash = L'\0';
-    if (is64Bit)
-        wcscat_s(dllpath, L"\\x64\\NaturalVoiceSAPIAdapter.dll");
-    else
-        wcscat_s(dllpath, L"\\x86\\NaturalVoiceSAPIAdapter.dll");
-
-    WCHAR cmdline[512];
-    swprintf_s(cmdline, L"/s \"%s\"", dllpath);
+    HWND hWnd = GetActiveWindow();
 
     SHELLEXECUTEINFOW info = { sizeof info };
     info.fMask = SEE_MASK_NOCLOSEPROCESS;
-    info.lpFile = L"regsvr32";
-    info.lpParameters = cmdline;
+    info.lpFile = pszApp;
+    info.lpParameters = pszCmdLine;
+    info.nShow = SW_HIDE;
+    info.hwnd = hWnd;
     if (!IsAdmin() && SupportsUAC())
         info.lpVerb = L"runas";
 
     if (!ShellExecuteExW(&info) || !info.hProcess)
     {
         ReportError(GetLastError());
-        return;
+        return (DWORD)-1;
     }
 
     WaitForSingleObject(info.hProcess, INFINITE);
     DWORD exitcode;
     GetExitCodeProcess(info.hProcess, &exitcode);
-    ReportError(exitcode);
-
     CloseHandle(info.hProcess);
+
+    return exitcode;
+}
+
+static void Register(bool is64Bit)
+{
+    WCHAR dllpath[MAX_PATH];
+    GetModuleFileNameW(nullptr, dllpath, MAX_PATH);
+    PathRemoveFileSpecW(dllpath);
+    PathAppendW(dllpath,
+        is64Bit ? L"\\x64\\NaturalVoiceSAPIAdapter.dll" : L"\\x86\\NaturalVoiceSAPIAdapter.dll");
+
+    WCHAR cmdline[512];
+    swprintf_s(cmdline, L"/s \"%s\"", dllpath);
+
+    DWORD exitcode = LaunchAsAdmin(L"regsvr32", cmdline);
+    if (exitcode == 0)
+    {
+        WCHAR msg[512];
+        LoadStringW(nullptr, IDS_INSTALL_COMPLETE, msg, 512);
+        MessageBoxW(GetActiveWindow(), msg, L"", MB_ICONINFORMATION);
+    }
+    else if (exitcode != (DWORD)-1)
+        ReportError(exitcode);
 }
 
 static void Unregister(bool is64Bit)
@@ -298,25 +316,64 @@ static void Unregister(bool is64Bit)
     WCHAR cmdline[512];
     swprintf_s(cmdline, L"/u /s \"%s\"", dllpath);
 
-    SHELLEXECUTEINFOW info = { sizeof info };
-    info.fMask = SEE_MASK_NOCLOSEPROCESS;
-    info.lpFile = L"regsvr32";
-    info.lpParameters = cmdline;
-    if (!IsAdmin() && SupportsUAC())
-        info.lpVerb = L"runas";
+    DWORD exitcode = LaunchAsAdmin(L"regsvr32", cmdline);
+    if (exitcode != (DWORD)-1)
+        ReportError(exitcode);
+}
 
-    if (!ShellExecuteExW(&info) || !info.hProcess)
+static void AddToRegistry(LPCWSTR regfile)
+{
+    WCHAR regfilepath[MAX_PATH];
+    GetModuleFileNameW(nullptr, regfilepath, MAX_PATH);
+    PathRemoveFileSpecW(regfilepath);
+    PathAppendW(regfilepath, regfile);
+
+    // check if the .reg file exists first
+    if (!PathFileExistsW(regfilepath) && GetLastError() == ERROR_FILE_NOT_FOUND)
     {
-        ReportError(GetLastError());
+        ReportError(ERROR_FILE_NOT_FOUND);
         return;
     }
 
-    WaitForSingleObject(info.hProcess, INFINITE);
-    DWORD exitcode;
-    GetExitCodeProcess(info.hProcess, &exitcode);
-    ReportError(exitcode);
+    WCHAR cmdline[512];
+    swprintf_s(cmdline, L"import \"%s\"", regfilepath);
 
-    CloseHandle(info.hProcess);
+    DWORD exitcode = LaunchAsAdmin(L"reg", cmdline);
+    // We can know if it failed or not, but not why failed
+    if (exitcode != (DWORD)-1)
+        ReportError(exitcode == 0 ? ERROR_SUCCESS : E_FAIL);
+}
+
+static void CheckPhonemeConverters()
+{
+    HKEY hKey;
+    bool hasConverters = true;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Speech\\PhoneConverters\\Tokens\\Universal",
+        0, KEY_QUERY_VALUE | KEY_WOW64_32KEY, &hKey) == ERROR_SUCCESS)
+    {
+        RegCloseKey(hKey);
+        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Speech\\PhoneConverters\\Tokens\\Universal",
+            0, KEY_QUERY_VALUE | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
+        {
+            RegCloseKey(hKey);
+        }
+        else
+            hasConverters = false;
+    }
+    else
+        hasConverters = false;
+
+    if (hasConverters)
+        return;
+
+    WCHAR msg[512];
+    LoadStringW(nullptr, IDS_INSTALL_PHONEME_CONVERTERS, msg, 512);
+    if (MessageBoxW(GetActiveWindow(), msg, L"", MB_ICONASTERISK | MB_YESNO) != IDYES)
+        return;
+
+    AddToRegistry(L"PhoneConverters_x86.reg");
+    if (Is64BitSystem())
+        AddToRegistry(L"PhoneConverters_x64.reg");
 }
 
 static INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -367,6 +424,7 @@ static INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
             break;
         case IDC_ALL_LANGS:
             SetEnumeratorRegDWord(L"EdgeVoiceAllLanguages", 1);
+            CheckPhonemeConverters();
             break;
         case IDC_CUR_LANG:
             SetEnumeratorRegDWord(L"EdgeVoiceAllLanguages", 0);

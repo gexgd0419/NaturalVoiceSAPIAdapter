@@ -12,6 +12,9 @@
 #define IDS_NOT_INSTALLED               131
 #define IDS_PERMISSION                  132
 #define IDS_NARRATOR_VOICE_NOT_SUPPORTED 133
+#define IDS_INSTALL_PHONEME_CONVERTERS  134
+#define IDS_FILE_NOT_FOUND              135
+#define IDS_INSTALL_COMPLETE            136
 #define IDC_INSTALL_32BIT               1000
 #define IDC_UNINSTALL_32BIT             1001
 #define IDC_INSTALL_64BIT               1002
@@ -32,7 +35,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           110
