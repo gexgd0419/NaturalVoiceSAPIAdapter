@@ -122,6 +122,8 @@ static void EnableRange(HWND hDlg, UINT idFrom, UINT idTo, BOOL enable)
         EnableWindow(GetDlgItem(hDlg, id), enable);
 }
 
+static bool s_allLanguages = false;
+
 static BOOL MainDlgInit(HWND hDlg)
 {
     if (!IsAdmin())
@@ -160,6 +162,7 @@ static BOOL MainDlgInit(HWND hDlg)
         data = 0;
         cbData = sizeof(DWORD);
         RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, (LPBYTE)&data, &cbData);
+        s_allLanguages = data;
         CheckDlgButton(hDlg, data ? IDC_ALL_LANGS : IDC_CUR_LANG, BST_CHECKED);
         RegCloseKey(hKey);
     }
@@ -236,6 +239,21 @@ static void SetEnumeratorRegDWord(LPCWSTR name, DWORD value)
     }
 }
 
+static int ShowMessageBox(LPCWSTR msg, UINT flags)
+{
+    HWND hWnd = GetActiveWindow();
+    WCHAR title[512] = {};
+    GetWindowTextW(hWnd, title, 512);
+    return MessageBoxW(hWnd, msg, title, flags);
+}
+
+static int ShowMessageBox(UINT msgid, UINT flags)
+{
+    WCHAR msg[512];
+    LoadStringW(nullptr, msgid, msg, 512);
+    return ShowMessageBox(msg, flags);
+}
+
 static void ReportError(DWORD err)
 {
     WCHAR buffer[512] = {};
@@ -254,7 +272,7 @@ static void ReportError(DWORD err)
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, err, LANG_USER_DEFAULT, buffer, 512, nullptr);
         break;
     }
-    MessageBoxW(GetActiveWindow(), buffer, L"", err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
+    ShowMessageBox(buffer, err == ERROR_SUCCESS ? MB_ICONINFORMATION : MB_ICONEXCLAMATION);
 }
 
 // Returns the exit code, or -1 if failed to launch.
@@ -277,10 +295,12 @@ static DWORD LaunchAsAdmin(LPCWSTR pszApp, LPCWSTR pszCmdLine)
         return (DWORD)-1;
     }
 
+    HCURSOR hCur = SetCursor(LoadCursorW(nullptr, IDC_WAIT));
     WaitForSingleObject(info.hProcess, INFINITE);
     DWORD exitcode;
     GetExitCodeProcess(info.hProcess, &exitcode);
     CloseHandle(info.hProcess);
+    SetCursor(hCur);
 
     return exitcode;
 }
@@ -298,11 +318,7 @@ static void Register(bool is64Bit)
 
     DWORD exitcode = LaunchAsAdmin(L"regsvr32", cmdline);
     if (exitcode == 0)
-    {
-        WCHAR msg[512];
-        LoadStringW(nullptr, IDS_INSTALL_COMPLETE, msg, 512);
-        MessageBoxW(GetActiveWindow(), msg, L"", MB_ICONINFORMATION);
-    }
+        ShowMessageBox(IDS_INSTALL_COMPLETE, MB_ICONINFORMATION);
     else if (exitcode != (DWORD)-1)
         ReportError(exitcode);
 }
@@ -366,9 +382,7 @@ static void CheckPhonemeConverters()
     if (hasConverters)
         return;
 
-    WCHAR msg[512];
-    LoadStringW(nullptr, IDS_INSTALL_PHONEME_CONVERTERS, msg, 512);
-    if (MessageBoxW(GetActiveWindow(), msg, L"", MB_ICONASTERISK | MB_YESNO) != IDYES)
+    if (ShowMessageBox(IDS_INSTALL_PHONEME_CONVERTERS, MB_ICONASTERISK | MB_YESNO) != IDYES)
         return;
 
     AddToRegistry(L"PhoneConverters_x86.reg");
@@ -424,10 +438,17 @@ static INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM l
             break;
         case IDC_ALL_LANGS:
             SetEnumeratorRegDWord(L"EdgeVoiceAllLanguages", 1);
-            CheckPhonemeConverters();
+            // WM_COMMAND can happen multiple times, even when the radio button has been checked.
+            // Check phoneme converters once only when the radio button is turning from unchecked to checked.
+            if (!s_allLanguages)
+            {
+                s_allLanguages = true;
+                CheckPhonemeConverters();
+            }
             break;
         case IDC_CUR_LANG:
             SetEnumeratorRegDWord(L"EdgeVoiceAllLanguages", 0);
+            s_allLanguages = false;
             break;
         }
         break;
