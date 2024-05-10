@@ -20,8 +20,16 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
 
 	if (dwReason == DLL_PROCESS_DETACH)
 	{
-		// Use INVALID_HANDLE_VALUE to wait for callback functions to complete
-		(void)DeleteTimerQueueEx(g_hTimerQueue, INVALID_HANDLE_VALUE);
+		if (lpReserved == nullptr)  // being unloaded dynamically
+		{
+			// Use INVALID_HANDLE_VALUE to wait for callback functions to complete
+			(void)DeleteTimerQueueEx(g_hTimerQueue, INVALID_HANDLE_VALUE);
+		}
+		else
+		{
+			// Use nullptr to delete without waiting for callbacks
+			(void)DeleteTimerQueueEx(g_hTimerQueue, nullptr);
+		}
 	}
 
 	return _AtlModule.DllMain(dwReason, lpReserved);

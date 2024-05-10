@@ -21,7 +21,9 @@ inline static void CheckHr(HRESULT hr)
         throw std::system_error(hr, std::system_category());
 }
 
-static CComPtr<IEnumSpObjectTokens> s_pCachedEnum = nullptr;
+// use non-smart pointer so that it won't be released automatically on DLL unload
+static IEnumSpObjectTokens* s_pCachedEnum = nullptr;
+
 static std::mutex s_cacheMutex;
 extern HANDLE g_hTimerQueue;
 static HANDLE s_hCacheTimer = nullptr;
@@ -33,6 +35,9 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
     // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
 
     std::lock_guard lock(s_cacheMutex);
+
+    if (s_pCachedEnum)
+        return s_pCachedEnum->Clone(&m_pEnum);
 
     // Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
     // So we create the timer queue here on first use
@@ -87,7 +92,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
         const auto clearCache = [](PVOID, BOOLEAN)
             {
                 std::lock_guard lock(s_cacheMutex);
-                s_pCachedEnum.Release();
+                s_pCachedEnum = nullptr;
                 (void)DeleteTimerQueueTimer(g_hTimerQueue, s_hCacheTimer, nullptr);
                 s_hCacheTimer = nullptr;
             };
@@ -95,11 +100,8 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
             WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
     }
 
-    CComPtr<IEnumSpObjectTokens> temp;
-    RETONFAIL(pEnumBuilder->QueryInterface(&temp));
-    s_pCachedEnum = std::move(temp);
-
-    return pEnumBuilder->QueryInterface(&m_pEnum);
+    RETONFAIL(pEnumBuilder->QueryInterface(&s_pCachedEnum));
+    return s_pCachedEnum->Clone(&m_pEnum);
 }
 
 static CComPtr<ISpDataKey> MakeVoiceKey(StringPairCollection&& values, SubkeyCollection&& subkeys)
