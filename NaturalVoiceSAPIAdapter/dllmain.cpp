@@ -10,7 +10,8 @@ CNaturalVoiceSAPIAdapterModule _AtlModule;
 
 // Use a timer queue to start background threads
 // so that all threads can be cancelled before this DLL is unloaded
-HANDLE g_hTimerQueue = CreateTimerQueue();
+// NOTE: Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
+HANDLE g_hTimerQueue = nullptr;
 
 // DLL 入口点
 extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)

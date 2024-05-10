@@ -34,6 +34,11 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
 
     std::lock_guard lock(s_cacheMutex);
 
+    // Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
+    // So we create the timer queue here on first use
+    if (!g_hTimerQueue)
+        g_hTimerQueue = CreateTimerQueue();
+
     DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
     if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
         KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
