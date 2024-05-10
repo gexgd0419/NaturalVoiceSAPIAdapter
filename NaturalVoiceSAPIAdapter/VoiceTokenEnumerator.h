@@ -47,7 +47,7 @@ END_COM_MAP()
 private:
 	CComPtr<IEnumSpObjectTokens> m_pEnum;
 	static CComPtr<IEnumSpObjectTokens> EnumLocalVoices();
-	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices();
+	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices(BOOL allLanguages);
 
 public:
 	// ISpObjectTokenEnumBuilder doesn't seem to support aggregation

@@ -303,6 +303,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="LangUtils.cpp" />
     <ClCompile Include="Mp3Decoder.cpp" />
     <ClCompile Include="NaturalVoiceSAPIAdapter.cpp" />
     <ClCompile Include="NaturalVoiceSAPIAdapter_i.c">

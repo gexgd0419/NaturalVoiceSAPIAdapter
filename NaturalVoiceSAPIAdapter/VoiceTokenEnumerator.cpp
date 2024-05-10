@@ -10,6 +10,7 @@
 #include "StringTokenizer.h"
 #include "LangUtils.h"
 #include <condition_variable>
+#include "wrappers.h"
 
 
 // CVoiceTokenEnumerator
@@ -22,7 +23,8 @@ inline static void CheckHr(HRESULT hr)
 
 static CComPtr<IEnumSpObjectTokens> s_pCachedEnum = nullptr;
 static std::mutex s_cacheMutex;
-static DWORD s_cacheTicks = GetTickCount();
+extern HANDLE g_hTimerQueue;
+static HANDLE s_hCacheTimer = nullptr;
 
 HRESULT CVoiceTokenEnumerator::FinalConstruct()
 {
@@ -32,30 +34,61 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct()
 
     std::lock_guard lock(s_cacheMutex);
 
-#pragma warning (disable: 28159) // Windows XP doesn't have GetTickCount64()
-    if (s_pCachedEnum && GetTickCount() - s_cacheTicks <= 100000)
-        return s_pCachedEnum->Clone(&m_pEnum);
-#pragma warning (default: 28159)
+    DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
+    if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
+        KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+    {
+        DWORD cbData;
+        cbData = sizeof(DWORD);
+        RegQueryValueExW(hKey, L"Disable", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fDisable), &cbData);
+        cbData = sizeof(DWORD);
+        RegQueryValueExW(hKey, L"NoNarratorVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoNarratorVoices), &cbData);
+        cbData = sizeof(DWORD);
+        RegQueryValueExW(hKey, L"NoEdgeVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoEdgeVoices), &cbData);
+        cbData = sizeof(DWORD);
+        RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fAllLanguages), &cbData);
+    }
 
     CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
     RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
     RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
 
-    try
+    if (!fDisable)
     {
-        CComPtr<IEnumSpObjectTokens> pLocalEnum = EnumLocalVoices();
-        RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pLocalEnum));
+        if (!fNoNarratorVoices)
+        {
+            try
+            {
+                CComPtr<IEnumSpObjectTokens> pLocalEnum = EnumLocalVoices();
+                RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pLocalEnum));
+            }
+            catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
+            catch (...) {}
+        }
+        if (!fNoEdgeVoices)
+        {
+            try
+            {
+                CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices(fAllLanguages);
+                RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pEdgeEnum));
+            }
+            catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
+            catch (...) {}
+        }
     }
-    catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
-    catch (...) { }
 
-    try
+    if (!s_hCacheTimer)
     {
-        CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices();
-        RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pEdgeEnum));
+        const auto clearCache = [](PVOID, BOOLEAN)
+            {
+                std::lock_guard lock(s_cacheMutex);
+                s_pCachedEnum.Release();
+                (void)DeleteTimerQueueTimer(g_hTimerQueue, s_hCacheTimer, nullptr);
+                s_hCacheTimer = nullptr;
+            };
+        CreateTimerQueueTimer(&s_hCacheTimer, g_hTimerQueue, clearCache, nullptr, 10000, 0,
+            WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
     }
-    catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
-    catch (...) { }
 
     CComPtr<IEnumSpObjectTokens> temp;
     RETONFAIL(pEnumBuilder->QueryInterface(&temp));
@@ -82,7 +115,7 @@ static CComPtr<ISpObjectToken> MakeVoiceToken(LPCWSTR lpszPath, StringPairCollec
     return pToken;
 }
 
-static std::wstring LanguageIDsFromLocaleName(std::wstring_view locale)
+static std::wstring LanguageIDsFromLocaleName(const std::wstring& locale)
 {
     LANGID lang = LangIDFromLocaleName(locale);
     if (lang == 0)
@@ -90,11 +123,10 @@ static std::wstring LanguageIDsFromLocaleName(std::wstring_view locale)
 
     std::wstring ret = LangIDToHexLang(lang);
 
-    LANGID neutralLang = GetLangIDFallback(lang);
-    if (neutralLang != lang)
+    for (LANGID fallback : GetLangIDFallbacks(lang))
     {
         ret += L';';
-        ret += LangIDToHexLang(neutralLang);
+        ret += LangIDToHexLang(fallback);
     }
 
     return ret;
@@ -342,7 +374,8 @@ static nlohmann::json GetEdgeVoiceJson()
             if (uiNow.QuadPart < uiWrite.QuadPart ||
                 uiNow.QuadPart - uiWrite.QuadPart > 10000000ULL * 60 * 60)
             {
-                std::thread([]()
+                HANDLE hTimer;
+                const auto backgroundDownload = [](PVOID, BOOLEAN)
                 {
                     try
                     {
@@ -352,7 +385,9 @@ static nlohmann::json GetEdgeVoiceJson()
                     }
                     catch (...)
                     { }
-                }).detach(); // detach the thread to fire-and-forget
+                };
+                CreateTimerQueueTimer(&hTimer, g_hTimerQueue, backgroundDownload, nullptr, 0, 0,
+                    WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
             }
 
             return json; // return JSON from cache
@@ -420,7 +455,7 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
         LANGID langid = GetUserDefaultLangID();
         langids.insert(langid);
         if (includeFallbacks)
-            langids.insert(GetLangIDFallback(langid));
+            langids.insert_range(GetLangIDFallbacks(langid));
         return langids;
     }
 
@@ -433,13 +468,14 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
         LANGID langid = HexLangToLangID(langidstr);
         langids.insert(langid);
         if (includeFallbacks)
-            langids.insert(GetLangIDFallback(langid));
+            langids.insert_range(GetLangIDFallbacks(langid));
     }
 
+    langids.insert(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)); // always included
     return langids;
 }
 
-CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices()
+CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLanguages)
 {
     CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
     CheckHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
@@ -456,7 +492,9 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices()
     if (!universalSupported)
         supportedLangs = GetSupportedLanguageIDs();
 
-    std::set<LANGID> userLangs = GetUserPreferredLanguageIDs(false);
+    std::set<LANGID> userLangs;
+    if (!allLanguages)
+        userLangs = GetUserPreferredLanguageIDs(false);
 
     for (const auto& voice : json)
     {
@@ -464,8 +502,8 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices()
         LANGID langid = LangIDFromLocaleName(locale);
         if (!universalSupported && !supportedLangs.contains(langid))
             continue;
-        //if (!userLangs.contains(langid) && !userLangs.contains(GetLangIDFallback(langid)))
-            //continue;
+        if (!allLanguages && !userLangs.contains(langid))
+            continue;
         auto pToken = MakeEdgeVoiceToken(voice);
         pEnumBuilder->AddTokens(1, &pToken.p);
     }

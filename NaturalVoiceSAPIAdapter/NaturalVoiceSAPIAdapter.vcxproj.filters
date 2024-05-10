@@ -111,6 +111,9 @@
     <ClCompile Include="NetUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LangUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc">
