@@ -10,17 +10,17 @@ Any program that supports SAPI 5 voices can use those natural voices via this TT
 
 See the [wiki pages][4] for some more technical information.
 
-## ¼ò½é
+## ç®€ä»‹
 
-Á¬½Ó [Azure AI ÓïÒô·şÎñ][3]£¬Ê¹µÚÈı·½³ÌĞòÒ²ÄÜÊ¹ÓÃÎ¢Èí[×ÔÈ»ÓïÒô][2]µÄ [SAPI 5 TTS ÒıÇæ][1]¡£Ö§³ÖÈçÏÂ×ÔÈ»ÓïÒô£º
+è¿æ¥ [Azure AI è¯­éŸ³æœåŠ¡][3]ï¼Œä½¿ç¬¬ä¸‰æ–¹ç¨‹åºä¹Ÿèƒ½ä½¿ç”¨å¾®è½¯[è‡ªç„¶è¯­éŸ³][2]çš„ [SAPI 5 TTS å¼•æ“][1]ã€‚æ”¯æŒå¦‚ä¸‹è‡ªç„¶è¯­éŸ³ï¼š
 
-- Windows 11 ÖĞµÄ½²ÊöÈË×ÔÈ»ÓïÒô
-- Microsoft Edge ÖĞ¡°´óÉùÀÊ¶Á¡±¹¦ÄÜµÄÔÚÏß×ÔÈ»ÓïÒô
-- À´×Ô Azure AI ÓïÒô·şÎñµÄÔÚÏß×ÔÈ»ÓïÒô£¬Ö»ÒªÄãÓĞ¶ÔÓ¦µÄ key
+- Windows 11 ä¸­çš„è®²è¿°äººè‡ªç„¶è¯­éŸ³
+- Microsoft Edge ä¸­â€œå¤§å£°æœ—è¯»â€åŠŸèƒ½çš„åœ¨çº¿è‡ªç„¶è¯­éŸ³
+- æ¥è‡ª Azure AI è¯­éŸ³æœåŠ¡çš„åœ¨çº¿è‡ªç„¶è¯­éŸ³ï¼Œåªè¦ä½ æœ‰å¯¹åº”çš„ key
 
-ÈÎºÎÖ§³Ö SAPI 5 ÓïÒôµÄ³ÌĞò¶¼¿ÉÒÔ½èÖú´ËÒıÇæÊ¹ÓÃÉÏÊöµÄ×ÔÈ»ÓïÒô¡£
+ä»»ä½•æ”¯æŒ SAPI 5 è¯­éŸ³çš„ç¨‹åºéƒ½å¯ä»¥å€ŸåŠ©æ­¤å¼•æ“ä½¿ç”¨ä¸Šè¿°çš„è‡ªç„¶è¯­éŸ³ã€‚
 
-¸ü¶à¼¼ÊõÏà¹ØµÄĞÅÏ¢¿ÉÒÔ²ÎÔÄ [wiki Ò³Ãæ][4]¡£
+æ›´å¤šæŠ€æœ¯ç›¸å…³çš„ä¿¡æ¯å¯ä»¥å‚é˜… [wiki é¡µé¢][4]ã€‚
 
 ## System Requirements
 
@@ -44,59 +44,81 @@ This engine uses some encryption keys extracted from system files to use the voi
 
 As for now, Microsoft hasn't yet allowed third-party apps to use the Narrator/Edge voices, and this can stop working at any time, for example, after a system update.
 
-## ÏµÍ³ÒªÇó
+## ç³»ç»Ÿè¦æ±‚
 
-Windows XP SP3 »ò¸ü¸ß°æ±¾¡£x86 32/64 Î»¡£
+Windows XP SP3 æˆ–æ›´é«˜ç‰ˆæœ¬ã€‚x86 32/64 ä½ã€‚
 
-**ÎÒÓÃµÄ Windows 10 ÏµÍ³£¬¿ÉÒÔÊ¹ÓÃ Windows 11 ÏµÍ³µÄ½²ÊöÈË×ÔÈ»ÓïÒôÂğ£¿**
+**æˆ‘ç”¨çš„ Windows 10 ç³»ç»Ÿï¼Œå¯ä»¥ä½¿ç”¨ Windows 11 ç³»ç»Ÿçš„è®²è¿°äººè‡ªç„¶è¯­éŸ³å—ï¼Ÿ**
 
-¿ÉÒÔ£¬Ö»ÒªÏµÍ³°æ±¾Îª 1809 »ò¸üĞÂ°æ±¾¡£¿ÉÒÔ×ªµ½[ÕâÀï][5]ÏÂÔØ°²×° Windows 11 ÏµÍ³µÄ½²ÊöÈË×ÔÈ»ÓïÒô¡£
+å¯ä»¥ï¼Œåªè¦ç³»ç»Ÿç‰ˆæœ¬ä¸º 1809 æˆ–æ›´æ–°ç‰ˆæœ¬ã€‚å¯ä»¥è½¬åˆ°[è¿™é‡Œ][5]ä¸‹è½½å®‰è£… Windows 11 ç³»ç»Ÿçš„è®²è¿°äººè‡ªç„¶è¯­éŸ³ã€‚
 
-Windows 10 ÏµÍ³µÄ½²ÊöÈË²¢²»Ö§³Ö×ÔÈ»ÓïÒô£¬µ«ÊÇÖ§³Ö SAPI 5 ÓïÒô£¬ËùÒÔ¿ÉÒÔ½èÖú±¾ÒıÇæ¼ä½ÓÈÃ Windows 10 ÏµÍ³µÄ½²ÊöÈËÒ²Ö§³Ö×ÔÈ»ÓïÒô¡£
+Windows 10 ç³»ç»Ÿçš„è®²è¿°äººå¹¶ä¸æ”¯æŒè‡ªç„¶è¯­éŸ³ï¼Œä½†æ˜¯æ”¯æŒ SAPI 5 è¯­éŸ³ï¼Œæ‰€ä»¥å¯ä»¥å€ŸåŠ©æœ¬å¼•æ“é—´æ¥è®© Windows 10 ç³»ç»Ÿçš„è®²è¿°äººä¹Ÿæ”¯æŒè‡ªç„¶è¯­éŸ³ã€‚
 
-**Windows XP ÉÏÕæµÄÄÜÓÃ£¿**
+**Windows XP ä¸ŠçœŸçš„èƒ½ç”¨ï¼Ÿ**
 
-¿ÉÒÔ£¬ËäÈ»ÎÒÖ»ÔÚĞéÄâ»úÉÏ²âÊÔ¹ı¡£
+å¯ä»¥ï¼Œè™½ç„¶æˆ‘åªåœ¨è™šæ‹Ÿæœºä¸Šæµ‹è¯•è¿‡ã€‚
 
-XP ÉÏ½²ÊöÈË×ÔÈ»ÓïÒô²»ÄÜÓÃ£¬µ«ÊÇ Edge ºÍ Azure µÄÔÚÏßÓïÒôÒÀÈ»ÄÜÓÃ¡£
+XP ä¸Šè®²è¿°äººè‡ªç„¶è¯­éŸ³ä¸èƒ½ç”¨ï¼Œä½†æ˜¯ Edge å’Œ Azure çš„åœ¨çº¿è¯­éŸ³ä¾ç„¶èƒ½ç”¨ã€‚
 
-**Ö®ºóµÄ Windows °æ±¾»¹ÄÜÓÃÂğ£¿**
+**ä¹‹åçš„ Windows ç‰ˆæœ¬è¿˜èƒ½ç”¨å—ï¼Ÿ**
 
-±¾ÒıÇæÊ¹ÓÃÁË´ÓÏµÍ³ÎÄ¼şÖĞÌáÈ¡µÄ½âÃÜÃÜÔ¿À´Ê¹ÓÃÓïÒô£¬Õâ²¢²»ÊÇ¹Ù·½ÈÏ¿ÉµÄĞĞÎª¡£
+æœ¬å¼•æ“ä½¿ç”¨äº†ä»ç³»ç»Ÿæ–‡ä»¶ä¸­æå–çš„è§£å¯†å¯†é’¥æ¥ä½¿ç”¨è¯­éŸ³ï¼Œè¿™å¹¶ä¸æ˜¯å®˜æ–¹è®¤å¯çš„è¡Œä¸ºã€‚
 
-Ä¿Ç°Î¢Èí²¢Ã»ÓĞÔÊĞíµÚÈı·½³ÌĞòÊ¹ÓÃ½²ÊöÈËÓïÒôºÍ Edge ÓïÒô¡£Òò´Ë£¬±¾ÒıÇæËæÊ±¿ÉÄÜ»áÔÚÄ³´ÎÏµÍ³¸üĞÂºóÍ£Ö¹¹¤×÷¡£
+ç›®å‰å¾®è½¯å¹¶æ²¡æœ‰å…è®¸ç¬¬ä¸‰æ–¹ç¨‹åºä½¿ç”¨è®²è¿°äººè¯­éŸ³å’Œ Edge è¯­éŸ³ã€‚å› æ­¤ï¼Œæœ¬å¼•æ“éšæ—¶å¯èƒ½ä¼šåœ¨æŸæ¬¡ç³»ç»Ÿæ›´æ–°ååœæ­¢å·¥ä½œã€‚
 
 ## Installation
 
 1. Download the zip file from the [Releases][6] section.
 2. Extract the files in a folder. Make sure not to move or rename the files after installation.
-3. Run the `install.bat` file **as administrator**.
-4. If you are using this on Windows XP, you can also merge the `PhoneConverters.reg` file to make the system support more TTS languages.
-5. Run the `uninstall.bat` file as administrator when you want to uninstall it.
+3. Run `Installer.exe`.
+4. It will tell you if the 32-bit version and the 64-bit version have been installed.
+    - The 32-bit version works with 32-bit programs, and the 64-bit version works with 64-bit programs.
+    - On 64-bit systems, to make this work with every program (32-bit and 64-bit), you need to install both of them.
+    - On 32-bit systems, the "64-bit" row will not be shown.
+5. Click Install/Uninstall. Administrator's permission is required.
+6. You can choose if you want to use the installed Narrator voices, and the Microsoft Edge Read Aloud online voices.
+    - Narrator voices requires Windows 10, 17763 or later.
+    - By default, only Edge voices in your preferred languages and in English (US) are included, to avoid cluttering the voice selection list. Choose "All support languages" if you want to use all Edge voices.
+    - Online voices require Internet access, and they can be slower and less stable. If you only want to use the local Narrator voices, you can uncheck "Include Microsoft Edge online voices".
+
+![Installer UI in English](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/assets/55008943/20e29cd7-9951-4cc2-93e9-a0dd5dd058da)
 
 Or, you can use `regsvr32` to register the DLL files manually.
 
-## °²×°
+## å®‰è£…
 
-1. ´Ó [Releases][6] À¸ÏÂÔØ zip ÎÄ¼ş¡£
-2. ½âÑ¹ÖÁÒ»¸öÎÄ¼ş¼Ğ¡£°²×°Íê³Éºó£¬²»ÒªÔÙÒÆ¶¯»òÖØÃüÃûÕâĞ©ÎÄ¼ş¡£
-3. **ÒÔ¹ÜÀíÔ±Éí·İ**ÔËĞĞ `install.bat`¡£
-4. ÈôÔÚ Windows XP ÉÏÊ¹ÓÃ£¬¿ÉÒÔºÏ²¢ `PhoneConverters.reg` ÒÔÈÃÏµÍ³Ö§³Ö¸ü¶àÓïÒôÓïÑÔ¡£
-5. ÈôÒªĞ¶ÔØ£¬ÒÔ¹ÜÀíÔ±Éí·İÔËĞĞ `uninstall.bat`¡£
+1. ä» [Releases][6] æ ä¸‹è½½ zip æ–‡ä»¶ã€‚
+2. è§£å‹è‡³ä¸€ä¸ªæ–‡ä»¶å¤¹ã€‚å®‰è£…å®Œæˆåï¼Œä¸è¦å†ç§»åŠ¨æˆ–é‡å‘½åè¿™äº›æ–‡ä»¶ã€‚
+3. è¿è¡Œ `Installer.exe`ã€‚
+4. ç•Œé¢ä¼šæ˜¾ç¤º 32 ä½å’Œ 64 ä½ç‰ˆæœ¬æ˜¯å¦å·²ç»å®‰è£…ã€‚
+    - 32 ä½ç‰ˆæœ¬ç”¨äº 32 ä½ç¨‹åºï¼Œ64 ä½ç‰ˆæœ¬ç”¨äº 64 ä½ç¨‹åºã€‚
+    - 64 ä½ç³»ç»Ÿä¸­ï¼Œè‹¥å¸Œæœ›æ‰€æœ‰ç¨‹åºï¼ˆåŒ…æ‹¬ 32 ä½å’Œ 64 ä½ç¨‹åºï¼‰éƒ½èƒ½ä½¿ç”¨è¯­éŸ³ï¼Œåˆ™ä¸¤ä¸ªç‰ˆæœ¬éƒ½è¦å®‰è£…ã€‚
+    - 32 ä½ç³»ç»Ÿä¸­ï¼Œâ€œ64 ä½â€ä¸€è¡Œä¸ä¼šæ˜¾ç¤ºã€‚
+5. å•å‡»å®‰è£…/å¸è½½ã€‚éœ€è¦ç®¡ç†å‘˜æƒé™ã€‚
+6. å¯ä»¥é€‰æ‹©æ˜¯å¦ä½¿ç”¨å·²å®‰è£…çš„è®²è¿°äººè¯­éŸ³ï¼Œä»¥åŠ Microsoft Edge å¤§å£°æœ—è¯»åŠŸèƒ½çš„åœ¨çº¿è¯­éŸ³ã€‚
+    - è®²è¿°äººè¯­éŸ³éœ€è¦ Windows 10 17763 æˆ–æ›´æ–°ç‰ˆæœ¬ã€‚
+    - Edge è¯­éŸ³é»˜è®¤åªåŒ…å«ç¬¦åˆä½ çš„åå¥½è¯­è¨€çš„è¯­éŸ³å’Œè‹±è¯­(ç¾å›½)çš„è¯­éŸ³ï¼Œä»¥å…è¯­éŸ³åˆ—è¡¨å‡ºç°è¿‡å¤šé¡¹ç›®ã€‚è‹¥å¸Œæœ›ä½¿ç”¨æ‰€æœ‰çš„ Edge è¯­éŸ³ï¼Œé€‰æ‹©â€œæ‰€æœ‰æ”¯æŒçš„è¯­è¨€â€ã€‚
+    - åœ¨çº¿è¯­éŸ³è¦æ±‚äº’è”ç½‘è¿æ¥ï¼Œä¸”å¯èƒ½æ›´æ…¢ã€æ›´ä¸ç¨³å®šã€‚å¦‚æœåªéœ€è¦ä½¿ç”¨æœ¬åœ°çš„è®²è¿°äººè¯­éŸ³ï¼Œå¯ä»¥å–æ¶ˆå‹¾é€‰â€œåŒ…æ‹¬ Microsoft Edge åœ¨çº¿è¯­éŸ³â€ã€‚
 
-Ò²¿ÉÒÔÓÃ `regsvr32` ÊÖ¶¯×¢²á DLL ÎÄ¼ş¡£
+![ä¸­æ–‡å®‰è£…ç¨‹åºç•Œé¢](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/assets/55008943/fd583321-5f41-4652-ae8b-5623ace7b7ed)
+
+ä¹Ÿå¯ä»¥ç”¨ `regsvr32` æ‰‹åŠ¨æ³¨å†Œ DLL æ–‡ä»¶ã€‚
 
 ## Testing
 
-You can use the `TtsApplication-x86.exe` and `TtsApplication-x64.exe` to test the engine.
+You can use the `TtsApplication.exe` in folders `x86` and `x64` to test the engine.
 
 It's a modified version of the [TtsApplication in Windows-classic-samples][7], which added Chinese translation, and more detailed information for phoneme/viseme events.
 
-## ²âÊÔ
+Or, you can go to Control Panel > Speech (Windows XP), or Control Panel > Speech Recognition > Text to Speech (Windows Vista and later).
 
-¿ÉÒÔÊ¹ÓÃ `TtsApplication-x86.exe` ºÍ `TtsApplication-x64.exe` À´²âÊÔ±¾ÒıÇæ¡£
+## æµ‹è¯•
 
-Õâ¸ö³ÌĞòĞŞ¸Ä×Ô [Windows-classic-samples ÖĞµÄ TtsApplication][7]£¬Ìí¼ÓÁËÖĞÎÄ·­ÒëºÍ¸üÏêÏ¸µÄÓïËØ¿ÚĞÍÊÂ¼şĞÅÏ¢¡£
+å¯ä»¥ä½¿ç”¨ `x86` å’Œ `x64` æ–‡ä»¶å¤¹ä¸­çš„ `TtsApplication.exe` æ¥æµ‹è¯•æœ¬å¼•æ“ã€‚
+
+è¿™ä¸ªç¨‹åºä¿®æ”¹è‡ª [Windows-classic-samples ä¸­çš„ TtsApplication][7]ï¼Œæ·»åŠ äº†ä¸­æ–‡ç¿»è¯‘å’Œæ›´è¯¦ç»†çš„è¯­ç´ å£å‹äº‹ä»¶ä¿¡æ¯ã€‚
+
+æˆ–è€…ï¼Œå¯ä»¥è½¬åˆ° æ§åˆ¶é¢æ¿ > è¯­éŸ³ (Windows XP)ï¼Œæˆ– æ§åˆ¶é¢æ¿ > è¯­éŸ³è¯†åˆ« > æ–‡æœ¬åˆ°è¯­éŸ³è½¬æ¢ (Windows Vista åŠä»¥å)ã€‚
 
 ## Libraries used
 - Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS
