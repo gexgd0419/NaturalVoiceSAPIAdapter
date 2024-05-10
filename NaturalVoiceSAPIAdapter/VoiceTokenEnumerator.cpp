@@ -461,6 +461,7 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
         langids.insert(langid);
         if (includeFallbacks)
             langids.insert_range(GetLangIDFallbacks(langid));
+        langids.insert(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)); // always included
         return langids;
     }
 
