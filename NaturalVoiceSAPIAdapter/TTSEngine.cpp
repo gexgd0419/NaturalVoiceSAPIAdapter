@@ -151,10 +151,17 @@ HRESULT CTTSEngine::InitPhoneConverter()
     LANGID lang = 0;
     RETONFAIL(SpGetLanguageFromToken(m_cpToken, &lang));
 
-    WCHAR szLocale[LOCALE_NAME_MAX_LENGTH] = { 0 };
-    if (LCIDToLocaleName(MAKELCID(lang, SORT_DEFAULT), szLocale, LOCALE_NAME_MAX_LENGTH, 0) == 0)
-        return E_INVALIDARG;
-    m_localeName = szLocale;
+    CComPtr<ISpDataKey> pAttrKey;
+    CSpDynamicString locale;
+    if (SUCCEEDED(m_cpToken->OpenKey(SPTOKENKEY_ATTRIBUTES, &pAttrKey))
+        && SUCCEEDED(pAttrKey->GetStringValue(L"Locale", &locale)))
+    {
+        m_localeName = locale;
+    }
+    else
+    {
+        m_localeName = L"en-US";
+    }
 
     return SpCreatePhoneConverter(lang, nullptr, nullptr, &m_phoneConverter);
 }
