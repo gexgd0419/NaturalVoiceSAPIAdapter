@@ -279,11 +279,13 @@
     <ClInclude Include="StringTokenizer.h" />
     <ClInclude Include="StrUtils.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TokenEnumerator.h" />
     <ClInclude Include="TTSEngine.h" />
     <ClInclude Include="DataKey.h" />
     <ClInclude Include="DataKeyAutomation.h" />
+    <ClInclude Include="ObjectToken.h" />
+    <ClInclude Include="ObjectTokenAutomation.h" />
     <ClInclude Include="VoiceToken.h" />
-    <ClInclude Include="VoiceTokenAutomation.h" />
     <ClInclude Include="VoiceTokenEnumerator.h" />
     <ClInclude Include="wrappers.h" />
   </ItemGroup>
@@ -345,7 +347,7 @@
     <None Include="NaturalVoiceSAPIAdapter.rgs" />
     <None Include="packages.config" />
     <None Include="TTSEngine.rgs" />
-    <None Include="VoiceTokenAutomation.rgs" />
+    <None Include="ObjectTokenAutomation.rgs" />
     <None Include="VoiceTokenEnumerator.rgs" />
   </ItemGroup>
   <ItemGroup>

@@ -2,6 +2,7 @@
 #include "resource.h"       // 主符号
 
 #include "DataKeyAutomation.h"
+#include "StrUtils.h"
 
 
 using namespace ATL;
@@ -66,7 +67,7 @@ protected:
 		m_subkeyPath = lpszCurrentPath;
 		m_pKey.Release();
 		HKEY hKey = nullptr;
-		if (RegOpenKeyExW(Traits::RegRoot, (Traits::RegPrefix + m_subkeyPath).c_str(),
+		if (RegOpenKeyExW(Traits::RegRoot, (std::wstring(Traits::RegPrefix) + m_subkeyPath).c_str(),
 			0, KEY_READ | KEY_WRITE, &hKey) == ERROR_SUCCESS)
 		{
 			CComPtr<ISpRegDataKey> pKey;
@@ -92,7 +93,9 @@ protected:
 		CComPtr<ISpRegDataKey> pKey;
 		RETONFAIL(pKey.CoCreateInstance(CLSID_SpDataKey));
 		HKEY hKey = nullptr;
-		LSTATUS stat = RegCreateKeyExW(Traits::RegRoot, (Traits::RegPrefix + m_subkeyPath).c_str(),
+		CSpDynamicString keyPath;
+		RETONFAIL(MergeIntoCoString(keyPath, Traits::RegPrefix, m_subkeyPath));
+		LSTATUS stat = RegCreateKeyExW(Traits::RegRoot, keyPath,
 			0, nullptr, 0, KEY_READ | KEY_WRITE, nullptr, &hKey, nullptr);
 		if (stat != ERROR_SUCCESS) return HRESULT_FROM_WIN32(stat);
 		RETONFAIL(pKey->SetKey(hKey, FALSE));

@@ -46,7 +46,7 @@
     <ClInclude Include="VoiceTokenEnumerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VoiceToken.h">
+    <ClInclude Include="ObjectToken.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DataKey.h">
@@ -55,7 +55,7 @@
     <ClInclude Include="DataKeyAutomation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VoiceTokenAutomation.h">
+    <ClInclude Include="ObjectTokenAutomation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SpeechServiceConstants.h">
@@ -77,6 +77,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LangUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TokenEnumerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceToken.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -137,7 +143,7 @@
     <None Include="DataKeyAutomation.rgs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="VoiceTokenAutomation.rgs">
+    <None Include="ObjectTokenAutomation.rgs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

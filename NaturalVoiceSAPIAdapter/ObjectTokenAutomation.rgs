@@ -2,7 +2,7 @@ HKCR
 {
 	NoRemove CLSID
 	{
-		ForceRemove {799e1686-86d6-4257-acd8-04d0da289182} = s 'VoiceTokenAutomation class'
+		ForceRemove {799e1686-86d6-4257-acd8-04d0da289182} = s 'ObjectTokenAutomation class'
 		{
 			InprocServer32 = s '%MODULE%'
 			{

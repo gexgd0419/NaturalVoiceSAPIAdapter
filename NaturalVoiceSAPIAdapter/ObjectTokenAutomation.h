@@ -7,17 +7,17 @@ using namespace ATL;
 // Implements IDispatch and ISpeechObjectToken - the automation interface of ISpObjectToken
 // so that it is accessible to languages such as Visual Basic and scripting languages
 
-inline const CLSID CLSID_VoiceTokenAutomation = { 0x799e1686, 0x86d6, 0x4257, 0xac, 0xd8, 0x04, 0xd0, 0xda, 0x28, 0x91, 0x82 };
+inline const CLSID CLSID_ObjectTokenAutomation = { 0x799e1686, 0x86d6, 0x4257, 0xac, 0xd8, 0x04, 0xd0, 0xda, 0x28, 0x91, 0x82 };
 
-class CVoiceTokenAutomation :
+class CObjectTokenAutomation :
 	public CComObjectRootEx<CComMultiThreadModel>,
-	public CComCoClass<CVoiceTokenAutomation, &CLSID_VoiceTokenAutomation>,
+	public CComCoClass<CObjectTokenAutomation, &CLSID_ObjectTokenAutomation>,
 	public IDispatchImpl<ISpeechObjectToken, &IID_ISpeechObjectToken, &LIBID_SpeechLib, /*wMajor =*/ 0xFFFF, /*wMinor =*/ 0xFFFF>
 {
 public:
-	DECLARE_REGISTRY_RESOURCEID(IDR_VOICETOKENAUTOMATION)
-	DECLARE_ONLY_AGGREGATABLE(CVoiceTokenAutomation)
-	BEGIN_COM_MAP(CVoiceTokenAutomation)
+	DECLARE_REGISTRY_RESOURCEID(IDR_OBJECTTOKENAUTOMATION)
+	DECLARE_ONLY_AGGREGATABLE(CObjectTokenAutomation)
+	BEGIN_COM_MAP(CObjectTokenAutomation)
 		COM_INTERFACE_ENTRY(ISpeechObjectToken)
 		COM_INTERFACE_ENTRY(IDispatch)
 	END_COM_MAP()
@@ -150,4 +150,4 @@ public:
 	}
 };
 
-OBJECT_ENTRY_AUTO(CLSID_VoiceTokenAutomation, CVoiceTokenAutomation)
+OBJECT_ENTRY_AUTO(CLSID_ObjectTokenAutomation, CObjectTokenAutomation)

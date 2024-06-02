@@ -1,6 +1,7 @@
 #pragma once
 #include <string_view>
 #include <stringapiset.h>
+#include <sphelper.h>
 
 template <typename CharT>
 constexpr bool EqualsIgnoreCase(std::basic_string_view<CharT> a, std::basic_string_view<CharT> b) noexcept
@@ -71,4 +72,15 @@ inline std::string_view TrimWhitespaces(std::string_view stringview) noexcept
 			break;
 	}
 	return std::string_view(pStart, pEnd + 1);
+}
+
+inline HRESULT MergeIntoCoString(CSpDynamicString& destString, std::wstring_view str1, std::wstring_view str2) noexcept
+{
+	LPWSTR p = reinterpret_cast<LPWSTR>(CoTaskMemAlloc((str1.size() + str2.size() + 1) * sizeof(wchar_t)));
+	if (!p) return E_OUTOFMEMORY;
+	memcpy(p, str1.data(), str1.size() * sizeof(wchar_t));
+	memcpy(p + str1.size(), str2.data(), str2.size() * sizeof(wchar_t));
+	p[str1.size() + str2.size()] = L'\0';
+	destString.m_psz = p;
+	return S_OK;
 }

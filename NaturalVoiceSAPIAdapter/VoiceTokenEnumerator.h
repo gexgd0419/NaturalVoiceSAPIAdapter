@@ -6,6 +6,7 @@
 #include "pch.h"
 #include <optional>
 #include "VoiceToken.h"
+#include "TokenEnumerator.h"
 
 #include "NaturalVoiceSAPIAdapter_i.h"
 
@@ -17,7 +18,7 @@ using namespace ATL;
 class ATL_NO_VTABLE CVoiceTokenEnumerator :
 	public CComObjectRootEx<CComMultiThreadModel>,
 	public CComCoClass<CVoiceTokenEnumerator, &CLSID_VoiceTokenEnumerator>,
-	public IEnumSpObjectTokens
+	public TokenEnumerator
 {
 public:
 	CVoiceTokenEnumerator()
@@ -45,37 +46,9 @@ END_COM_MAP()
 
 
 private:
-	CComPtr<IEnumSpObjectTokens> m_pEnum;
 	static CComPtr<IEnumSpObjectTokens> EnumLocalVoices();
 	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices(BOOL allLanguages);
 
-public:
-	// ISpObjectTokenEnumBuilder doesn't seem to support aggregation
-	// so manually forward calls to inner enumerator object instead
-	STDMETHODIMP Next(ULONG celt, ISpObjectToken** pelt, ULONG* pceltFetched) noexcept override
-	{
-		return m_pEnum->Next(celt, pelt, pceltFetched);
-	}
-	STDMETHODIMP Skip(ULONG celt) noexcept override
-	{
-		return m_pEnum->Skip(celt);
-	}
-	STDMETHODIMP Reset(void) noexcept override
-	{
-		return m_pEnum->Reset();
-	}
-	STDMETHODIMP Clone(IEnumSpObjectTokens** ppEnum) noexcept override
-	{
-		return m_pEnum->Clone(ppEnum);
-	}
-	STDMETHODIMP Item(ULONG Index, ISpObjectToken** ppToken) noexcept override
-	{
-		return m_pEnum->Item(Index, ppToken);
-	}
-	STDMETHODIMP GetCount(ULONG* pCount) noexcept override
-	{
-		return m_pEnum->GetCount(pCount);
-	}
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(VoiceTokenEnumerator), CVoiceTokenEnumerator)
