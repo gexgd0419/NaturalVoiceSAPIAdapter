@@ -32,28 +32,38 @@ constexpr bool EqualsIgnoreCase(std::wstring_view a, std::wstring_view b) noexce
 	return EqualsIgnoreCase<wchar_t>(a, b);
 }
 
-inline std::wstring UTF8ToWString(std::string_view str)
+inline std::wstring StringToWString(std::string_view str, UINT codePage)
 {
-	int size = MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0);
+	int size = MultiByteToWideChar(codePage, 0, str.data(), (int)str.size(), nullptr, 0);
 	if (size <= 0) return {};
 	std::wstring ret;
-	ret.resize_and_overwrite(size, [str](wchar_t* buf, size_t size)
+	ret.resize_and_overwrite(size, [str, codePage](wchar_t* buf, size_t size)
 		{
-			return MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), buf, (int)size);
+			return MultiByteToWideChar(codePage, 0, str.data(), (int)str.size(), buf, (int)size);
 		});
 	return ret;
 }
 
-inline std::string WStringToUTF8(std::wstring_view str)
+inline std::string WStringToString(std::wstring_view str, UINT codePage)
 {
-	int size = WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
+	int size = WideCharToMultiByte(codePage, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
 	if (size <= 0) return {};
 	std::string ret;
-	ret.resize_and_overwrite(size, [str](char* buf, size_t size)
+	ret.resize_and_overwrite(size, [str, codePage](char* buf, size_t size)
 		{
-			return WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(), buf, (int)size, nullptr, nullptr);
+			return WideCharToMultiByte(codePage, 0, str.data(), (int)str.size(), buf, (int)size, nullptr, nullptr);
 		});
 	return ret;
+}
+
+inline std::wstring UTF8ToWString(std::string_view str)
+{
+	return StringToWString(str, CP_UTF8);
+}
+
+inline std::string WStringToUTF8(std::wstring_view str)
+{
+	return WStringToString(str, CP_UTF8);
 }
 
 inline std::string_view TrimWhitespaces(std::string_view stringview) noexcept

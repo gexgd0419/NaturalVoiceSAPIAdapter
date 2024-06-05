@@ -48,4 +48,5 @@ public:
 
 typedef HandleWrapper<HANDLE, CloseHandle> Handle;
 typedef HandleWrapper<HANDLE, CloseHandle, INVALID_HANDLE_VALUE> HFile;
+typedef HandleWrapper<HANDLE, FindClose, INVALID_HANDLE_VALUE> HFindFile;
 typedef HandleWrapper<HKEY, RegCloseKey> HKey;

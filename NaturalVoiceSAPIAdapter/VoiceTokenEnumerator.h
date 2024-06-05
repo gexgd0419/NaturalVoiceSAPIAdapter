@@ -38,7 +38,7 @@ END_COM_MAP()
 
 	DECLARE_PROTECT_FINAL_CONSTRUCT()
 
-	HRESULT FinalConstruct();
+	HRESULT FinalConstruct() noexcept;
 
 	void FinalRelease()
 	{
@@ -46,7 +46,9 @@ END_COM_MAP()
 
 
 private:
-	static CComPtr<IEnumSpObjectTokens> EnumLocalVoices();
+	typedef std::map<std::string, CComPtr<ISpObjectToken>> TokenMap;
+	static void EnumLocalVoices(TokenMap& tokens);
+	static void EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath);
 	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices(BOOL allLanguages);
 
 };

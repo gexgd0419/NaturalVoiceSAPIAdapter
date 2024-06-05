@@ -28,80 +28,102 @@ static std::mutex s_cacheMutex;
 extern HANDLE g_hTimerQueue;
 static HANDLE s_hCacheTimer = nullptr;
 
-HRESULT CVoiceTokenEnumerator::FinalConstruct()
+HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 {
-    // Some programs assume that creating an enumerator is a low-cost operation,
-    // and re-create enumerators frequently during eumeration.
-    // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
-
-    std::lock_guard lock(s_cacheMutex);
-
-    if (s_pCachedEnum)
-        return s_pCachedEnum->Clone(&m_pEnum);
-
-    // Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
-    // So we create the timer queue here on first use
-    if (!g_hTimerQueue)
-        g_hTimerQueue = CreateTimerQueue();
-
-    DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
-    if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
-        KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+    try
     {
-        DWORD cbData;
-        cbData = sizeof(DWORD);
-        RegQueryValueExW(hKey, L"Disable", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fDisable), &cbData);
-        cbData = sizeof(DWORD);
-        RegQueryValueExW(hKey, L"NoNarratorVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoNarratorVoices), &cbData);
-        cbData = sizeof(DWORD);
-        RegQueryValueExW(hKey, L"NoEdgeVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoEdgeVoices), &cbData);
-        cbData = sizeof(DWORD);
-        RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fAllLanguages), &cbData);
-    }
+        // Some programs assume that creating an enumerator is a low-cost operation,
+        // and re-create enumerators frequently during eumeration.
+        // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
 
-    CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-    RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-    RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
+        std::lock_guard lock(s_cacheMutex);
 
-    if (!fDisable)
-    {
-        if (!fNoNarratorVoices)
+        if (s_pCachedEnum)
+            return s_pCachedEnum->Clone(&m_pEnum);
+
+        // Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
+        // So we create the timer queue here on first use
+        if (!g_hTimerQueue)
+            g_hTimerQueue = CreateTimerQueue();
+
+        DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
+        WCHAR szNarratorVoicePath[MAX_PATH] = {};
+        if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
+            KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
         {
-            try
-            {
-                CComPtr<IEnumSpObjectTokens> pLocalEnum = EnumLocalVoices();
-                RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pLocalEnum));
-            }
-            catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
-            catch (...) {}
+            DWORD cbData;
+            cbData = sizeof(DWORD);
+            RegQueryValueExW(hKey, L"Disable", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fDisable), &cbData);
+            cbData = sizeof(DWORD);
+            RegQueryValueExW(hKey, L"NoNarratorVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoNarratorVoices), &cbData);
+            cbData = sizeof(DWORD);
+            RegQueryValueExW(hKey, L"NoEdgeVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoEdgeVoices), &cbData);
+            cbData = sizeof(DWORD);
+            RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fAllLanguages), &cbData);
+            cbData = sizeof szNarratorVoicePath;
+            RegQueryValueExW(hKey, L"NarratorVoicePath", nullptr, nullptr, reinterpret_cast<LPBYTE>(szNarratorVoicePath), &cbData);
+            szNarratorVoicePath[std::min<size_t>(cbData / sizeof(WCHAR), MAX_PATH - 1)] = L'\0';
         }
-        if (!fNoEdgeVoices)
+
+        CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
+        RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
+        RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
+
+        if (!fDisable)
         {
-            try
+            if (!fNoNarratorVoices)
+            {
+                if (szNarratorVoicePath[0] == L'\0')
+                {
+                    GetModuleFileNameW((HMODULE)&__ImageBase, szNarratorVoicePath, MAX_PATH);
+                    PathRemoveFileSpecW(szNarratorVoicePath);
+                    PathAppendW(szNarratorVoicePath, L"NarratorVoices\\*");
+                }
+                else
+                {
+                    PathAppendW(szNarratorVoicePath, L"*");
+                }
+
+                TokenMap tokens;
+                EnumLocalVoicesInFolder(tokens, szNarratorVoicePath);
+                EnumLocalVoices(tokens);
+
+                for (auto& token : tokens)
+                {
+                    RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
+                }
+            }
+            if (!fNoEdgeVoices)
             {
                 CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices(fAllLanguages);
                 RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pEdgeEnum));
             }
-            catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
-            catch (...) {}
         }
-    }
 
-    if (!s_hCacheTimer)
+        if (!s_hCacheTimer)
+        {
+            const auto clearCache = [](PVOID, BOOLEAN)
+                {
+                    std::lock_guard lock(s_cacheMutex);
+                    s_pCachedEnum = nullptr;
+                    (void)DeleteTimerQueueTimer(g_hTimerQueue, s_hCacheTimer, nullptr);
+                    s_hCacheTimer = nullptr;
+                };
+            CreateTimerQueueTimer(&s_hCacheTimer, g_hTimerQueue, clearCache, nullptr, 10000, 0,
+                WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
+        }
+
+        RETONFAIL(pEnumBuilder->QueryInterface(&s_pCachedEnum));
+        return s_pCachedEnum->Clone(&m_pEnum);
+    }
+    catch (const std::bad_alloc&)
     {
-        const auto clearCache = [](PVOID, BOOLEAN)
-            {
-                std::lock_guard lock(s_cacheMutex);
-                s_pCachedEnum = nullptr;
-                (void)DeleteTimerQueueTimer(g_hTimerQueue, s_hCacheTimer, nullptr);
-                s_hCacheTimer = nullptr;
-            };
-        CreateTimerQueueTimer(&s_hCacheTimer, g_hTimerQueue, clearCache, nullptr, 10000, 0,
-            WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
+        return E_OUTOFMEMORY;
     }
-
-    RETONFAIL(pEnumBuilder->QueryInterface(&s_pCachedEnum));
-    return s_pCachedEnum->Clone(&m_pEnum);
+    catch (...) // C++ exceptions should not cross COM boundary
+    {
+        return E_FAIL;
+    }
 }
 
 static CComPtr<ISpDataKey> MakeVoiceKey(StringPairCollection&& values, SubkeyCollection&& subkeys)
@@ -156,7 +178,7 @@ static void TrimVoiceName(std::wstring& longName)
     }
 }
 
-static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo)
+static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, const std::wstring& namePrefix = {})
 {
     using namespace Microsoft::CognitiveServices::Speech;
 
@@ -173,7 +195,7 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo)
     size_t name_end = path.find('_', name_start);
     if (name_end == path.npos)
         name_end = path.size();
-    std::wstring name = path.substr(name_start, name_end - name_start);
+    std::wstring name = namePrefix + path.substr(name_start, name_end - name_start);
 
     std::wstring friendlyName = UTF8ToWString(voiceInfo.Name);
     std::wstring shortFriendlyName = friendlyName;
@@ -211,40 +233,103 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo)
     );
 }
 
-CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumLocalVoices()
+void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens)
 {
-    CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-    CheckHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-    CheckHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
-
     // Possible exceptions:
     // - winrt::hresult_class_not_available
     //     when running on a Windows version with no WinRT support, such as Windows 7
     // - DllDelayLoadError
     //     when Speech SDK DLL can't be loaded
-    // Let those be handled by the caller
 
-    // Get all package paths, and then load all voices in one call
-    // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
-    // slowing down the enumeration process as more voices are installed
-
-    auto packages = winrt::Windows::Management::Deployment::PackageManager().FindPackagesForUser(L"");
-    std::vector<std::string> paths;
-    for (auto package : packages)
+    try
     {
-        if (package.Id().Name().starts_with(L"MicrosoftWindows.Voice."))
-            paths.push_back(WStringToUTF8(package.InstalledPath()));
-    }
-    auto config = EmbeddedSpeechConfig::FromPaths(paths);
-    auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-    auto result = synthesizer->GetVoicesAsync().get();
-    for (auto& info : result->Voices)
-    {
-        auto pToken = MakeLocalVoiceToken(*info);
-        pEnumBuilder->AddTokens(1, &pToken.p);
-    }
+        // Get all package paths, and then load all voices in one call
+        // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
+        // slowing down the enumeration process as more voices are installed
 
-    return CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder);
+        auto packages = winrt::Windows::Management::Deployment::PackageManager().FindPackagesForUser(L"");
+        std::vector<std::string> paths;
+        for (auto package : packages)
+        {
+            if (package.Id().Name().starts_with(L"MicrosoftWindows.Voice."))
+                paths.push_back(WStringToUTF8(package.InstalledPath()));
+        }
+        auto config = EmbeddedSpeechConfig::FromPaths(paths);
+        auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
+        auto result = synthesizer->GetVoicesAsync().get();
+        for (auto& info : result->Voices)
+        {
+            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info));
+        }
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (...)
+    {
+        // Ignore
+    }
+}
+
+void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath)
+{
+    try
+    {
+        // Get all package paths, and then load all voices in one call
+        // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
+        // slowing down the enumeration process as more voices are installed
+
+        // Because of a bug in the Azure Speech SDK:
+        // https://github.com/Azure-Samples/cognitive-services-speech-sdk/issues/2288
+        // Model paths containing non-ASCII characters cannot be loaded.
+        // Changing the current directory and using relative paths may get around this,
+        // but the current directory is a process-wide setting and changing it is not thread-safe
+
+        WIN32_FIND_DATAW fd;
+
+        HFindFile hFind = FindFirstFileW(basepath, &fd);
+        if (hFind == INVALID_HANDLE_VALUE)
+            return;
+
+        std::vector<std::string> paths;
+        do
+        {
+            // Ignore . and ..
+            if (fd.cFileName[0] == '.'
+                && (fd.cFileName[1] == '\0'
+                    || (fd.cFileName[1] == '.' && fd.cFileName[2] == '\0')))
+                continue;
+
+            // Only add non-hidden subfolders
+            if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                && !(fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
+            {
+                WCHAR path[MAX_PATH];
+                wcscpy_s(path, basepath);
+                PathRemoveFileSpecW(path);
+                PathAppendW(path, fd.cFileName);
+                paths.push_back(WStringToUTF8(path));
+            }
+        } while (FindNextFileW(hFind, &fd));
+
+        auto config = EmbeddedSpeechConfig::FromPaths(paths);
+        auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
+        auto result = synthesizer->GetVoicesAsync().get();
+        const std::wstring prefix = L"Local-";
+        for (auto& info : result->Voices)
+        {
+            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, prefix));
+        }
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (...)
+    {
+        // Ignore
+    }
 }
 
 static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
