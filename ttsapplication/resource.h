@@ -79,6 +79,7 @@
 #define IDC_SKIP_EDIT                   1031
 #define IDC_SKIP_SPIN                   1032
 #define IDC_ABOUT                       1033
+#define IDC_STATIC                      -1
 
 // Next default values for new objects
 // 
