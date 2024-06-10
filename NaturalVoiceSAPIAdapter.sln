@@ -9,6 +9,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TtsApplication", "ttsapplic
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Installer", "Installer\Installer.vcxproj", "{C73FFE71-AD46-435F-B6C8-DAA7CE74AADE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpeechSDKShim", "SpeechSDKShim\SpeechSDKShim.vcxproj", "{DAF1CECB-DF21-4411-890C-755ABFB52BAF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpeechSDKPatcher", "SpeechSDKPatcher\SpeechSDKPatcher.vcxproj", "{05E824B3-0F21-404A-88B9-0F07FF30393C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +45,22 @@ Global
 		{C73FFE71-AD46-435F-B6C8-DAA7CE74AADE}.Release|x64.Build.0 = Release|x64
 		{C73FFE71-AD46-435F-B6C8-DAA7CE74AADE}.Release|x86.ActiveCfg = Release|Win32
 		{C73FFE71-AD46-435F-B6C8-DAA7CE74AADE}.Release|x86.Build.0 = Release|Win32
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Debug|x64.ActiveCfg = Debug|x64
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Debug|x64.Build.0 = Debug|x64
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Debug|x86.ActiveCfg = Debug|Win32
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Debug|x86.Build.0 = Debug|Win32
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Release|x64.ActiveCfg = Release|x64
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Release|x64.Build.0 = Release|x64
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Release|x86.ActiveCfg = Release|Win32
+		{DAF1CECB-DF21-4411-890C-755ABFB52BAF}.Release|x86.Build.0 = Release|Win32
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Debug|x64.ActiveCfg = Debug|x64
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Debug|x64.Build.0 = Debug|x64
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Debug|x86.ActiveCfg = Debug|Win32
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Debug|x86.Build.0 = Debug|Win32
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Release|x64.ActiveCfg = Release|x64
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Release|x64.Build.0 = Release|x64
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Release|x86.ActiveCfg = Release|Win32
+		{05E824B3-0F21-404A-88B9-0F07FF30393C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
