@@ -537,7 +537,7 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
 {
     std::set<LANGID> langids;
     ULONG numLangs = 0, cchBuffer = 0;
-
+    
     static const auto pfnGetUserPreferredUILanguages
         = reinterpret_cast<decltype(GetUserPreferredUILanguages)*>
         (GetProcAddress(GetModuleHandleW(L"kernel32"), "GetUserPreferredUILanguages"));
@@ -570,37 +570,50 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
 
 CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLanguages)
 {
-    CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-    CheckHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-    CheckHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
-
-    const auto json = GetEdgeVoiceJson();
-
-    // Universal (IPA) phoneme converter has been supported since SAPI 5.3, which supports most other languages
-    // SAPI on older systems (XP) does not have this universal converter, so each language must have its corresponding phoneme converter
-    // For systems not supporting the universal converter, we check for each voice if a phoneme converter for its language is present
-    // If not, hide the voice from the list
-    bool universalSupported = IsUniversalPhoneConverterSupported();
-    std::set<LANGID> supportedLangs;
-    if (!universalSupported)
-        supportedLangs = GetSupportedLanguageIDs();
-
-    std::set<LANGID> userLangs;
-    if (!allLanguages)
-        userLangs = GetUserPreferredLanguageIDs(false);
-
-    for (const auto& voice : json)
+    try
     {
-        auto locale = UTF8ToWString(voice.at("Locale"));
-        LANGID langid = LangIDFromLocaleName(locale);
-        if (!universalSupported && !supportedLangs.contains(langid))
-            continue;
-        if (!allLanguages && !userLangs.contains(langid))
-            continue;
-        auto pToken = MakeEdgeVoiceToken(voice);
-        pEnumBuilder->AddTokens(1, &pToken.p);
+        CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
+        CheckHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
+        CheckHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
+
+        const auto json = GetEdgeVoiceJson();
+
+        // Universal (IPA) phoneme converter has been supported since SAPI 5.3, which supports most other languages
+        // SAPI on older systems (XP) does not have this universal converter, so each language must have its corresponding phoneme converter
+        // For systems not supporting the universal converter, we check for each voice if a phoneme converter for its language is present
+        // If not, hide the voice from the list
+        bool universalSupported = IsUniversalPhoneConverterSupported();
+        std::set<LANGID> supportedLangs;
+        if (!universalSupported)
+            supportedLangs = GetSupportedLanguageIDs();
+
+        std::set<LANGID> userLangs;
+        if (!allLanguages)
+            userLangs = GetUserPreferredLanguageIDs(false);
+
+        for (const auto& voice : json)
+        {
+            auto locale = UTF8ToWString(voice.at("Locale"));
+            LANGID langid = LangIDFromLocaleName(locale);
+            if (!universalSupported && !supportedLangs.contains(langid))
+                continue;
+            if (!allLanguages && !userLangs.contains(langid))
+                continue;
+            auto pToken = MakeEdgeVoiceToken(voice);
+            pEnumBuilder->AddTokens(1, &pToken.p);
+        }
+
+
+        return CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder);
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (...)
+    {
+        // Ignore
     }
 
-
-    return CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder);
+    return {};
 }
