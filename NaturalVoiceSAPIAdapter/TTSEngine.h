@@ -29,6 +29,15 @@ struct TextOffsetMapping
 };
 
 
+struct BookmarkInfo
+{
+	ULONG ulSAPITextOffset; // offset in source string from SAPI
+	std::wstring name;
+	constexpr BookmarkInfo(ULONG ulSAPITextOffset, std::wstring name) noexcept
+		: ulSAPITextOffset(ulSAPITextOffset), name(name) {}
+};
+
+
 enum class ErrorMode : DWORD
 {
 	ProbeForError = 0,
@@ -105,6 +114,7 @@ private: // Member variables
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
 	std::unique_ptr<SpeechRestAPI> m_restApi;
 	ISpTTSEngineSite* m_pOutputSite = nullptr;
+	ULONGLONG m_waveBytesWritten = 0;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	bool m_isEdgeVoice = false;
@@ -120,9 +130,15 @@ private: // Member variables
 
 	size_t m_mappingIndex = 0;
 
+	// Edge voices do not support bookmarks.
+	// We store the specified bookmark positions,
+	// and when a word boundary
+	std::vector<BookmarkInfo> m_bookmarks;
+	size_t m_bookmarkIndex = 0;
+
 private:
 	int OnAudioData(uint8_t* data, uint32_t len);
-	void OnBookmark(uint64_t offsetTicks, const std::string& bookmark);
+	void OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark);
 	void OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType);
 	void OnViseme(uint64_t offsetTicks, uint32_t visemeId);
 

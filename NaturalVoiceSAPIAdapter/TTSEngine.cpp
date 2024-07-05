@@ -82,6 +82,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             SetupRestAPIEvents(eventInterests);
 
         m_pOutputSite = pOutputSite;
+        m_waveBytesWritten = 0;
         BuildSSML(pTextFragList);
 
         std::future<void> future;
@@ -105,11 +106,34 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             }
         }
 
-        if (m_synthesizer)
-            m_synthesizer->StopSpeakingAsync().wait();
+        if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
+        {
+            if (m_synthesizer)
+                m_synthesizer->StopSpeakingAsync().wait();
+            else
+                m_restApi->Stop();
+            future.get(); // wait for the future and get its stored exception thrown
+        }
         else
-            m_restApi->Stop();
-        future.get(); // wait for the future and get its stored exception thrown
+        {
+            future.get(); // wait for the future and get its stored exception thrown
+            if (m_isEdgeVoice)
+            {
+                // finish all remaining bookmark events at the end
+                const auto size = m_bookmarks.size();
+                SPEVENT ev = { 0 };
+                ev.ullAudioStreamOffset = m_waveBytesWritten;
+                ev.eEventId = SPEI_TTS_BOOKMARK;
+                ev.elParamType = SPET_LPARAM_IS_STRING;
+                for (auto i = m_bookmarkIndex; i < size; i++)
+                {
+                    auto& bookmark = m_bookmarks[i];
+                    ev.lParam = reinterpret_cast<LPARAM>(bookmark.name.c_str());
+                    ev.wParam = _wtol(bookmark.name.c_str());
+                    pOutputSite->AddEvents(&ev, 1);
+                }
+            }
+        }
 
         return S_OK;
     }
@@ -309,17 +333,17 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
     ULONG written = 0;
     m_pOutputSite->Write(data, len, &written);
+    m_waveBytesWritten += written;
     return written;
 }
-void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::string& bookmark)
+void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark)
 {
     SPEVENT ev = { 0 };
     ev.ullAudioStreamOffset = WaveTicksToBytes(offsetTicks);
     ev.eEventId = SPEI_TTS_BOOKMARK;
     ev.elParamType = SPET_LPARAM_IS_STRING;
-    std::wstring wbookmark = UTF8ToWString(bookmark);
-    ev.lParam = reinterpret_cast<LPARAM>(wbookmark.c_str());
-    ev.wParam = _wtol(wbookmark.c_str());
+    ev.lParam = reinterpret_cast<LPARAM>(bookmark.c_str());
+    ev.wParam = _wtol(bookmark.c_str());
     m_pOutputSite->AddEvents(&ev, 1);
 }
 void CTTSEngine::OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType)
@@ -333,6 +357,20 @@ void CTTSEngine::OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint
     ev.lParam = offset;
     ev.wParam = length;
     m_pOutputSite->AddEvents(&ev, 1);
+
+    if (m_isEdgeVoice && boundaryType == SPEI_WORD_BOUNDARY)
+    {
+        // trigger every untriggered bookmark until current word's end position
+        auto size = m_bookmarks.size();
+        while (m_bookmarkIndex < size)
+        {
+            auto& bookmark = m_bookmarks[m_bookmarkIndex];
+            if (offset + length <= bookmark.ulSAPITextOffset)
+                break;
+            OnBookmark(audioOffsetTicks, bookmark.name);
+            m_bookmarkIndex++;
+        }
+    }
 }
 void CTTSEngine::OnViseme(uint64_t offsetTicks, uint32_t visemeId)
 {
@@ -353,7 +391,7 @@ void CTTSEngine::SetupSynthesizerEvents(ULONGLONG interests)
     if (interests & SPEI_TTS_BOOKMARK)
         m_synthesizer->BookmarkReached += [this](const SpeechSynthesisBookmarkEventArgs& arg)
         {
-            OnBookmark(arg.AudioOffset, arg.Text);
+            OnBookmark(arg.AudioOffset, UTF8ToWString(arg.Text));
         };
 
     if (interests & (SPEI_WORD_BOUNDARY | SPEI_SENTENCE_BOUNDARY))
@@ -385,7 +423,7 @@ void CTTSEngine::SetupRestAPIEvents(ULONGLONG interests)
 {
     m_restApi->AudioReceivedCallback = std::bind_front(&CTTSEngine::OnAudioData, this);
     if (interests & SPEI_TTS_BOOKMARK)
-        m_restApi->BookmarkCallback = std::bind_front(&CTTSEngine::OnBookmark, this);
+        m_restApi->BookmarkCallback = [this](auto a, auto b) { OnBookmark(a, UTF8ToWString(b)); };
     if (interests & SPEI_WORD_BOUNDARY)
         m_restApi->WordBoundaryCallback = [this](auto a, auto b, auto c) { OnBoundary(a, b, c, SPEI_WORD_BOUNDARY); };
     if (interests & SPEI_SENTENCE_BOUNDARY)
@@ -495,6 +533,11 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
     m_offsetMappings.clear();
     m_mappingIndex = 0;
 
+    m_bookmarks.clear();
+    m_bookmarkIndex = 0;
+
+    ULONG lastSAPIOffset = 0;
+
     // online voices requires a <voice> tag, even after calling SetSpeechSynthesisVoiceName
     if (!m_onlineVoiceName.empty())
     {
@@ -571,6 +614,14 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             case SPVA_Pronounce:
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
+                lastSAPIOffset = pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen;
+                break;
+
+            case SPVA_Bookmark:
+                // mark the position before this bookmark
+                m_offsetMappings.emplace_back(lastSAPIOffset, (ULONG)m_ssml.size());
+                // keep track of every bookmark, so we can simulate bookmark events later
+                m_bookmarks.emplace_back(pTextFrag->ulTextSrcOffset, std::wstring(pTextFrag->pTextStart, pTextFrag->ulTextLen));
                 break;
             }
         }
@@ -680,32 +731,56 @@ void CTTSEngine::MapTextOffset(ULONG& ulSSMLOffset, ULONG& ulTextLen)
         return;
 
     ULONG endOffset = ulSSMLOffset + ulTextLen;
+    const auto size = m_offsetMappings.size();
 
     // all mapping pairs in m_offsetMappings go from low offset to high offset,
     // so we just move the index forward as the speaking progresses
     // but if index goes beyond border, or the current offset surpasses the actual offset, reset index to 0
-    if (m_mappingIndex >= m_offsetMappings.size() || m_offsetMappings[m_mappingIndex].ulSSMLTextOffset > ulSSMLOffset)
+    if (m_mappingIndex >= size || m_offsetMappings[m_mappingIndex].ulSSMLTextOffset > ulSSMLOffset)
         m_mappingIndex = 0;
 
     // if we surpass the next offset, move forward, until the actual offset is between current and next
-    while (m_mappingIndex + 1 < m_offsetMappings.size() && ulSSMLOffset >= m_offsetMappings[m_mappingIndex + 1].ulSSMLTextOffset)
+    // if there are multiple items with the same SSML offset, this will find the last item
+    while (m_mappingIndex + 1 < size && ulSSMLOffset >= m_offsetMappings[m_mappingIndex + 1].ulSSMLTextOffset)
         m_mappingIndex++;
 
     const auto& mapping = m_offsetMappings[m_mappingIndex];
+    // the same parameter is used for input & output
+    auto& ulSAPIOffset = ulSSMLOffset;
     // if offset falls below zero, set it to zero
     if (mapping.ulSSMLTextOffset > mapping.ulSAPITextOffset && ulSSMLOffset < mapping.ulSSMLTextOffset - mapping.ulSAPITextOffset)
-        ulSSMLOffset = 0;
+        ulSAPIOffset = 0;
     else
-        ulSSMLOffset = ulSSMLOffset - mapping.ulSSMLTextOffset + mapping.ulSAPITextOffset;
+        ulSAPIOffset = ulSSMLOffset - mapping.ulSSMLTextOffset + mapping.ulSAPITextOffset;
 
     // if the end position (ulSSMLOffset + ulTextLen) also get remapped
     // (for example when '&' becomes '&amp;')
     // adjust ulTextLen as well
     // first find which range the end position is in, just like the above
     auto index = m_mappingIndex;
-    while (index + 1 < m_offsetMappings.size() && endOffset >= m_offsetMappings[index + 1].ulSSMLTextOffset)
+    while (index + 1 < size && endOffset >= m_offsetMappings[index + 1].ulSSMLTextOffset)
         index++;
-    if (index == m_mappingIndex)
+
+    // If there are multiple items with the same SSML offset, go backwards and choose the first item.
+    // This is because when simulating bookmark events for Edge voices,
+    // the bookmark itself does not appear in the SSML text, only in the SAPI text,
+    // so the same SSML offset will be paired with both the beginning and the end of the bookmark tag.
+    // 
+    // When mapping the starting offset, we need the last pair;
+    // and when mapping the end offset, we need the first pair,
+    // so that we can exclude the bookmark tag in boundary events.
+    // 
+    // However, if the bookmark tag is inside a word,
+    // as Edge voices know nothing about bookmarks, they will still assume it's a whole word,
+    // so we have to include the bookmark tag in the word.
+    // Use the end offset of SAPI text to determine if the bookmark is inside the word.
+    auto endSAPIOffset = ulSAPIOffset + ulTextLen;
+    while (index > 0
+        && m_offsetMappings[index - 1].ulSSMLTextOffset == m_offsetMappings[index].ulSSMLTextOffset  // previous same offset
+        && m_offsetMappings[index - 1].ulSAPITextOffset >= endSAPIOffset  // previous not inside the word
+        )
+        index--;
+    if (index <= m_mappingIndex)
         return;
 
     const auto& endMapping = m_offsetMappings[index];
