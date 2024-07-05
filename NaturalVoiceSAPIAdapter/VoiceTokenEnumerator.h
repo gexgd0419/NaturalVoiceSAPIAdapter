@@ -49,7 +49,7 @@ private:
 	typedef std::map<std::string, CComPtr<ISpObjectToken>> TokenMap;
 	static void EnumLocalVoices(TokenMap& tokens);
 	static void EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath);
-	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices(BOOL allLanguages);
+	static CComPtr<IEnumSpObjectTokens> EnumEdgeVoices(BOOL allLanguages, const std::vector<std::wstring>& languages);
 
 };
 

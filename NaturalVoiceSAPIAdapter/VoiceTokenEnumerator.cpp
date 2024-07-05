@@ -47,6 +47,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             g_hTimerQueue = CreateTimerQueue();
 
         DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
+        std::vector<std::wstring> languages;
         WCHAR szNarratorVoicePath[MAX_PATH] = {};
         if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
             KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
@@ -60,6 +61,14 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             RegQueryValueExW(hKey, L"NoEdgeVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoEdgeVoices), &cbData);
             cbData = sizeof(DWORD);
             RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fAllLanguages), &cbData);
+            cbData = 0;
+            if (RegQueryValueExW(hKey, L"EdgeVoiceLanguages", nullptr, nullptr, nullptr, &cbData) == ERROR_SUCCESS)
+            {
+                auto pData = std::make_unique<BYTE[]>(cbData + 2 * sizeof(WCHAR)); // two more for terminating NULLs
+                RegQueryValueExW(hKey, L"EdgeVoiceLanguages", nullptr, nullptr, pData.get(), &cbData);
+                for (LPCWSTR pLang = reinterpret_cast<LPCWSTR>(pData.get()); *pLang != L'\0'; pLang += languages.back().size() + 1)
+                    languages.emplace_back(pLang);
+            }
             cbData = sizeof szNarratorVoicePath;
             RegQueryValueExW(hKey, L"NarratorVoicePath", nullptr, nullptr, reinterpret_cast<LPBYTE>(szNarratorVoicePath), &cbData);
             szNarratorVoicePath[std::min<size_t>(cbData / sizeof(WCHAR), MAX_PATH - 1)] = L'\0';
@@ -95,7 +104,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             }
             if (!fNoEdgeVoices)
             {
-                CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices(fAllLanguages);
+                CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices(fAllLanguages, languages);
                 RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pEdgeEnum));
             }
         }
@@ -568,7 +577,27 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
     return langids;
 }
 
-CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLanguages)
+static bool IsLanguageInList(const std::wstring& language, const std::vector<std::wstring>& languages)
+{
+    // A voice's language should be able to match a broader list item
+    // e.g. "en-US" can match list item "en"
+    for (auto& langInList : languages)
+    {
+        if (langInList.size() > language.size())
+            continue;
+        if (language.size() == langInList.size() && EqualsIgnoreCase(language, langInList))
+            return true;
+        wchar_t prefixEndChar = *(language.data() + langInList.size());
+        if (prefixEndChar != '-' && prefixEndChar != '\0')
+            continue;
+        std::wstring_view langPrefix(language.data(), langInList.size());
+        if (EqualsIgnoreCase(langPrefix, langInList))
+            return true;
+    }
+    return false;
+}
+
+CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLanguages, const std::vector<std::wstring>& languages)
 {
     try
     {
@@ -588,7 +617,7 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLangu
             supportedLangs = GetSupportedLanguageIDs();
 
         std::set<LANGID> userLangs;
-        if (!allLanguages)
+        if (!allLanguages && languages.empty())
             userLangs = GetUserPreferredLanguageIDs(false);
 
         for (const auto& voice : json)
@@ -597,8 +626,20 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLangu
             LANGID langid = LangIDFromLocaleName(locale);
             if (!universalSupported && !supportedLangs.contains(langid))
                 continue;
-            if (!allLanguages && !userLangs.contains(langid))
-                continue;
+            if (!allLanguages)
+            {
+                if (languages.empty())
+                {
+                    // the language list is empty, use the display languages
+                    if (!userLangs.contains(langid))
+                        continue;
+                }
+                else
+                {
+                    if (!IsLanguageInList(locale, languages))
+                        continue;
+                }
+            }
             auto pToken = MakeEdgeVoiceToken(voice);
             pEnumBuilder->AddTokens(1, &pToken.p);
         }
