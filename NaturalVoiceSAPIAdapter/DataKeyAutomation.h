@@ -6,8 +6,8 @@
 using namespace ATL;
 
 template <typename Func>
-	// requires std::convertible_to<Func, std::function<HRESULT(LPCVOID data, ULONG size)>>
-HRESULT GetVariantData(const VARIANT* pvar, Func dataRecvFunc)
+	requires std::is_invocable_r_v<HRESULT, Func, LPCVOID, ULONG>  // HRESULT(LPCVOID data, ULONG size)
+HRESULT GetVariantData(const VARIANT* pvar, Func&& dataRecvFunc)
 {
 	if (!pvar)
 		return dataRecvFunc(nullptr, 0);

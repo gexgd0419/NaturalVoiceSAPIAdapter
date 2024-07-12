@@ -281,7 +281,6 @@ HRESULT CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
             RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
-            synthesizer->GetVoicesAsync().get();
         }
 
         m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(

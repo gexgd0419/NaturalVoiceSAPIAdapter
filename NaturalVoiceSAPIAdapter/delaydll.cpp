@@ -10,9 +10,10 @@ static FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli)
 		// search the library in the same folder as this DLL, not the EXE
 		// the default implementation calls LoadLibrary directly which will search in the wrong path
 		char path[MAX_PATH];
-		GetModuleFileNameA((HMODULE)&__ImageBase, path, MAX_PATH);
-		PathRemoveFileSpecA(path);
-		PathAppendA(path, pdli->szDll);
+		if (GetModuleFileNameA((HMODULE)&__ImageBase, path, MAX_PATH) == MAX_PATH
+			|| !PathRemoveFileSpecA(path)
+			|| !PathAppendA(path, pdli->szDll))
+			throw std::system_error(ERROR_FILENAME_EXCED_RANGE, std::system_category());
 		HMODULE hDll = LoadLibraryA(path);
 		if (!hDll) throw std::system_error(GetLastError(), std::system_category());
 	}

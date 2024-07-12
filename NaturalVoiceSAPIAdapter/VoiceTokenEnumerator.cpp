@@ -214,16 +214,16 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, c
     return MakeVoiceToken(
         name.c_str(),
         StringPairCollection {
-            { L"", friendlyName },
+            { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
         SubkeyCollection {
             { L"Attributes", MakeVoiceKey(
                 StringPairCollection {
-                    { L"Name", shortFriendlyName },
+                    { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(voiceInfo.Properties.GetProperty("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
-                    { L"Locale", localeName },
+                    { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Narrator;Local" }
                 },
@@ -232,7 +232,7 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, c
             { L"NaturalVoiceConfig", MakeVoiceKey(
                 StringPairCollection {
                     { L"ErrorMode", L"0" },
-                    { L"Path", path },
+                    { L"Path", std::move(path) },
                     { L"Key", MS_TTS_KEY }
                 },
                 SubkeyCollection {}
@@ -282,6 +282,12 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens)
 
 void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath)
 {
+    if (wcslen(basepath) >= MAX_PATH)
+        return;
+    WCHAR path[MAX_PATH];
+    wcscpy_s(path, basepath);
+    PathRemoveFileSpecW(path);
+
     try
     {
         // Get all package paths, and then load all voices in one call
@@ -313,11 +319,11 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
             if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 && !(fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
             {
-                WCHAR path[MAX_PATH];
-                wcscpy_s(path, basepath);
-                PathRemoveFileSpecW(path);
-                PathAppendW(path, fd.cFileName);
-                paths.push_back(WStringToUTF8(path));
+                if (PathAppendW(path, fd.cFileName))
+                {
+                    paths.push_back(WStringToUTF8(path));
+                    PathRemoveFileSpecW(path);
+                }
             }
         } while (FindNextFileW(hFind, &fd));
 
@@ -353,16 +359,16 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
     return MakeVoiceToken(
         (L"Edge-" + shortName).c_str(), // registry key name format: Edge-en-US-AriaNeural
         StringPairCollection {
-            { L"", friendlyName },
+            { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
         SubkeyCollection {
             { L"Attributes", MakeVoiceKey(
                 StringPairCollection {
-                    { L"Name", shortFriendlyName },
+                    { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
-                    { L"Locale", localeName },
+                    { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Edge;Cloud" }
                 },
@@ -393,17 +399,17 @@ static CComPtr<ISpObjectToken> MakeAzureVoiceToken(const nlohmann::json& json,
 
     return MakeVoiceToken(
         (L"Azure-" + shortName).c_str(), // registry key name format: Azure-en-US-AriaNeural
-        StringPairCollection{
-            { L"", friendlyName },
+        StringPairCollection {
+            { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
-        SubkeyCollection{
+        SubkeyCollection {
             { L"Attributes", MakeVoiceKey(
                 StringPairCollection {
-                    { L"Name", shortFriendlyName },
+                    { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
-                    { L"Locale", localeName },
+                    { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Azure;Cloud" }
                 },
