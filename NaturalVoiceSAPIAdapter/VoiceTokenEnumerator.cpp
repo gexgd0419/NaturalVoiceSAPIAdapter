@@ -11,6 +11,8 @@
 #include "LangUtils.h"
 #include <condition_variable>
 #include "wrappers.h"
+#include "TaskScheduler.h"
+#include "RegKey.h"
 
 
 // CVoiceTokenEnumerator
@@ -25,8 +27,9 @@ inline static void CheckHr(HRESULT hr)
 static IEnumSpObjectTokens* s_pCachedEnum = nullptr;
 
 static std::mutex s_cacheMutex;
-extern HANDLE g_hTimerQueue;
-static HANDLE s_hCacheTimer = nullptr;
+static bool s_isCacheTaskScheduled = false;
+extern TaskScheduler g_taskScheduler;
+
 
 HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 {
@@ -41,60 +44,37 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         if (s_pCachedEnum)
             return s_pCachedEnum->Clone(&m_pEnum);
 
-        // Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
-        // So we create the timer queue here on first use
-        if (!g_hTimerQueue)
-            g_hTimerQueue = CreateTimerQueue();
+        RegKey key;
+        key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", KEY_QUERY_VALUE);
 
-        DWORD fDisable = 0, fNoNarratorVoices = 0, fNoEdgeVoices = 0, fAllLanguages = 0;
-        std::vector<std::wstring> languages;
-        WCHAR szNarratorVoicePath[MAX_PATH] = {};
-        if (HKey hKey; RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", 0,
-            KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS)
+        DWORD fAllLanguages = key.GetDword(L"EdgeVoiceAllLanguages");
+        std::vector<std::wstring> languages = key.GetMultiStringList(L"EdgeVoiceLanguages");
+        std::wstring narratorVoicePath = key.GetString(L"NarratorVoicePath");
+        if (narratorVoicePath.empty())
         {
-            DWORD cbData;
-            cbData = sizeof(DWORD);
-            RegQueryValueExW(hKey, L"Disable", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fDisable), &cbData);
-            cbData = sizeof(DWORD);
-            RegQueryValueExW(hKey, L"NoNarratorVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoNarratorVoices), &cbData);
-            cbData = sizeof(DWORD);
-            RegQueryValueExW(hKey, L"NoEdgeVoices", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fNoEdgeVoices), &cbData);
-            cbData = sizeof(DWORD);
-            RegQueryValueExW(hKey, L"EdgeVoiceAllLanguages", nullptr, nullptr, reinterpret_cast<LPBYTE>(&fAllLanguages), &cbData);
-            cbData = 0;
-            if (RegQueryValueExW(hKey, L"EdgeVoiceLanguages", nullptr, nullptr, nullptr, &cbData) == ERROR_SUCCESS)
+            WCHAR szDefaultPath[MAX_PATH];
+            if (GetModuleFileNameW((HMODULE)&__ImageBase, szDefaultPath, MAX_PATH) != MAX_PATH
+                && PathRemoveFileSpecW(szDefaultPath)
+                && PathAppendW(szDefaultPath, L"NarratorVoices"))
             {
-                auto pData = std::make_unique<BYTE[]>(cbData + 2 * sizeof(WCHAR)); // two more for terminating NULLs
-                RegQueryValueExW(hKey, L"EdgeVoiceLanguages", nullptr, nullptr, pData.get(), &cbData);
-                for (LPCWSTR pLang = reinterpret_cast<LPCWSTR>(pData.get()); *pLang != L'\0'; pLang += languages.back().size() + 1)
-                    languages.emplace_back(pLang);
+                narratorVoicePath = szDefaultPath;
             }
-            cbData = sizeof szNarratorVoicePath;
-            RegQueryValueExW(hKey, L"NarratorVoicePath", nullptr, nullptr, reinterpret_cast<LPBYTE>(szNarratorVoicePath), &cbData);
-            szNarratorVoicePath[std::min<size_t>(cbData / sizeof(WCHAR), MAX_PATH - 1)] = L'\0';
         }
+        std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
 
         CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
         RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
         RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
 
-        if (!fDisable)
+        if (!key.GetDword(L"Disable"))
         {
-            if (!fNoNarratorVoices)
+            if (!key.GetDword(L"NoNarratorVoices"))
             {
-                if (szNarratorVoicePath[0] == L'\0')
-                {
-                    GetModuleFileNameW((HMODULE)&__ImageBase, szNarratorVoicePath, MAX_PATH);
-                    PathRemoveFileSpecW(szNarratorVoicePath);
-                    PathAppendW(szNarratorVoicePath, L"NarratorVoices\\*");
-                }
-                else
-                {
-                    PathAppendW(szNarratorVoicePath, L"*");
-                }
-
                 TokenMap tokens;
-                EnumLocalVoicesInFolder(tokens, szNarratorVoicePath);
+
+                if (!narratorVoicePath.empty())
+                    EnumLocalVoicesInFolder(tokens, (narratorVoicePath + L"\\*").c_str());
+
                 EnumLocalVoices(tokens);
 
                 for (auto& token : tokens)
@@ -102,24 +82,43 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                     RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
                 }
             }
-            if (!fNoEdgeVoices)
+
+            TokenMap onlineTokens;
+            if (!key.GetDword(L"NoEdgeVoices"))
             {
-                CComPtr<IEnumSpObjectTokens> pEdgeEnum = EnumEdgeVoices(fAllLanguages, languages);
-                RETONFAIL(pEnumBuilder->AddTokensFromTokenEnum(pEdgeEnum));
+                EnumEdgeVoices(onlineTokens, fAllLanguages, languages);
+
+                // If Edge voices should override Azure voices, put them in the same map, first Edge, then Azure.
+                // If not, add the Edge voices and clear the map immediately before Azure voices, as follows.
+                if (!key.GetDword(L"EdgeVoicesOverrideAzureVoices"))
+                {
+                    for (auto& token : onlineTokens)
+                        RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
+                    onlineTokens.clear();
+                }
             }
+
+            if (!key.GetDword(L"NoAzureVoices") && !azureKey.empty() && !azureRegion.empty())
+            {
+                // Put Azure voices in the map.
+                // Edge voices may or may not previously be put into the same map, depending on configuration.
+                // If Edge voices are in the map, Azure voices with the same IDs will not be added.
+                EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion);
+            }
+
+            for (auto& token : onlineTokens)
+                RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
         }
 
-        if (!s_hCacheTimer)
+        if (!s_isCacheTaskScheduled)
         {
-            const auto clearCache = [](PVOID, BOOLEAN)
+            s_isCacheTaskScheduled = true;
+            g_taskScheduler.StartNewTask(10000, []()
                 {
                     std::lock_guard lock(s_cacheMutex);
                     s_pCachedEnum = nullptr;
-                    (void)DeleteTimerQueueTimer(g_hTimerQueue, s_hCacheTimer, nullptr);
-                    s_hCacheTimer = nullptr;
-                };
-            CreateTimerQueueTimer(&s_hCacheTimer, g_hTimerQueue, clearCache, nullptr, 10000, 0,
-                WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
+                    s_isCacheTaskScheduled = false;
+                });
         }
 
         RETONFAIL(pEnumBuilder->QueryInterface(&s_pCachedEnum));
@@ -382,131 +381,45 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
     );
 }
 
-static std::string ReadTextFromFile(HANDLE hFile)
+static CComPtr<ISpObjectToken> MakeAzureVoiceToken(const nlohmann::json& json,
+    const std::wstring& key, const std::wstring& region)
 {
-    LARGE_INTEGER liSize = { 0 };
-    if (!GetFileSizeEx(hFile, &liSize))
-        throw std::system_error(GetLastError(), std::system_category());
-    if (liSize.QuadPart > (1LL << 20) * 64)
-        throw std::bad_alloc(); // throw if more than 64MB chars
-    std::string str(liSize.LowPart, 0);
-    str.resize_and_overwrite(liSize.LowPart, [hFile](char* buf, size_t size)
-        {
-            DWORD readlen;
-            SetFilePointer(hFile, 0, nullptr, FILE_BEGIN);
-            if (!ReadFile(hFile, buf, (DWORD)size, &readlen, nullptr)
-                || size != readlen)
-                throw std::system_error(GetLastError(), std::system_category());
-            return readlen;
-        });
-    return str;
-}
+    std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
-static bool ReplaceCacheFileContent(const std::string& data) noexcept
-{
-    // Save the content to a new temporary file first, then replace the cache file
-    // But if the cache file does not exist, create the cache file directly
-    WCHAR szPath[MAX_PATH], szTempFilePath[MAX_PATH];
-    GetTempPathW(MAX_PATH, szTempFilePath);
-    PathAppendW(szTempFilePath, L"EdgeVoiceListCache.json");
-    BOOL cacheExists = PathFileExistsW(szTempFilePath);
-    if (cacheExists)
-    {
-        // Recalculate a temp file name
-        GetTempPathW(MAX_PATH, szPath);
-        GetTempFileNameW(szPath, L"EVL", 0, szTempFilePath);
-    }
+    std::wstring shortFriendlyName = UTF8ToWString(json.at("DisplayName"));
+    std::wstring localeName = UTF8ToWString(json.at("Locale"));
+    std::wstring localeDisplayName = UTF8ToWString(json.at("LocaleName"));
+    std::wstring friendlyName = std::format(L"Azure {} - {}", shortFriendlyName, localeDisplayName);
 
-    HANDLE hFile = CreateFileW(szTempFilePath, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE)
-        return false;
-    DWORD writelen = 0;
-    WriteFile(hFile, data.data(), (DWORD)data.size(), &writelen, nullptr);
-    CloseHandle(hFile);
-    if (writelen != data.size())
-    {
-        DeleteFileW(szTempFilePath);
-        return false;
-    }
-
-    if (cacheExists)
-    {
-        // Replace the cache file with the temporary file
-        PathAppendW(szPath, L"EdgeVoiceListCache.json");
-        if (!ReplaceFileW(szPath, szTempFilePath, nullptr, 0, nullptr, nullptr))
-        {
-            DeleteFileW(szTempFilePath); // delete the temporary file
-            return false;
+    return MakeVoiceToken(
+        (L"Azure-" + shortName).c_str(), // registry key name format: Azure-en-US-AriaNeural
+        StringPairCollection{
+            { L"", friendlyName },
+            { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
+        },
+        SubkeyCollection{
+            { L"Attributes", MakeVoiceKey(
+                StringPairCollection {
+                    { L"Name", shortFriendlyName },
+                    { L"Gender", UTF8ToWString(json.at("Gender")) },
+                    { L"Language", LanguageIDsFromLocaleName(localeName) },
+                    { L"Locale", localeName },
+                    { L"Vendor", L"Microsoft" },
+                    { L"NaturalVoiceType", L"Azure;Cloud" }
+                },
+                SubkeyCollection {}
+            ) },
+            { L"NaturalVoiceConfig", MakeVoiceKey(
+                StringPairCollection {
+                    { L"ErrorMode", L"0" },
+                    { L"Voice", shortName },
+                    { L"Key", key },
+                    { L"Region", region }
+                },
+                SubkeyCollection {}
+            ) }
         }
-    }
-    return true;
-}
-
-static nlohmann::json GetEdgeVoiceJson()
-{
-    // We use a file %TEMP%\EdgeVoiceListCache.json to cache the Edge voice list JSON locally
-    // so enumerating voice tokens will not always be so slow
-    // Only download JSON synchronously if the cache file does not exist (or cannot be read)
-    // otherwise, always fetch from cache, then download and update the cache asynchronously
-
-    WCHAR szPath[MAX_PATH];
-    GetTempPathW(MAX_PATH, szPath);
-    PathAppendW(szPath, L"EdgeVoiceListCache.json");
-    HANDLE hCacheFile = CreateFileW(szPath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
-    if (hCacheFile != INVALID_HANDLE_VALUE)
-    {
-        FILETIME ftNow;
-        GetSystemTimeAsFileTime(&ftNow);
-        FILETIME ftWrite;
-        GetFileTime(hCacheFile, nullptr, &ftWrite, nullptr);
-        ULARGE_INTEGER uiNow = { ftNow.dwLowDateTime, ftNow.dwHighDateTime };
-        ULARGE_INTEGER uiWrite = { ftWrite.dwLowDateTime, ftWrite.dwHighDateTime };
-
-        try
-        {
-            // First try to read from cache file, whether it is outdated or not
-            // because it is always faster
-            // Can fail because of file read error or JSON parse error
-            auto json = nlohmann::json::parse(ReadTextFromFile(hCacheFile));
-            CloseHandle(hCacheFile);
-
-            // Cache voice list for an hour
-            // If the cache is outdated, update it in a background thread
-            if (uiNow.QuadPart < uiWrite.QuadPart ||
-                uiNow.QuadPart - uiWrite.QuadPart > 10000000ULL * 60 * 60)
-            {
-                HANDLE hTimer;
-                const auto backgroundDownload = [](PVOID, BOOLEAN)
-                {
-                    try
-                    {
-                        std::string downloaded = DownloadToString(EDGE_VOICE_LIST_URL, nullptr);
-                        (void)nlohmann::json::parse(downloaded); // check if valid json
-                        ReplaceCacheFileContent(downloaded);
-                    }
-                    catch (...)
-                    { }
-                };
-                CreateTimerQueueTimer(&hTimer, g_hTimerQueue, backgroundDownload, nullptr, 0, 0,
-                    WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION);
-            }
-
-            return json; // return JSON from cache
-        }
-        catch (...)
-        {
-            // We somehow failed to read from cache
-            // so we have to re-download synchronously, in the code below
-            CloseHandle(hCacheFile);
-        }
-    }
-
-    // Failed to read from cache, or the cache does not exist
-    // so we have to download synchronously
-    std::string downloaded = DownloadToString(EDGE_VOICE_LIST_URL, nullptr);
-    auto json = nlohmann::json::parse(downloaded);
-    ReplaceCacheFileContent(downloaded);
-    return json;
+    );
 }
 
 // Enumerate all language IDs of installed phoneme converters
@@ -597,15 +510,18 @@ static bool IsLanguageInList(const std::wstring& language, const std::vector<std
     return false;
 }
 
-CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLanguages, const std::vector<std::wstring>& languages)
+nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders);
+
+template <class TokenMaker>
+    requires std::is_invocable_r_v<CComPtr<ISpObjectToken>, TokenMaker, const nlohmann::json&>
+void EnumOnlineVoices(std::map<std::string, CComPtr<ISpObjectToken>>& tokens,
+    LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders,
+    BOOL allLanguages, const std::vector<std::wstring>& languages,
+    TokenMaker&& tokenMaker)
 {
     try
     {
-        CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-        CheckHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-        CheckHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
-
-        const auto json = GetEdgeVoiceJson();
+        const auto json = GetCachedJson(cacheName, downloadUrl, downloadHeaders);
 
         // Universal (IPA) phoneme converter has been supported since SAPI 5.3, which supports most other languages
         // SAPI on older systems (XP) does not have this universal converter, so each language must have its corresponding phoneme converter
@@ -640,12 +556,8 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLangu
                         continue;
                 }
             }
-            auto pToken = MakeEdgeVoiceToken(voice);
-            pEnumBuilder->AddTokens(1, &pToken.p);
+            tokens.try_emplace(voice.at("ShortName"), tokenMaker(voice));
         }
-
-
-        return CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder);
     }
     catch (const std::bad_alloc&)
     {
@@ -655,6 +567,23 @@ CComPtr<IEnumSpObjectTokens> CVoiceTokenEnumerator::EnumEdgeVoices(BOOL allLangu
     {
         // Ignore
     }
+}
 
-    return {};
+void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages)
+{
+    EnumOnlineVoices(tokens, L"EdgeVoiceListCache.json", EDGE_VOICE_LIST_URL, "",
+        allLanguages, languages, MakeEdgeVoiceToken);
+}
+
+void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
+    const std::wstring& key, const std::wstring& region)
+{
+    EnumOnlineVoices(tokens, L"AzureVoiceListCache.json",
+        (std::string("https://") + WStringToUTF8(region) + AZURE_TTS_HOST_AFTER_REGION + AZURE_VOICE_LIST_PATH).c_str(),
+        (std::string("Ocp-Apim-Subscription-Key: ") + WStringToUTF8(key) + "\r\n").c_str(),
+        allLanguages, languages,
+        [key, region](const nlohmann::json& json)
+        {
+            return MakeAzureVoiceToken(json, key, region);
+        });
 }

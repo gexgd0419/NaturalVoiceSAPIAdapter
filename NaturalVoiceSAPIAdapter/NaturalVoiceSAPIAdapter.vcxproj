@@ -273,12 +273,14 @@
     <ClInclude Include="NaturalVoiceSAPIAdapter_i.h" />
     <ClInclude Include="NetUtils.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="RegKey.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SpeechServiceConstants.h" />
     <ClInclude Include="SpeechRestAPI.h" />
     <ClInclude Include="StringTokenizer.h" />
     <ClInclude Include="StrUtils.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TaskScheduler.h" />
     <ClInclude Include="TokenEnumerator.h" />
     <ClInclude Include="TTSEngine.h" />
     <ClInclude Include="DataKey.h" />
@@ -335,6 +337,7 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="FileCache.cpp" />
     <ClCompile Include="TTSEngine.cpp" />
     <ClCompile Include="VoiceTokenEnumerator.cpp" />
   </ItemGroup>
@@ -342,7 +345,9 @@
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AzureVoiceListCache.json" />
     <None Include="DataKeyAutomation.rgs" />
+    <None Include="EdgeVoiceListCache.json" />
     <None Include="NaturalVoiceSAPIAdapter.def" />
     <None Include="NaturalVoiceSAPIAdapter.rgs" />
     <None Include="packages.config" />

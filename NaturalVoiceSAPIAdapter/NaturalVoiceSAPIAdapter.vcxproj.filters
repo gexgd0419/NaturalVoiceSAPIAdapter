@@ -85,6 +85,12 @@
     <ClInclude Include="VoiceToken.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TaskScheduler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RegKey.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter.cpp">
@@ -120,6 +126,9 @@
     <ClCompile Include="LangUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FileCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc">
@@ -146,6 +155,8 @@
     <None Include="ObjectTokenAutomation.rgs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="AzureVoiceListCache.json" />
+    <None Include="EdgeVoiceListCache.json" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl">
