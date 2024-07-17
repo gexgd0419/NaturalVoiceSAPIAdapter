@@ -1,3 +1,6 @@
 [submodule "ttsapplication"]
 	path = ttsapplication
 	url = https://github.com/gexgd0419/TTSApplicationSample
+[submodule "AzureSpeechSDKShim"]
+	path = AzureSpeechSDKShim
+	url = https://github.com/gexgd0419/AzureSpeechSDKShim
