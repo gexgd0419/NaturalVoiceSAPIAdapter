@@ -59,7 +59,7 @@ static bool IsFolderWritable(LPWSTR path) noexcept
     return ret;
 }
 
-static bool GetCachePath(LPWSTR path) noexcept
+bool GetCachePath(LPWSTR path) noexcept
 {
     static WCHAR cachePath[MAX_PATH] = {};
 
