@@ -266,6 +266,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AzacException.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LangUtils.h" />
@@ -276,6 +277,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="RegKey.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SapiException.h" />
     <ClInclude Include="SpeechServiceConstants.h" />
     <ClInclude Include="SpeechRestAPI.h" />
     <ClInclude Include="StringTokenizer.h" />

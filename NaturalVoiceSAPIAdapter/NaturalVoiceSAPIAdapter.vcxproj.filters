@@ -91,6 +91,12 @@
     <ClInclude Include="RegKey.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AzacException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SapiException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
