@@ -5,6 +5,7 @@
 #include "SpeechRestAPI.h"
 #include "NetUtils.h"
 #include "SpeechServiceConstants.h"
+#include <VersionHelpers.h>
 
 // CTTSEngine
 
@@ -14,40 +15,37 @@
 // Initializes this instance of CTTSEngine to use the voice specified in registry
 STDMETHODIMP CTTSEngine::SetObjectToken(ISpObjectToken* pToken) noexcept
 {
+    ScopeTracer tracer("TTS init: begin", "TTS init: end");
     try
     {
-        RETONFAIL(SpGenericSetObjectToken(pToken, m_cpToken));
+        CheckSapiHr(SpGenericSetObjectToken(pToken, m_cpToken));
 
-        RETONFAIL(InitVoice());
+        InitVoice();
 
-        RETONFAIL(InitPhoneConverter());
+        InitPhoneConverter();
 
         return S_OK;
     }
     catch (const std::bad_alloc&)
     {
+        LogCritical("Out of memory");
         return E_OUTOFMEMORY;
     }
     catch (const std::system_error& ex)
     {
-        Error(ex.what());
-        auto& cat = ex.code().category();
-        if (cat == std::system_category() || cat == asio::system_category())
-            return HRESULT_FROM_WIN32(ex.code().value());
-        return E_FAIL;
+        return OnException(ex, "TTS init: voice '{}' cannot be initialized: {}", pToken);
+    }
+    catch (const std::invalid_argument& ex)
+    {
+        return OnException(ex, "TTS init: voice '{}' cannot be initialized: {}", pToken);
     }
     catch (const std::exception& ex)
     {
-        Error(ex.what());
-        MessageBoxA(NULL, ex.what(), NULL, 0);
-        return E_FAIL;
-    }
-    catch (AZACHR hr)
-    {
-        return hr == AZAC_ERR_INVALID_ARG ? E_INVALIDARG : E_FAIL;
+        return OnException(ex, "TTS init: voice '{}' cannot be initialized: {}", pToken);
     }
     catch (...) // C++ exceptions should not cross COM boundary
     {
+        LogErr("TTS init: voice '{}' cannot be initialized: Unknown error", pToken);
         return E_FAIL;
     }
 }
@@ -61,6 +59,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
     const SPVTEXTFRAG* pTextFragList,
     ISpTTSEngineSite* pOutputSite) noexcept
 {
+    ScopeTracer tracer("Speak: begin", "Speak: end");
     try
     {
         // Check args
@@ -84,6 +83,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         m_pOutputSite = pOutputSite;
         m_waveBytesWritten = 0;
         BuildSSML(pTextFragList);
+        LogDebug("Speak: Built SSML: {}", m_ssml);
 
         std::future<void> future;
 
@@ -102,12 +102,14 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             if (pOutputSite->GetActions() & SPVES_SKIP)
             {
                 // Skipping is not supported
+                LogWarn("Speak: Skipping not supported, ignored");
                 pOutputSite->CompleteSkip(0);
             }
         }
 
         if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
         {
+            LogDebug("Speak: Requested stop");
             if (m_synthesizer)
                 m_synthesizer->StopSpeakingAsync().wait();
             else
@@ -139,23 +141,20 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
     }
     catch (const std::bad_alloc&)
     {
+        LogCritical("Out of memory");
         return E_OUTOFMEMORY;
     }
     catch (const std::system_error& ex)
     {
-        Error(ex.what());
-        auto& cat = ex.code().category();
-        if (cat == std::system_category() || cat == asio::system_category())
-            return HRESULT_FROM_WIN32(ex.code().value());
-        return E_FAIL;
+        return OnException(ex, "Speak: {}");
     }
     catch (const std::exception& ex)
     {
-        Error(ex.what());
-        return E_FAIL;
+        return OnException(ex, "Speak: {}");
     }
     catch (...) // C++ exceptions should not cross COM boundary
     {
+        LogErr("Speak: Unknown error");
         return E_FAIL;
     }
 } /* CTTSEngine::Speak */
@@ -170,10 +169,12 @@ STDMETHODIMP CTTSEngine::GetOutputFormat(const GUID* /*pTargetFormatId*/, const 
 
 // Other Member Functions
 
-HRESULT CTTSEngine::InitPhoneConverter()
+void CTTSEngine::InitPhoneConverter()
 {
     LANGID lang = 0;
-    RETONFAIL(SpGetLanguageFromToken(m_cpToken, &lang));
+    HRESULT hr = SpGetLanguageFromToken(m_cpToken, &lang);
+    if (FAILED(hr))
+        throw std::system_error(hr, sapi_category(), "Attribute 'Language' is missing");
 
     CComPtr<ISpDataKey> pAttrKey;
     CSpDynamicString locale;
@@ -187,40 +188,67 @@ HRESULT CTTSEngine::InitPhoneConverter()
         m_localeName = L"en-US";
     }
 
-    return SpCreatePhoneConverter(lang, nullptr, nullptr, &m_phoneConverter);
+    CheckSapiHr(SpCreatePhoneConverter(lang, nullptr, nullptr, &m_phoneConverter));
 }
 
-HRESULT CTTSEngine::InitVoice()
+void CTTSEngine::InitVoice()
 {
     CComPtr<ISpDataKey> pConfigKey;
     CSpDynamicString pszRegion, pszKey, pszPath, pszVoice;
     
-    RETONFAIL(m_cpToken->OpenKey(L"NaturalVoiceConfig", &pConfigKey)); // this key must exist
+    HRESULT hr = m_cpToken->OpenKey(L"NaturalVoiceConfig", &pConfigKey); // this key must exist
+    if (FAILED(hr))
+        throw std::system_error(hr, sapi_category(), "Subkey 'NaturalVoiceConfig' is missing");
 
     DWORD dwErrorMode;
-    HRESULT hr = pConfigKey->GetDWORD(L"ErrorMode", &dwErrorMode);
+    hr = pConfigKey->GetDWORD(L"ErrorMode", &dwErrorMode);
     if (FAILED(hr)) dwErrorMode = 0;
     m_errorMode = (ErrorMode)std::clamp(dwErrorMode, 0UL, 2UL);
 
-    hr = InitLocalVoice(pConfigKey);
-    if (SUCCEEDED(hr))
-        return hr;
-    hr = InitCloudVoiceSynthesizer(pConfigKey);
-    if (SUCCEEDED(hr))
-        return hr;
-    hr = InitCloudVoiceRestAPI(pConfigKey);
-    return hr;
+    if (IsWindows7OrGreater()) // Azure Speech SDK requires at least Win 7
+    {
+        if (InitLocalVoice(pConfigKey))
+            return;
+        if (InitCloudVoiceSynthesizer(pConfigKey))
+            return;
+    }
+    if (InitCloudVoiceRestAPI(pConfigKey))
+        return;
+    
+    throw std::invalid_argument("Invalid NaturalVoiceConfig configuration.");
 }
 
-HRESULT CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
+// Returns true if hr indicates that the value is not found. Throws on other error.
+inline static bool CheckHrNotFound(HRESULT hr)
+{
+    if (hr == SPERR_NOT_FOUND)
+        return true;
+    CheckSapiHr(hr);
+    return false;
+}
+
+bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
 {
     try
     {
         CSpDynamicString pszPath, pszKey;
-        RETONFAIL(pConfigKey->GetStringValue(L"Path", &pszPath));
-        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+        if (CheckHrNotFound(pConfigKey->GetStringValue(L"Path", &pszPath))
+            || CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
+            return false;
 
-        auto config = EmbeddedSpeechConfig::FromPath(WStringToUTF8(pszPath.m_psz));
+        auto path = WStringToUTF8(pszPath.m_psz);
+
+        if (logger.should_log(spdlog::level::warn))
+        {
+            if (!std::all_of(path.begin(), path.end(),
+                [](unsigned char ch) { return ch < 128; }))
+            {
+                LogWarn("TTS init: Local voice path contains non-ASCII characters, may not work correctly: {}",
+                    path);
+            }
+        }
+
+        auto config = EmbeddedSpeechConfig::FromPath(path);
 
         config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
         config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
@@ -229,35 +257,44 @@ HRESULT CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
         // get the voice name by loading it first
         auto synthesizer = SpeechSynthesizer::FromConfig(config);
         auto result = synthesizer->GetVoicesAsync().get();
-        if (result->Voices.empty())
-            return E_INVALIDARG;
-        config->SetSpeechSynthesisVoice(result->Voices[0]->Name, WStringToUTF8(pszKey.m_psz));
+        if (result->Reason != ResultReason::VoicesListRetrieved
+            || result->Voices.empty())
+        {
+            LogErr("Invalid local voice folder: {}", path);
+            throw std::invalid_argument(UTF8ToAnsi(result->ErrorDetails));
+        }
+        auto& voiceName = result->Voices[0]->Name;
+        config->SetSpeechSynthesisVoice(voiceName, WStringToUTF8(pszKey.m_psz));
 
         if (m_errorMode == ErrorMode::ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
+            CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
         }
 
         m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
             AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
 
-        return S_OK;
+        LogInfo("Local voice created: {}", voiceName);
+        return true;
     }
-    catch (const std::system_error&) // Possibly DLL loading error
+    catch (const std::system_error& ex) // Possibly DLL loading error
     {
-        return E_FAIL; // If so, just return an error code so we can fallback
+        if (ex.code().category() == std::system_category()) // Is DLL loading error
+            return false; // If so, fall back
+        throw;
     }
 }
 
-HRESULT CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
+bool CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
 {
     try
     {
         CSpDynamicString pszKey, pszRegion, pszVoice;
-        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
-        RETONFAIL(pConfigKey->GetStringValue(L"Region", &pszRegion));
-        RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
+        if (CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey))
+            || CheckHrNotFound(pConfigKey->GetStringValue(L"Region", &pszRegion))
+            || CheckHrNotFound(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
+            return false;
 
         auto config = SpeechConfig::FromSubscription(WStringToUTF8(pszKey.m_psz), WStringToUTF8(pszRegion.m_psz));
 
@@ -280,52 +317,61 @@ HRESULT CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
         if (m_errorMode == ErrorMode::ProbeForError)
         {
             auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            RETONFAIL(CheckSynthesisResult(synthesizer->SpeakText(""))); // test for possible error
+            CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
         }
 
         m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
             AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
 
-        return S_OK;
+        LogInfo("Cloud voice (Azure Speech SDK) created: {}", pszVoice.m_psz);
+        return true;
     }
-    catch (const std::system_error&) // Possibly DLL loading error
-    {   
-        return E_FAIL; // If so, just return an error code so we can fallback
+    catch (const std::system_error& ex) // Possibly DLL loading error
+    {
+        if (ex.code().category() == std::system_category()) // Is DLL loading error
+        {
+            LogInfo("TTS init: Azure Speech SDK failed ({}), falling back to Rest API", ex);
+            return false; // fallback
+        }
+        throw;
     }
 }
 
-HRESULT CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
+bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
 {
     m_restApi = std::make_unique<SpeechRestAPI>();
 
     CSpDynamicString pszVoice, pszKey;
-    RETONFAIL(pConfigKey->GetStringValue(L"Voice", &pszVoice));
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
+        return false;
     m_onlineVoiceName = pszVoice;
 
     DWORD dwValue = 0;
-    if (SUCCEEDED(pConfigKey->GetDWORD(L"IsEdgeVoice", &dwValue)))
+    if (!CheckHrNotFound(pConfigKey->GetDWORD(L"IsEdgeVoice", &dwValue)))
         m_isEdgeVoice = dwValue;
     
-    if (CSpDynamicString pszWebsocketUrl; SUCCEEDED(pConfigKey->GetStringValue(L"WebsocketURL", &pszWebsocketUrl)))
+    if (CSpDynamicString pszWebsocketUrl; !CheckHrNotFound(pConfigKey->GetStringValue(L"WebsocketURL", &pszWebsocketUrl)))
     {
-        pConfigKey->GetStringValue(L"Key", &pszKey);
+        CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey));
         m_restApi->SetWebsocketUrl(
             pszKey ? WStringToUTF8(pszKey.m_psz) : "",
             WStringToUTF8(pszWebsocketUrl.m_psz)
         );
     }
-    else if (CSpDynamicString pszRegion; SUCCEEDED(pConfigKey->GetStringValue(L"Region", &pszRegion)))
+    else if (CSpDynamicString pszRegion; !CheckHrNotFound(pConfigKey->GetStringValue(L"Region", &pszRegion)))
     {
-        RETONFAIL(pConfigKey->GetStringValue(L"Key", &pszKey));
+        if (CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
+            return false;
         m_restApi->SetSubscription(
             WStringToUTF8(pszKey.m_psz),
             WStringToUTF8(pszRegion.m_psz)
         );
     }
     else
-        return E_INVALIDARG;
+        return false;
 
-    return S_OK;
+    LogInfo("Cloud voice (Rest API) created: {}", pszVoice.m_psz);
+    return true;
 }
 
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
@@ -787,20 +833,15 @@ void CTTSEngine::MapTextOffset(ULONG& ulSSMLOffset, ULONG& ulTextLen)
     ulTextLen = endOffset - ulSSMLOffset;
 }
 
-// Checks the result from speech operation, sets the error message if needed
-HRESULT CTTSEngine::CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisResult>& result)
+// Checks the result from speech operation, and throws if error happened
+void CTTSEngine::CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisResult>& result)
 {
     if (result->Reason != ResultReason::Canceled)
-        return S_OK;
+        return;
 
     auto details = SpeechSynthesisCancellationDetails::FromResult(result);
     if (details->Reason != CancellationReason::Error)
-        return S_OK;
+        return;
 
-    Error(details->ErrorDetails.c_str());
-    if (m_errorMode == ErrorMode::ShowMessageOnError)
-    {
-        MessageBoxA(NULL, details->ErrorDetails.c_str(), "NaturalVoiceSAPIAdapter", MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
-    }
-    return E_FAIL;
+    throw std::runtime_error(UTF8ToAnsi(details->ErrorDetails));
 }

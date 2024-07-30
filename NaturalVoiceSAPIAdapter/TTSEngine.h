@@ -6,6 +6,9 @@
 #include "pch.h"
 #include <speechapi_cxx.h>
 #include "SpeechRestAPI.h"
+#include "Logger.h"
+#include "SapiException.h"
+#include "Mp3Decoder.h"
 
 #include "NaturalVoiceSAPIAdapter_i.h"
 
@@ -144,11 +147,11 @@ private:
 
 private: // Private methods
 
-	HRESULT InitPhoneConverter();
-	HRESULT InitVoice();
-	HRESULT InitLocalVoice(ISpDataKey* pConfigKey);
-	HRESULT InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey);
-	HRESULT InitCloudVoiceRestAPI(ISpDataKey* pConfigKey);
+	void InitPhoneConverter();
+	void InitVoice();
+	bool InitLocalVoice(ISpDataKey* pConfigKey);
+	bool InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey);
+	bool InitCloudVoiceRestAPI(ISpDataKey* pConfigKey);
 	void SetupSynthesizerEvents(ULONGLONG interests);
 	void ClearSynthesizerEvents();
 	void SetupRestAPIEvents(ULONGLONG interests);
@@ -159,7 +162,13 @@ private: // Private methods
 	void BuildSSML(const SPVTEXTFRAG* pTextFragList);
 
 	void MapTextOffset(ULONG& ulSSMLOffset, ULONG& ulTextLen);
-	HRESULT CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisResult>& result);
+	void CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisResult>& result);
+
+	template <class Exception, class... Args>
+	HRESULT OnException(
+		Exception&& exception,
+		FormatStringT<Args..., std::string> logFormat,
+		Args&&... logArgs) noexcept;
 
 private: // Static members
 
@@ -172,3 +181,47 @@ private: // Static members
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(TTSEngine), CTTSEngine)
+
+template <class Exception, class... Args>
+HRESULT CTTSEngine::OnException(
+	Exception&& ex,
+	FormatStringT<Args..., std::string> logFormat,
+	Args&&... logArgs) noexcept
+{
+	using T = std::remove_cvref_t<Exception>;
+
+	try
+	{
+		std::wstring wmsg = StringToWString(ex.what());
+		Error(wmsg.c_str());
+		LogErr(logFormat, std::forward<Args>(logArgs)..., wmsg);
+		if (m_errorMode == ErrorMode::ShowMessageOnError)
+		{
+			if constexpr (std::is_base_of_v<std::system_error, T>)
+			{
+				auto& cat = ex.code().category();
+				if (cat != std::system_category()
+					&& cat != sapi_category()
+					&& cat != azac_category()
+					&& cat != mci_category())
+					wmsg.insert(0, L"Network connection error:\r\n\r\n");
+			}
+			MessageBoxW(NULL, wmsg.c_str(), L"NaturalVoiceSAPIAdapter", MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
+		}
+	}
+	catch (...) {}
+
+	if constexpr (std::is_base_of_v<std::system_error, T>)
+	{
+		auto& cat = ex.code().category();
+		if (cat == std::system_category() || cat == asio::system_category())
+			return HRESULT_FROM_WIN32(ex.code().value());
+		else if (cat == azac_category())
+			return ex.code().value() == AZAC_ERR_INVALID_ARG ? E_INVALIDARG : E_FAIL;
+		return E_FAIL;
+	}
+	else if constexpr (std::is_base_of_v<std::invalid_argument, T>)
+		return E_INVALIDARG;
+	else
+		return E_FAIL;
+}
