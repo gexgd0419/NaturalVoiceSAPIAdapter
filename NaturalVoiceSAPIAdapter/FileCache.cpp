@@ -5,6 +5,7 @@
 #include "NetUtils.h"
 #include <nlohmann/json.hpp>
 #include "TaskScheduler.h"
+#include "Logger.h"
 
 extern TaskScheduler g_taskScheduler;
 
@@ -81,6 +82,7 @@ bool GetCachePath(LPWSTR path) noexcept
             return true;
         }
     }
+    LogWarn("Cache: Cannot use %LOCALAPPDATA%\\NaturalVoiceSAPIAdapter as cache data path, falling back to %TEMP%.");
 
     // try using %TEMP%
     if (GetTempPathW(MAX_PATH, path) && IsFolderWritable(path))
@@ -89,6 +91,7 @@ bool GetCachePath(LPWSTR path) noexcept
         return true;
     }
 
+    LogWarn("Cache: Cannot use %TEMP% as cache data path.");
     return false;
 }
 
@@ -111,12 +114,20 @@ static bool ReplaceCacheFileContent(LPCWSTR cacheName, const std::string& data) 
 
     HANDLE hFile = CreateFileW(szTempFilePath, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
     if (hFile == INVALID_HANDLE_VALUE)
+    {
+        LogErr("Cache: Cannot write to JSON cache file {}: {}",
+            cacheName,
+            std::system_category().message(GetLastError()));
         return false;
+    }
     DWORD writelen = 0;
     WriteFile(hFile, data.data(), (DWORD)data.size(), &writelen, nullptr);
     CloseHandle(hFile);
     if (writelen != data.size())
     {
+        LogErr("Cache: Cannot write to JSON cache file {}: {}",
+            cacheName,
+            std::system_category().message(GetLastError()));
         DeleteFileW(szTempFilePath);
         return false;
     }
@@ -127,6 +138,9 @@ static bool ReplaceCacheFileContent(LPCWSTR cacheName, const std::string& data) 
         if (!PathAppendW(szPath, cacheName)
             || !ReplaceFileW(szPath, szTempFilePath, nullptr, 0, nullptr, nullptr))
         {
+            LogErr("Cache: Cannot write to JSON cache file {}: {}",
+                cacheName,
+                std::system_category().message(GetLastError()));
             DeleteFileW(szTempFilePath); // delete the temporary file
             return false;
         }
@@ -159,6 +173,12 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
                 std::string downloaded = DownloadToString(downloadUrl.c_str(), downloadHeaders.c_str());
                 (void)nlohmann::json::parse(downloaded); // check if valid json
                 ReplaceCacheFileContent(cacheName.c_str(), downloaded);
+            }
+            catch (const std::exception& ex)
+            {
+                LogWarn("Cache: Cannot download JSON cache content {}: {}",
+                    cacheName,
+                    ex);
             }
             catch (...)
             { }
@@ -199,11 +219,14 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
 
             return json; // return JSON from cache
         }
-        catch (...)
+        catch (const std::exception& ex)
         {
             // We somehow failed to read from cache
             // Go to the code below
             CloseHandle(hCacheFile);
+            LogWarn("Cache: Cannot read JSON from cache file {}, redownloading: {}",
+                cacheName,
+                ex);
         }
     }
 

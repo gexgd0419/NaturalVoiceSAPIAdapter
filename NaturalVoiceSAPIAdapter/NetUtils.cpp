@@ -10,6 +10,7 @@
 #include "StringTokenizer.h"
 #include "StrUtils.h"
 #pragma comment (lib, "wininet.lib")
+#include "Logger.h"
 
 static std::string RegexEscape(std::string_view str)
 {
@@ -159,6 +160,15 @@ std::string GetProxyForUrl(std::string_view url)
 
 		return std::string(GetProxyForUrl(url, proxyServer.get(), proxyBypass.get()));
 	}
+	else if (opt.Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL)
+	{
+		static bool pacUnsupportedWarned = false;
+		if (!pacUnsupportedWarned)
+		{
+			LogWarn("Proxy: PAC is not supported. Connections will be made directly.");
+			pacUnsupportedWarned = true;
+		}
+	}
 
 	return {}; // Empty string indicates no proxy (direct)
 }
@@ -258,7 +268,8 @@ std::string DownloadToString(LPCSTR lpszUrl, LPCSTR lpszHeaders)
 	// Get the string in the underlying buffer
 	std::string_view response_str(static_cast<const char*>(response.data().data()), response.size());
 	if (!response_str.starts_with("HTTP/1.1 200 "))
-		throw std::runtime_error("Server responded HTTP " + std::string(response_str.substr(9, 3)));
+		throw std::runtime_error("Server responded "
+			+ std::string(response_str.substr(0, response_str.find('\r'))));
 
 	size_t delimpos = response_str.find("\r\n\r\n");
 	if (delimpos == response_str.npos)
