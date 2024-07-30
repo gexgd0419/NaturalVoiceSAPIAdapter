@@ -62,6 +62,8 @@ private: // threading
 	std::condition_variable m_mp3ThreadNotifier;
 	bool m_isStopping = false;
 	bool m_mp3QueueDone = false;
+	bool m_firstDataReceived = false;
+	bool m_allDataReceived = false;
 
 	void AsioThread();
 	void Mp3Thread();
