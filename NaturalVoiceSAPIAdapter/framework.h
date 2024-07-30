@@ -45,6 +45,7 @@ using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
 
 #include <winrt/windows.management.deployment.h>
 #include <winrt/windows.applicationmodel.h>
+#include <winrt/windows.system.userprofile.h>
 #include <winrt/windows.foundation.collections.h>
 
 // Third-party libraries

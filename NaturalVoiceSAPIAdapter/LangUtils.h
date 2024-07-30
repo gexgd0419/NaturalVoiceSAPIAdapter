@@ -5,7 +5,7 @@
 #include <WinNls.h>
 
 std::vector<LANGID> GetLangIDFallbacks(LANGID lang);
-LANGID LangIDFromLocaleName(const std::wstring& locale);
+LANGID LangIDFromLocaleName(LPCWSTR locale);
 
 constexpr LANGID HexLangToLangID(std::wstring_view hexlang)
 {

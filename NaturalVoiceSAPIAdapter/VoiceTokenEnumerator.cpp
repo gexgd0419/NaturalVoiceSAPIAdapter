@@ -1,7 +1,6 @@
 ﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
 #include "pch.h"
 #include "VoiceTokenEnumerator.h"
-#include <winrt/windows.management.deployment.h>
 #include <winrt/windows.applicationmodel.h>
 #include <winrt/windows.foundation.collections.h>
 #include <VersionHelpers.h>
@@ -154,7 +153,7 @@ static CComPtr<ISpObjectToken> MakeVoiceToken(LPCWSTR lpszPath, StringPairCollec
 
 static std::wstring LanguageIDsFromLocaleName(const std::wstring& locale)
 {
-    LANGID lang = LangIDFromLocaleName(locale);
+    LANGID lang = LangIDFromLocaleName(locale.c_str());
     if (lang == 0)
         return {};
 
@@ -492,6 +491,33 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
             langids.insert_range(GetLangIDFallbacks(langid));
     }
 
+    static const auto pfnResolveLocaleName
+        = reinterpret_cast<decltype(ResolveLocaleName)*>
+        (GetProcAddress(GetModuleHandleW(L"kernel32"), "ResolveLocaleName"));
+
+    if (pfnResolveLocaleName)
+    {
+        try
+        {
+            for (const auto& langstr :
+                winrt::Windows::System::UserProfile::GlobalizationPreferences::Languages())
+            {
+                WCHAR resolvedLocale[LOCALE_NAME_MAX_LENGTH] = {};
+                if (pfnResolveLocaleName(langstr.c_str(), resolvedLocale, LOCALE_NAME_MAX_LENGTH) == 0)
+                    continue;
+                LANGID langid = LangIDFromLocaleName(resolvedLocale);
+                if (langid == LOCALE_CUSTOM_UNSPECIFIED)
+                    continue;
+                langids.insert(langid);
+                if (includeFallbacks)
+                    langids.insert_range(GetLangIDFallbacks(langid));
+            }
+        }
+        catch (const winrt::hresult_error&)
+        {
+        }
+    }
+
     langids.insert(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)); // always included
     return langids;
 }
@@ -545,7 +571,7 @@ void EnumOnlineVoices(std::map<std::string, CComPtr<ISpObjectToken>>& tokens,
         for (const auto& voice : json)
         {
             auto locale = UTF8ToWString(voice.at("Locale"));
-            LANGID langid = LangIDFromLocaleName(locale);
+            LANGID langid = LangIDFromLocaleName(locale.c_str());
             if (!universalSupported && !supportedLangs.contains(langid))
                 continue;
             if (!allLanguages)

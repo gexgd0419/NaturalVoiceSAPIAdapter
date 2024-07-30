@@ -67,19 +67,19 @@ std::vector<LANGID> GetLangIDFallbacks(LANGID lang)
 }
 
 // Returns LOCALE_CUSTOM_UNSPECIFIED if the locale is unknown
-LANGID LangIDFromLocaleName(const std::wstring& locale)
+LANGID LangIDFromLocaleName(LPCWSTR locale)
 {
 	if (s_pfnLocaleNameToLCID)
 	{
 		// if LocaleNameToLCID is supported, use it
 
-		LCID lcid = s_pfnLocaleNameToLCID(locale.c_str(), LOCALE_ALLOW_NEUTRAL_NAMES);
+		LCID lcid = s_pfnLocaleNameToLCID(locale, LOCALE_ALLOW_NEUTRAL_NAMES);
 		if (lcid != LOCALE_CUSTOM_UNSPECIFIED && lcid != 0)
 			return LANGIDFROMLCID(lcid);
 
 		// if locale not found, remove locale specifiers level by level
 		//     e.g. zh-CN-liaoning > zh-CN > zh
-		auto loc(locale);
+		std::wstring loc(locale);
 		for (;;)
 		{
 			auto pos = loc.rfind(L'-');
@@ -98,7 +98,7 @@ LANGID LangIDFromLocaleName(const std::wstring& locale)
 	{
 		// fallback to use the lookup table when LocaleNameToLCID is not supported
 
-		auto loc(locale);
+		std::wstring loc(locale);
 		_wcslwr_s(loc.data(), loc.size() + 1); // map keys are lower case
 
 		for (;;)
