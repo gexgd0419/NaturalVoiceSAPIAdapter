@@ -269,6 +269,7 @@
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LangUtils.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Mp3Decoder.h" />
     <ClInclude Include="NaturalVoiceSAPIAdapter_i.h" />
     <ClInclude Include="NetUtils.h" />
