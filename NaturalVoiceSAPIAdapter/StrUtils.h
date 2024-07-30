@@ -2,6 +2,7 @@
 #include <string_view>
 #include <stringapiset.h>
 #include <sphelper.h>
+#include <system_error>
 
 template <typename CharT>
 constexpr bool EqualsIgnoreCase(std::basic_string_view<CharT> a, std::basic_string_view<CharT> b) noexcept
@@ -32,22 +33,24 @@ constexpr bool EqualsIgnoreCase(std::wstring_view a, std::wstring_view b) noexce
 	return EqualsIgnoreCase<wchar_t>(a, b);
 }
 
-inline std::wstring StringToWString(std::string_view str, UINT codePage)
+inline std::wstring StringToWString(std::string_view str, UINT codePage = CP_ACP)
 {
-	int size = MultiByteToWideChar(codePage, 0, str.data(), (int)str.size(), nullptr, 0);
-	if (size <= 0) return {};
+	if (str.empty()) return {};
+	int size = MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, str.data(), (int)str.size(), nullptr, 0);
+	if (size <= 0) throw std::system_error(GetLastError(), std::system_category());
 	std::wstring ret;
 	ret.resize_and_overwrite(size, [str, codePage](wchar_t* buf, size_t size)
 		{
-			return MultiByteToWideChar(codePage, 0, str.data(), (int)str.size(), buf, (int)size);
+			return MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, str.data(), (int)str.size(), buf, (int)size);
 		});
 	return ret;
 }
 
-inline std::string WStringToString(std::wstring_view str, UINT codePage)
+inline std::string WStringToString(std::wstring_view str, UINT codePage = CP_ACP)
 {
+	if (str.empty()) return {};
 	int size = WideCharToMultiByte(codePage, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
-	if (size <= 0) return {};
+	if (size <= 0) throw std::system_error(GetLastError(), std::system_category());
 	std::string ret;
 	ret.resize_and_overwrite(size, [str, codePage](char* buf, size_t size)
 		{
@@ -64,6 +67,16 @@ inline std::wstring UTF8ToWString(std::string_view str)
 inline std::string WStringToUTF8(std::wstring_view str)
 {
 	return WStringToString(str, CP_UTF8);
+}
+
+inline std::string UTF8ToAnsi(std::string_view str)
+{
+	return WStringToString(UTF8ToWString(str));
+}
+
+inline std::string AnsiToUTF8(std::string_view str)
+{
+	return WStringToUTF8(StringToWString(str));
 }
 
 inline std::string_view TrimWhitespaces(std::string_view stringview) noexcept
