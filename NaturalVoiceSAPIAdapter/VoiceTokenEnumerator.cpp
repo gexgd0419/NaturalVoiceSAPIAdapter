@@ -1,8 +1,6 @@
 ﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
 #include "pch.h"
 #include "VoiceTokenEnumerator.h"
-#include <winrt/windows.applicationmodel.h>
-#include <winrt/windows.foundation.collections.h>
 #include <VersionHelpers.h>
 #include "SpeechServiceConstants.h"
 #include "NetUtils.h"
@@ -60,6 +58,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             }
         }
         std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
+        ErrorMode errorMode = static_cast<ErrorMode>(std::clamp(key.GetDword(L"DefaultErrorMode", 0UL), 0UL, 2UL));
 
         CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
         RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
@@ -72,9 +71,9 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 TokenMap tokens;
 
                 if (!narratorVoicePath.empty())
-                    EnumLocalVoicesInFolder(tokens, (narratorVoicePath + L"\\*").c_str());
+                    EnumLocalVoicesInFolder(tokens, (narratorVoicePath + L"\\*").c_str(), errorMode);
 
-                EnumLocalVoices(tokens);
+                EnumLocalVoices(tokens, errorMode);
 
                 for (auto& token : tokens)
                 {
@@ -85,7 +84,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             TokenMap onlineTokens;
             if (!key.GetDword(L"NoEdgeVoices"))
             {
-                EnumEdgeVoices(onlineTokens, fAllLanguages, languages);
+                EnumEdgeVoices(onlineTokens, fAllLanguages, languages, errorMode);
 
                 // If Edge voices should override Azure voices, put them in the same map, first Edge, then Azure.
                 // If not, add the Edge voices and clear the map immediately before Azure voices, as follows.
@@ -102,7 +101,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 // Put Azure voices in the map.
                 // Edge voices may or may not previously be put into the same map, depending on configuration.
                 // If Edge voices are in the map, Azure voices with the same IDs will not be added.
-                EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion);
+                EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion, errorMode);
             }
 
             for (auto& token : onlineTokens)
@@ -185,7 +184,11 @@ static void TrimVoiceName(std::wstring& longName)
     }
 }
 
-static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, const std::wstring& namePrefix = {})
+static CComPtr<ISpObjectToken> MakeLocalVoiceToken(
+    const VoiceInfo& voiceInfo,
+    ErrorMode errorMode = ErrorMode::ProbeForError,
+    const std::wstring& namePrefix = {}
+)
 {
     using namespace Microsoft::CognitiveServices::Speech;
 
@@ -230,7 +233,7 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, c
             ) },
             { L"NaturalVoiceConfig", MakeVoiceKey(
                 StringPairCollection {
-                    { L"ErrorMode", L"0" },
+                    { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"Path", std::move(path) },
                     { L"Key", MS_TTS_KEY }
                 },
@@ -240,7 +243,7 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(const VoiceInfo& voiceInfo, c
     );
 }
 
-void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens)
+void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMode)
 {
     // Possible exceptions:
     // - winrt::hresult_class_not_available
@@ -266,7 +269,7 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens)
         auto result = synthesizer->GetVoicesAsync().get();
         for (auto& info : result->Voices)
         {
-            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info));
+            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode));
         }
     }
     catch (const std::bad_alloc&)
@@ -279,7 +282,7 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens)
     }
 }
 
-void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath)
+void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath, ErrorMode errorMode)
 {
     if (wcslen(basepath) >= MAX_PATH)
         return;
@@ -332,7 +335,7 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         const std::wstring prefix = L"Local-";
         for (auto& info : result->Voices)
         {
-            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, prefix));
+            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode, prefix));
         }
     }
     catch (const std::bad_alloc&)
@@ -345,7 +348,10 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
     }
 }
 
-static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
+static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(
+    const nlohmann::json& json,
+    ErrorMode errorMode = ErrorMode::ProbeForError
+)
 {
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
@@ -375,7 +381,7 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
             ) },
             { L"NaturalVoiceConfig", MakeVoiceKey(
                 StringPairCollection {
-                    { L"ErrorMode", L"0" },
+                    { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"WebsocketURL", EDGE_WEBSOCKET_URL },
                     { L"Voice", shortName },
                     { L"IsEdgeVoice", L"1" }
@@ -386,8 +392,12 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(const nlohmann::json& json)
     );
 }
 
-static CComPtr<ISpObjectToken> MakeAzureVoiceToken(const nlohmann::json& json,
-    const std::wstring& key, const std::wstring& region)
+static CComPtr<ISpObjectToken> MakeAzureVoiceToken(
+    const nlohmann::json& json,
+    const std::wstring& key,
+    const std::wstring& region,
+    ErrorMode errorMode = ErrorMode::ProbeForError
+)
 {
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
@@ -416,7 +426,7 @@ static CComPtr<ISpObjectToken> MakeAzureVoiceToken(const nlohmann::json& json,
             ) },
             { L"NaturalVoiceConfig", MakeVoiceKey(
                 StringPairCollection {
-                    { L"ErrorMode", L"0" },
+                    { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"Voice", shortName },
                     { L"Key", key },
                     { L"Region", region }
@@ -601,21 +611,27 @@ void EnumOnlineVoices(std::map<std::string, CComPtr<ISpObjectToken>>& tokens,
     }
 }
 
-void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages)
+void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
+    ErrorMode errorMode)
 {
     EnumOnlineVoices(tokens, L"EdgeVoiceListCache.json", EDGE_VOICE_LIST_URL, "",
-        allLanguages, languages, MakeEdgeVoiceToken);
+        allLanguages, languages,
+        [errorMode](const nlohmann::json& json)
+        {
+            return MakeEdgeVoiceToken(json, errorMode);
+        }
+    );
 }
 
 void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
-    const std::wstring& key, const std::wstring& region)
+    const std::wstring& key, const std::wstring& region, ErrorMode errorMode)
 {
     EnumOnlineVoices(tokens, L"AzureVoiceListCache.json",
         (std::string("https://") + WStringToUTF8(region) + AZURE_TTS_HOST_AFTER_REGION + AZURE_VOICE_LIST_PATH).c_str(),
         (std::string("Ocp-Apim-Subscription-Key: ") + WStringToUTF8(key) + "\r\n").c_str(),
         allLanguages, languages,
-        [key, region](const nlohmann::json& json)
+        [key, region, errorMode](const nlohmann::json& json)
         {
-            return MakeAzureVoiceToken(json, key, region);
+            return MakeAzureVoiceToken(json, key, region, errorMode);
         });
 }

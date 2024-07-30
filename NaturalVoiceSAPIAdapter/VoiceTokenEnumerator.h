@@ -47,11 +47,12 @@ END_COM_MAP()
 
 private:
 	typedef std::map<std::string, CComPtr<ISpObjectToken>> TokenMap;
-	static void EnumLocalVoices(TokenMap& tokens);
-	static void EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath);
-	static void EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages);
+	static void EnumLocalVoices(TokenMap& tokens, ErrorMode errorMode);
+	static void EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath, ErrorMode errorMode);
+	static void EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
+		ErrorMode errorMode);
 	static void EnumAzureVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
-		const std::wstring& key, const std::wstring& region);
+		const std::wstring& key, const std::wstring& region, ErrorMode errorMode);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(VoiceTokenEnumerator), CVoiceTokenEnumerator)
