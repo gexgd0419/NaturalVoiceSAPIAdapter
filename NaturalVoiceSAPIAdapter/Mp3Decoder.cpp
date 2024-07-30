@@ -3,12 +3,6 @@
 #pragma comment (lib, "msacm32.lib")
 #pragma comment (lib, "winmm.lib")
 
-mci_category_impl& mci_category()
-{
-	static mci_category_impl impl;
-	return impl;
-}
-
 Mp3Decoder::~Mp3Decoder() noexcept
 {
 	if (m_header.fdwStatus & ACMSTREAMHEADER_STATUSF_PREPARED)
@@ -158,7 +152,7 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	if (mmr) throw std::system_error(mmr, mci_category());
 }
 
-void Mp3Decoder::Convert(const BYTE* pMp3Chunk, DWORD cbChunkSize, WriteCallbackType writeWavCallback)
+void Mp3Decoder::Convert(const BYTE* pMp3Chunk, DWORD cbChunkSize, const WriteCallbackType& writeWavCallback)
 {
 	if (!m_pMp3Buf)
 		Init(pMp3Chunk, cbChunkSize);

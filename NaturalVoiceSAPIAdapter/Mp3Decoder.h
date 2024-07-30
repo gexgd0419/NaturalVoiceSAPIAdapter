@@ -26,7 +26,7 @@ public:
 	Mp3Decoder& operator=(const Mp3Decoder&) = delete;
 
 	typedef std::function<int(BYTE*, DWORD)> WriteCallbackType;
-	void Convert(const BYTE* pMp3Chunk, DWORD cbChunkSize, WriteCallbackType writeWavCallback);
+	void Convert(const BYTE* pMp3Chunk, DWORD cbChunkSize, const WriteCallbackType& writeWavCallback);
 };
 
 class mci_category_impl : public std::error_category
@@ -41,4 +41,8 @@ public:
 	}
 };
 
-mci_category_impl& mci_category();
+inline const mci_category_impl& mci_category()
+{
+	static constexpr mci_category_impl impl;
+	return impl;
+}
