@@ -10,6 +10,8 @@
 #include "wrappers.h"
 #include "TaskScheduler.h"
 #include "RegKey.h"
+#include "SapiException.h"
+#include "Logger.h"
 
 
 // CVoiceTokenEnumerator
@@ -30,6 +32,15 @@ extern TaskScheduler g_taskScheduler;
 
 HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 {
+    // Exception handling in enumerator:
+    //   Returning an error code will make the whole SAPI voice enumeration process fail,
+    //   instead of just ignoring this faulty enumerator.
+    //   As a result, no SAPI clients can enumerate voices.
+    //   To prevent this, if an enumeration function fails, it should silently return without throwing.
+    //   Only critical situations such as no memory or failing to create an enumerator object at all can be reported,
+    //   others should be silently ignored and return S_OK.
+
+    ScopeTracer tracer("Voice enum: Constructor begin", "Voice enum: Constructor end");
     try
     {
         // Some programs assume that creating an enumerator is a low-cost operation,
@@ -39,9 +50,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         std::lock_guard lock(s_cacheMutex);
 
         if (s_pCachedEnum)
-            return s_pCachedEnum->Clone(&m_pEnum);
+        {
+            CheckSapiHr(s_pCachedEnum->Clone(&m_pEnum));
+            return S_OK;
+        }
 
         RegKey key;
+        // Failing to open the key will make all query methods return default values
         key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", KEY_QUERY_VALUE);
 
         DWORD fAllLanguages = key.GetDword(L"EdgeVoiceAllLanguages");
@@ -61,13 +76,15 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         ErrorMode errorMode = static_cast<ErrorMode>(std::clamp(key.GetDword(L"DefaultErrorMode", 0UL), 0UL, 2UL));
 
         CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-        RETONFAIL(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-        RETONFAIL(pEnumBuilder->SetAttribs(nullptr, nullptr));
+        CheckSapiHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
+        CheckSapiHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
 
         if (!key.GetDword(L"Disable"))
         {
-            if (!key.GetDword(L"NoNarratorVoices"))
+            if (!key.GetDword(L"NoNarratorVoices")
+                && IsWindows7OrGreater())  // this requires Win 7
             {
+                // Use the same map, so that local voices with the same ID won't appear twice
                 TokenMap tokens;
 
                 if (!narratorVoicePath.empty())
@@ -77,7 +94,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
                 for (auto& token : tokens)
                 {
-                    RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
+                    CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
                 }
             }
 
@@ -91,7 +108,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 if (!key.GetDword(L"EdgeVoicesOverrideAzureVoices"))
                 {
                     for (auto& token : onlineTokens)
-                        RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
+                        CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
                     onlineTokens.clear();
                 }
             }
@@ -105,7 +122,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             }
 
             for (auto& token : onlineTokens)
-                RETONFAIL(pEnumBuilder->AddTokens(1, &token.second.p));
+                CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
         }
 
         if (!s_isCacheTaskScheduled)
@@ -114,20 +131,43 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             g_taskScheduler.StartNewTask(10000, []()
                 {
                     std::lock_guard lock(s_cacheMutex);
+                    s_pCachedEnum->Release();
                     s_pCachedEnum = nullptr;
                     s_isCacheTaskScheduled = false;
                 });
         }
 
-        RETONFAIL(pEnumBuilder->QueryInterface(&s_pCachedEnum));
-        return s_pCachedEnum->Clone(&m_pEnum);
+        CheckSapiHr(pEnumBuilder->QueryInterface(&s_pCachedEnum));
+        CheckSapiHr(s_pCachedEnum->Clone(&m_pEnum));
+
+        if (logger.should_log(spdlog::level::info))
+        {
+            ULONG finalCount = 0;
+            m_pEnum->GetCount(&finalCount);
+            LogInfo("Voice enum: Enumerated {} voice(s)", finalCount);
+        }
+
+        return S_OK;
     }
+    // All exceptions caught here are critical. They will prevent other voices from being enumerated.
     catch (const std::bad_alloc&)
     {
+        LogCritical("Out of memory");
         return E_OUTOFMEMORY;
+    }
+    catch (const std::system_error& ex)
+    {
+        LogCritical("Voice enum: Cannot create enumerator: {}", ex);
+        return HRESULT_FROM_WIN32(ex.code().value());
+    }
+    catch (const std::exception& ex)
+    {
+        LogCritical("Voice enum: Cannot create enumerator: {}", ex);
+        return E_FAIL;
     }
     catch (...) // C++ exceptions should not cross COM boundary
     {
+        LogCritical("Voice enum: Cannot create enumerator: Unknown error");
         return E_FAIL;
     }
 }
@@ -243,14 +283,12 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(
     );
 }
 
+// Exception handling in token enumeration functions:
+//   Fail immediately on std::bad_alloc, which is often critical;
+//   Log and ignore on other exceptions, because we don't want to break SAPI and prevent enumerating other SAPI voices.
+
 void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMode)
 {
-    // Possible exceptions:
-    // - winrt::hresult_class_not_available
-    //     when running on a Windows version with no WinRT support, such as Windows 7
-    // - DllDelayLoadError
-    //     when Speech SDK DLL can't be loaded
-
     try
     {
         // Get all package paths, and then load all voices in one call
@@ -264,21 +302,40 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
             if (package.Id().Name().starts_with(L"MicrosoftWindows.Voice."))
                 paths.push_back(WStringToUTF8(package.InstalledPath()));
         }
+        if (paths.empty())
+            return;
         auto config = EmbeddedSpeechConfig::FromPaths(paths);
         auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
         auto result = synthesizer->GetVoicesAsync().get();
-        for (auto& info : result->Voices)
+        if (result->Reason == ResultReason::VoicesListRetrieved)
         {
-            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode));
+            for (auto& info : result->Voices)
+            {
+                tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode));
+            }
+        }
+        else
+        {
+            LogWarn("Voice enum: Cannot get installed voice list: {}", result->ErrorDetails);
         }
     }
     catch (const std::bad_alloc&)
     {
         throw;
     }
-    catch (...)
+    catch (const winrt::hresult_error& ex)
     {
-        // Ignore
+        // REGDB_E_CLASSNOTREG will be thrown when running on a Windows version with no WinRT support,
+        // such as Windows 7.
+        // Ignore this case and log the others.
+        if (ex.code() != REGDB_E_CLASSNOTREG)
+        {
+            LogWarn("Voice enum: Cannot get installed voice list: {}", ex.message());
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Voice enum: Cannot get installed voice list: {}", ex);
     }
 }
 
@@ -329,22 +386,32 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
             }
         } while (FindNextFileW(hFind, &fd));
 
+        if (paths.empty())
+            return;
+
         auto config = EmbeddedSpeechConfig::FromPaths(paths);
         auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
         auto result = synthesizer->GetVoicesAsync().get();
         const std::wstring prefix = L"Local-";
-        for (auto& info : result->Voices)
+        if (result->Reason == ResultReason::VoicesListRetrieved)
         {
-            tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode, prefix));
+            for (auto& info : result->Voices)
+            {
+                tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode, prefix));
+            }
+        }
+        else
+        {
+            LogWarn("Voice enum: Cannot get voice list from folder: {}", result->ErrorDetails);
         }
     }
     catch (const std::bad_alloc&)
     {
         throw;
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        // Ignore
+        LogWarn("Voice enum: Cannot get voice list from folder: {}", ex);
     }
 }
 
@@ -442,8 +509,7 @@ static std::set<LANGID> GetSupportedLanguageIDs()
 {
     std::set<LANGID> langids;
     CComPtr<IEnumSpObjectTokens> pEnum;
-    if (FAILED(SpEnumTokens(SPCAT_PHONECONVERTERS, nullptr, nullptr, &pEnum)))
-        return {};
+    CheckSapiHr(SpEnumTokens(SPCAT_PHONECONVERTERS, nullptr, nullptr, &pEnum));
     for (CComPtr<ISpObjectToken> pToken; pEnum->Next(1, &pToken, nullptr) == S_OK; pToken.Release())
     {
         CComPtr<ISpDataKey> pKey;
@@ -464,8 +530,7 @@ static std::set<LANGID> GetSupportedLanguageIDs()
 static bool IsUniversalPhoneConverterSupported()
 {
     CComPtr<ISpPhoneConverter> converter;
-    if (FAILED(converter.CoCreateInstance(CLSID_SpPhoneConverter)))
-        return false;
+    CheckSapiHr(converter.CoCreateInstance(CLSID_SpPhoneConverter));
     CComPtr<ISpPhoneticAlphabetSelection> alphaSelector;
     return SUCCEEDED(converter.QueryInterface(&alphaSelector));
 }
@@ -489,9 +554,11 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
         return langids;
     }
 
-    pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, nullptr, &cchBuffer);
+    if (!pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, nullptr, &cchBuffer))
+        throw std::system_error(GetLastError(), std::system_category());
     auto pBuffer = std::make_unique_for_overwrite<WCHAR[]>(cchBuffer);
-    pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, pBuffer.get(), &cchBuffer);
+    if (!pfnGetUserPreferredUILanguages(MUI_LANGUAGE_ID, &numLangs, pBuffer.get(), &cchBuffer))
+        throw std::system_error(GetLastError(), std::system_category());
 
     for (const auto& langidstr : TokenizeString(std::wstring_view(pBuffer.get(), cchBuffer - 2), L'\0'))
     {
@@ -605,9 +672,9 @@ void EnumOnlineVoices(std::map<std::string, CComPtr<ISpObjectToken>>& tokens,
     {
         throw;
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        // Ignore
+        LogWarn("Voice enum: Cannot get online voice list: {}", ex);
     }
 }
 
