@@ -57,6 +57,8 @@ public:
 public:
 	DWORD GetDword(LPCWSTR pValueName, DWORD defaultValue = 0) const noexcept
 	{
+		if (!m_hKey)
+			return defaultValue;
 		DWORD result = 0;
 		DWORD cb = sizeof result;
 		if (RegQueryValueExW(m_hKey, pValueName, nullptr, nullptr, reinterpret_cast<LPBYTE>(&result), &cb)
@@ -66,6 +68,8 @@ public:
 	}
 	std::wstring GetString(LPCWSTR pValueName, std::wstring_view defaultValue = {}) const
 	{
+		if (!m_hKey)
+			return std::wstring(defaultValue);
 		DWORD cb = 0;
 		if (RegQueryValueExW(m_hKey, pValueName, nullptr, nullptr, nullptr, &cb)
 			!= ERROR_SUCCESS)
@@ -80,6 +84,8 @@ public:
 	}
 	std::vector<std::wstring> GetMultiStringList(LPCWSTR pValueName) const
 	{
+		if (!m_hKey)
+			return {};
 		DWORD cb = 0;
 		if (RegQueryValueExW(m_hKey, pValueName, 0, nullptr, nullptr, &cb) != ERROR_SUCCESS)
 			return {};
@@ -102,13 +108,13 @@ public:
 	{
 		return RegSetValueExW(m_hKey, pValueName, 0, regType,
 			reinterpret_cast<const BYTE*>(pString),
-			(wcslen(pString) + 1) * sizeof(WCHAR));
+			static_cast<DWORD>((wcslen(pString) + 1) * sizeof(WCHAR)));
 	}
 	LSTATUS SetString(LPCWSTR pValueName, const std::wstring& string, DWORD regType = REG_SZ)
 	{
 		return RegSetValueExW(m_hKey, pValueName, 0, regType,
 			reinterpret_cast<const BYTE*>(string.data()),
-			(string.size() + 1) * sizeof(WCHAR));
+			static_cast<DWORD>((string.size() + 1) * sizeof(WCHAR)));
 	}
 	template <class List>
 	LSTATUS SetMultiStringList(LPCWSTR pValueName, List&& list)
