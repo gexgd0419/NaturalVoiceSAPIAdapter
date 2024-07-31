@@ -114,7 +114,10 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                 m_synthesizer->StopSpeakingAsync().wait();
             else
                 m_restApi->Stop();
-            future.get(); // wait for the future and get its stored exception thrown
+
+            // Wait for the future, but don't get its exception.
+            // Stopping the voice can sometimes cause exceptions to be thrown. Ignore them.
+            future.wait();
         }
         else
         {
