@@ -77,6 +77,7 @@ private: // threading
 	void SpeakError(std::exception_ptr ex);
 
 private:
+	void SendRequest(websocketpp::connection_hdl hdl);
 	void OnOpen(websocketpp::connection_hdl hdl);
 	void OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg);
 	void OnClose(websocketpp::connection_hdl hdl);

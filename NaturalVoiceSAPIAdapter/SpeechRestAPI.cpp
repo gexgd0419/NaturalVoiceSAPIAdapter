@@ -52,36 +52,47 @@ SpeechRestAPI::~SpeechRestAPI()
 
 std::future<void> SpeechRestAPI::SpeakAsync(const std::wstring& ssml)
 {
-	std::error_code ec;
-	auto con = m_client.get_connection(m_websocketUrl, ec);
-	asio::detail::throw_error(ec);
-	if (!m_key.empty())
-		con->append_header("Ocp-Apim-Subscription-Key", m_key);
-	std::string proxy = GetProxyForUrl(m_websocketUrl);
-	if (!proxy.empty())
-	{
-		size_t schemeDelimPos = proxy.find("://");
-		if (schemeDelimPos == proxy.npos)
-		{
-			con->set_proxy("http://" + proxy);
-		}
-		else
-		{
-			std::string_view scheme(proxy.data(), schemeDelimPos);
-			if (EqualsIgnoreCase(scheme, "http"))
-				con->set_proxy(proxy);
-		}
-	}
-
 	m_ssml = ssml;
 	m_lastWordPos = 0;
 	m_lastSentencePos = 0;
 	m_speakPromise = {};
 	m_isPromiseSet.clear();
-	auto fut = m_speakPromise.get_future();
-	m_connection = std::move(con);
-	m_client.connect(m_connection);
 
+	if (m_connection && m_connection->get_state() == websocketpp::session::state::open)
+	{
+		// Reuse existing connection
+		LogDebug("Rest API: Connection reused");
+		SendRequest(m_connection->get_handle());
+	}
+	else
+	{
+		// Open a new connection
+		std::error_code ec;
+		auto con = m_client.get_connection(m_websocketUrl, ec);
+		asio::detail::throw_error(ec);
+		if (!m_key.empty())
+			con->append_header("Ocp-Apim-Subscription-Key", m_key);
+		std::string proxy = GetProxyForUrl(m_websocketUrl);
+		if (!proxy.empty())
+		{
+			size_t schemeDelimPos = proxy.find("://");
+			if (schemeDelimPos == proxy.npos)
+			{
+				con->set_proxy("http://" + proxy);
+			}
+			else
+			{
+				std::string_view scheme(proxy.data(), schemeDelimPos);
+				if (EqualsIgnoreCase(scheme, "http"))
+					con->set_proxy(proxy);
+			}
+		}
+
+		m_connection = std::move(con);
+		m_client.connect(m_connection);
+	}
+
+	auto fut = m_speakPromise.get_future();
 	return fut;
 }
 
@@ -269,12 +280,8 @@ void SpeechRestAPI::OnFail(websocketpp::connection_hdl hdl)
 }
 
 // Send configuration and wait for audio data response
-void SpeechRestAPI::OnOpen(websocketpp::connection_hdl hdl)
+void SpeechRestAPI::SendRequest(websocketpp::connection_hdl hdl)
 {
-	if (!IsCurrentConnection(hdl))
-		return;
-
-	LogDebug("Rest API: Connection opened");
 	m_allDataReceived = false;
 
 	nlohmann::json json = {
@@ -315,6 +322,16 @@ void SpeechRestAPI::OnOpen(websocketpp::connection_hdl hdl)
 		websocketpp::frame::opcode::text);
 }
 
+void SpeechRestAPI::OnOpen(websocketpp::connection_hdl hdl)
+{
+	if (!IsCurrentConnection(hdl))
+		return;
+
+	LogDebug("Rest API: Connection opened");
+	
+	SendRequest(hdl);
+}
+
 void SpeechRestAPI::OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg)
 {
 	if (!IsCurrentConnection(hdl))
@@ -346,7 +363,6 @@ void SpeechRestAPI::OnMessage(websocketpp::connection_hdl hdl, WSClient::message
 		{
 			// Data receiving completed
 			m_allDataReceived = true;
-			m_connection->close(websocketpp::close::status::normal, {});
 			Mp3QueueDone();
 		}
 	}
