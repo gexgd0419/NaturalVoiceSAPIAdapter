@@ -325,10 +325,10 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
     }
     catch (const winrt::hresult_error& ex)
     {
-        // REGDB_E_CLASSNOTREG will be thrown when running on a Windows version with no WinRT support,
+        // CLASS_E_CLASSNOTAVAILABLE will be thrown when running on a Windows version with no WinRT support,
         // such as Windows 7.
         // Ignore this case and log the others.
-        if (ex.code() != REGDB_E_CLASSNOTREG)
+        if (ex.code() != CLASS_E_CLASSNOTAVAILABLE)
         {
             LogWarn("Voice enum: Cannot get installed voice list: {}", ex.message());
         }
