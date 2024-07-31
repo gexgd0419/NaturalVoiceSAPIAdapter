@@ -138,6 +138,9 @@
     <ClCompile Include="FileCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc">

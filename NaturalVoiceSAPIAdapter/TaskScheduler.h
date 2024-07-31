@@ -55,10 +55,12 @@ private:
 	struct ParamData  // store the parent scheduler, and a tuple to pass to std::invoke
 	{
 		TaskScheduler* pScheduler;
+		bool onlyOnce;
 		Tuple tuple;
 		template <class... Args>
-		ParamData(TaskScheduler* pScheduler, Args&&... args)
+		ParamData(TaskScheduler* pScheduler, bool onlyOnce, Args&&... args)
 			: pScheduler(pScheduler),
+			onlyOnce(onlyOnce),
 			tuple(std::forward<Args>(args)...)
 		{}
 	};
@@ -70,18 +72,28 @@ private:
 	template <class DataType, size_t... Indices>
 	static void CALLBACK TimerQueueProc(PVOID param, BOOLEAN)
 	{
-		std::unique_ptr<DataType> pData(static_cast<DataType*>(param));
+		DataType* pData = static_cast<DataType*>(param);
 
+		if (pData->onlyOnce)
 		{
-			// this callback function has taken the responsibility to delete the tuple
-			// so remove it from the deleter list
-			TaskScheduler& scheduler = *pData->pScheduler;
-			std::lock_guard lock(scheduler.deleterMutex);
-			scheduler.deleters.erase(param);
-		}
+			std::unique_ptr<DataType> pDataUniquePtr(static_cast<DataType*>(param));
 
-		auto& tup = pData->tuple;
-		std::invoke(std::move(std::get<Indices>(tup))...);
+			{
+				// this callback function has taken the responsibility to delete the tuple
+				// so remove it from the deleter list
+				TaskScheduler& scheduler = *pData->pScheduler;
+				std::lock_guard lock(scheduler.deleterMutex);
+				scheduler.deleters.erase(param);
+			}
+
+			auto& tup = pData->tuple;
+			std::invoke(std::move(std::get<Indices>(tup))...);
+		}
+		else
+		{
+			auto& tup = pData->tuple;
+			std::invoke(std::get<Indices>(tup)...);
+		}
 	}
 
 	template <class DataType, size_t... Indices>
@@ -98,13 +110,14 @@ private:
 
 public:
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
-	HANDLE StartNewTask(DWORD delayMs, Func&& func, Args&&... args)
+	HANDLE StartNewTask(DWORD delayMs, DWORD periodMs, Func&& func, Args&&... args)
 	{
 		Initialize();
 		using Tuple = std::tuple<std::decay_t<Func>, std::decay_t<Args>...>;
 		using DataType = ParamData<Tuple>;
 		auto pData = std::make_unique<DataType>(
 			this,
+			periodMs == 0,
 			std::forward<Func>(func), std::forward<Args>(args)...
 		);
 
@@ -112,8 +125,9 @@ public:
 		if (!CreateTimerQueueTimer(&hTimer, hTimerQueue,
 			GetTimerQueueProc<DataType>(std::make_index_sequence<1 + sizeof...(Args)>()),
 			pData.get(),
-			delayMs, 0,
-			WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION))
+			delayMs, periodMs,
+			periodMs != 0 ? WT_EXECUTEDEFAULT : (WT_EXECUTEONLYONCE | WT_EXECUTELONGFUNCTION)
+		))
 		{
 			throw std::system_error(GetLastError(), std::system_category());
 		}
@@ -126,9 +140,15 @@ public:
 	}
 
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
+	HANDLE StartNewTask(DWORD delayMs, Func&& func, Args&&... args)
+	{
+		return StartNewTask(delayMs, 0, std::forward<Func>(func), std::forward<Args>(args)...);
+	}
+
+	template <class Func, class... Args> requires std::invocable<Func, Args...>
 	HANDLE StartNewTask(Func&& func, Args&&... args)
 	{
-		return StartNewTask(0, std::forward<Func>(func), std::forward<Args>(args)...);
+		return StartNewTask(0, 0, std::forward<Func>(func), std::forward<Args>(args)...);
 	}
 
 	void CancelTask(HANDLE hTask, bool waitForTask)
