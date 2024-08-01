@@ -167,8 +167,12 @@
     <None Include="ObjectTokenAutomation.rgs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="AzureVoiceListCache.json" />
-    <None Include="EdgeVoiceListCache.json" />
+    <None Include="AzureVoiceListCache.json">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="EdgeVoiceListCache.json">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl">
