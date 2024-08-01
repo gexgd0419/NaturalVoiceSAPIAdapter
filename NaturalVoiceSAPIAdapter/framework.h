@@ -56,7 +56,4 @@ using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
 #include <websocketpp/config/asio_client.hpp>
 #include <asio.hpp>
 #include <nlohmann/json.hpp>
-#define SPDLOG_USE_STD_FORMAT
-#define SPDLOG_WCHAR_TO_UTF8_SUPPORT
-#define SPDLOG_WCHAR_FILENAMES
 #include <spdlog/spdlog.h>
