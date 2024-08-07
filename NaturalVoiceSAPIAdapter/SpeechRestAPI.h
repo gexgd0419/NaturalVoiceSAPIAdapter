@@ -7,7 +7,39 @@
 #include <optional>
 #include "nlohmann/json.hpp"
 #include "SpeechServiceConstants.h"
+#include "WSLogger.h"
 
+
+// Custom ASIO config mainly for overwriting the default logger that outputs to stdout.
+// See Logging Reference: https://docs.websocketpp.org/reference_8logging.html
+struct WSConfig : websocketpp::config::asio_tls_client
+{
+	typedef WSConfig type;
+	typedef websocketpp::config::asio_tls_client base;
+
+	// static log levels; levels excluded here cannot be enabled runtime and will likely be optimized out
+	static constexpr websocketpp::log::level elog_level =  // error log level
+		websocketpp::log::elevel::all & ~websocketpp::log::elevel::devel;
+	static constexpr websocketpp::log::level alog_level =  // access log level
+		websocketpp::log::alevel::all &
+		~(websocketpp::log::alevel::devel
+			| websocketpp::log::alevel::frame_header | websocketpp::log::alevel::frame_payload);
+
+	// use our own logger
+	typedef websocketpp::log::WSLogger
+		<websocketpp::log::channel_type_hint::access, alog_level> alog_type;
+	typedef websocketpp::log::WSLogger
+		<websocketpp::log::channel_type_hint::error, elog_level> elog_type;
+
+	struct transport_config : public base::transport_config
+	{
+		typedef type::alog_type alog_type;
+		typedef type::elog_type elog_type;
+	};
+
+	typedef websocketpp::transport::asio::endpoint<transport_config>
+		transport_type;
+};
 
 class SpeechRestAPI
 {
@@ -38,8 +70,8 @@ private:
 	size_t m_lastWordPos = 0, m_lastSentencePos = 0;
 
 private:
-	typedef websocketpp::client<websocketpp::config::asio_tls_client> WSClient;
-	typedef websocketpp::connection<websocketpp::config::asio_tls_client> WSConnection;
+	typedef websocketpp::client<WSConfig> WSClient;
+	typedef websocketpp::connection<WSConfig> WSConnection;
 	WSClient m_client;
 	std::shared_ptr<WSConnection> m_connection;
 	bool IsCurrentConnection(const websocketpp::connection_hdl& hdl);

@@ -292,6 +292,7 @@
     <ClInclude Include="ObjectTokenAutomation.h" />
     <ClInclude Include="VoiceToken.h" />
     <ClInclude Include="VoiceTokenEnumerator.h" />
+    <ClInclude Include="WSLogger.h" />
     <ClInclude Include="wrappers.h" />
   </ItemGroup>
   <ItemGroup>
