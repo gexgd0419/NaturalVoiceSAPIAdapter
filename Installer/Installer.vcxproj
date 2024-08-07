@@ -153,11 +153,15 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="Installer.h" />
+    <ClInclude Include="RegKey.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AboutDlg.cpp" />
+    <ClCompile Include="AzureKeyDlg.cpp" />
     <ClCompile Include="Installer.cpp" />
+    <ClCompile Include="LangDlg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Installer.rc" />
