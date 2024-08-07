@@ -13,6 +13,7 @@ spdlog::logger logger("");
 static bool s_consoleCreated = false, s_crashDumpEnabled = false;
 MINIDUMP_TYPE s_crashDumpType = MiniDumpNormal;
 LPTOP_LEVEL_EXCEPTION_FILTER s_oldUnhandledExceptionFilter = nullptr;
+bool g_websocketppLogsEnabled = false;
 
 class console_sink : public spdlog::sinks::base_sink<std::mutex>
 {
@@ -202,6 +203,10 @@ void InitializeLogger() noexcept
 		DWORD flushInterval = key.GetDword(L"LogFlushInterval");
 		if (flushInterval != 0)
 			g_taskScheduler.StartNewTask(0, flushInterval, []() { logger.flush(); });
+
+		// websocketpp logs are disabled by default
+		// because most errors can be reported by exceptions and to our main log
+		g_websocketppLogsEnabled = key.GetDword(L"EnableWebsocketppLogs") != 0;
 
 		if (key.GetDword(L"LogToConsole"))
 		{

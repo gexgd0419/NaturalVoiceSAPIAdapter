@@ -102,7 +102,11 @@ void SpeechRestAPI::Stop()
 	std::error_code ec;
 	if (m_connection)
 	{
-		m_connection->close(websocketpp::close::status::normal, {}, ec);
+		// Use terminate() instead of close() here to close the connection immediately.
+		// If not, we can still receive "connection opened" notification after closing
+		// if the user requested stopping before the connection is fully established,
+		// thus crashing the app when processing messages.
+		m_connection->terminate(ec);
 	}
 	{
 		std::lock_guard lock(m_mp3QueueMutex);

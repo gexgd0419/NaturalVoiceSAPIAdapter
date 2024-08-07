@@ -2,6 +2,8 @@
 #include "Logger.h"
 #include <websocketpp/logger/levels.hpp>
 
+extern bool g_websocketppLogsEnabled;
+
 namespace websocketpp {
 namespace log {
 
@@ -31,7 +33,7 @@ public:
 
 	void write(level channel, std::string_view msg) noexcept
 	{
-		if (dynamic_test(channel))
+		if (g_websocketppLogsEnabled && dynamic_test(channel))
 		{
 			try
 			{
