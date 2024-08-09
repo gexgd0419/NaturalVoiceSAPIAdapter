@@ -65,11 +65,27 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         if (narratorVoicePath.empty())
         {
             WCHAR szDefaultPath[MAX_PATH];
-            if (GetModuleFileNameW((HMODULE)&__ImageBase, szDefaultPath, MAX_PATH) != MAX_PATH
-                && PathRemoveFileSpecW(szDefaultPath)
-                && PathAppendW(szDefaultPath, L"NarratorVoices"))
+            DWORD len = GetModuleFileNameW((HMODULE)&__ImageBase, szDefaultPath, MAX_PATH);
+            if (len != 0 && len != MAX_PATH)
             {
-                narratorVoicePath = szDefaultPath;
+                PathRemoveFileSpecW(szDefaultPath);
+                // try DLLPath\NarratorVoices
+                if (PathAppendW(szDefaultPath, L"NarratorVoices"))
+                {
+                    if (PathFileExistsW(szDefaultPath))
+                        narratorVoicePath = szDefaultPath;
+                    PathRemoveFileSpecW(szDefaultPath);
+                }
+                if (narratorVoicePath.empty())
+                {
+                    // try DLLPath\..\NarratorVoices
+                    PathRemoveFileSpecW(szDefaultPath);
+                    if (PathAppendW(szDefaultPath, L"NarratorVoices"))
+                    {
+                        if (PathFileExistsW(szDefaultPath))
+                            narratorVoicePath = szDefaultPath;
+                    }
+                }
             }
         }
         std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
