@@ -2,7 +2,6 @@
 #include "SpeechRestAPI.h"
 #include "NetUtils.h"
 #include "StrUtils.h"
-#include "Mp3Decoder.h"
 #include <format>
 #include "Logger.h"
 
@@ -55,6 +54,8 @@ std::future<void> SpeechRestAPI::SpeakAsync(const std::wstring& ssml)
 	m_ssml = ssml;
 	m_lastWordPos = 0;
 	m_lastSentencePos = 0;
+	m_events = {};
+	m_waveBytesWritten = 0;
 	m_speakPromise = {};
 	m_isPromiseSet.clear();
 
@@ -155,12 +156,83 @@ void SpeechRestAPI::AsioThread()
 	}
 }
 
+void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
+{
+	// Most of the time, the server will send event data before audio data.
+	// But sometimes, event data may fall behind audio data.
+	// So if there's no existing event at this time position,
+	// we wait for at most 10ms for possible events.
+
+	// Wait at most once
+	bool hasWaited = false;
+	for (;;)
+	{
+		uint64_t evtBytes;
+		EventInfo evt;
+
+		{
+			std::unique_lock lock(m_eventsMutex);
+			if (m_events.empty())
+			{
+				if (WordBoundaryCallback && !hasWaited)
+				{
+					lock.unlock();
+					Sleep(10);  // wait for possible events
+					hasWaited = true;
+					continue;
+				}
+				else
+					break;
+			}
+			evtBytes = m_events.top().first * m_mp3Decoder->WaveBytesPerSecond() / 10'000'000;
+			if (m_waveBytesWritten + waveSize <= evtBytes)  // we haven't reached the next event yet
+			{
+				if (WordBoundaryCallback && !hasWaited)
+				{
+					lock.unlock();
+					Sleep(10);  // wait for possible events
+					hasWaited = true;
+					continue;
+				}
+				else
+					break;
+			}
+
+			// Use const_cast so that it can be moved, as priority_queue::top() returns a const reference
+			evt = std::move(const_cast<EventInfo&>(m_events.top()));
+			m_events.pop();
+		}
+
+		// Send the audio part before this event's time point
+		if (evtBytes < m_waveBytesWritten)
+			LogDebug("Rest API: Events out of order");
+		uint32_t waveSizeBefore = evtBytes >= m_waveBytesWritten ? (uint32_t)(evtBytes - m_waveBytesWritten) : 0;
+		if (waveSizeBefore != 0)
+		{
+			// Writing can fail sometimes. Advance the pointer by actual written bytes.
+			int written = AudioReceivedCallback(waveData, waveSizeBefore);
+			m_waveBytesWritten += written;
+			waveData += written;
+			waveSize -= written;
+		}
+
+		// Send the event
+		OnSynthEvent(evt.second);
+	}
+
+	// write the rest of the audio data
+	if (waveSize != 0)
+	{
+		AudioReceivedCallback(waveData, waveSize);
+		m_waveBytesWritten += waveSize;
+	}
+}
+
 void SpeechRestAPI::Mp3Thread()
 {
 	ScopeTracer tracer("Rest API: MP3 thread begin", "Rest API: MP3 thread end");
 
-	std::optional<Mp3Decoder> mp3Decoder;
-	mp3Decoder.emplace();
+	m_mp3Decoder.emplace();
 
 	for (;;)
 	{
@@ -175,7 +247,7 @@ void SpeechRestAPI::Mp3Thread()
 					if (m_mp3QueueDone)
 					{
 						SpeakComplete();
-						mp3Decoder.emplace(); // re-create the decoder
+						m_mp3Decoder.emplace(); // re-create the decoder
 						m_mp3QueueDone = false;
 						m_firstDataReceived = false;
 					}
@@ -201,8 +273,10 @@ void SpeechRestAPI::Mp3Thread()
 				LogDebug("Rest API: MP3 data received");
 				m_firstDataReceived = true;
 			}
+
 			// Sending audio data to SAPI can block, so do this without lock
-			mp3Decoder->Convert(reinterpret_cast<const BYTE*>(mp3data.data()), (DWORD)mp3data.size(), AudioReceivedCallback);
+			m_mp3Decoder->Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
+				std::bind_front(&SpeechRestAPI::ProcessWaveData, this));
 		}
 		catch (...)
 		{
@@ -359,9 +433,16 @@ void SpeechRestAPI::OnMessage(websocketpp::connection_hdl hdl, WSClient::message
 		std::string_view path = text.substr(pathStartPos, pathEndPos - pathStartPos);
 		if (path == "audio.metadata")
 		{
-			const auto json = nlohmann::json::parse(text.substr(pathEndPos + 4));
+			auto json = nlohmann::json::parse(text.substr(pathEndPos + 4));
+			std::lock_guard lock(m_eventsMutex);
 			for (auto& event : json.at("Metadata"))
-				OnSynthEvent(event);
+			{
+				// use audio offset ticks to sort the events
+				auto& data = event.at("Data");
+				auto it = data.find("Offset");
+				if (it != data.end())
+					m_events.emplace(it->get<uint64_t>(), std::move(event));
+			}
 		}
 		else if (path == "turn.end")
 		{

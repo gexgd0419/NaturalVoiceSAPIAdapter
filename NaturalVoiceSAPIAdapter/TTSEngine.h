@@ -117,7 +117,6 @@ private: // Member variables
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
 	std::unique_ptr<SpeechRestAPI> m_restApi;
 	ISpTTSEngineSite* m_pOutputSite = nullptr;
-	ULONGLONG m_waveBytesWritten = 0;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	bool m_isEdgeVoice = false;

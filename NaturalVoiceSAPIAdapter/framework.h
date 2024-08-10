@@ -34,6 +34,8 @@
 #include <functional>
 #include <system_error>
 #include <format>
+#include <queue>
+#include <optional>
 
 using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
 #pragma warning(suppress : 4996) // 'GetVersionExW' deprecated

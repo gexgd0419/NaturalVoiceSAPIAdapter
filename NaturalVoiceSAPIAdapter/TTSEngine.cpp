@@ -81,7 +81,6 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             SetupRestAPIEvents(eventInterests);
 
         m_pOutputSite = pOutputSite;
-        m_waveBytesWritten = 0;
         BuildSSML(pTextFragList);
         LogDebug("Speak: Built SSML: {}", m_ssml);
 
@@ -126,8 +125,9 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             {
                 // finish all remaining bookmark events at the end
                 const auto size = m_bookmarks.size();
+                const auto streamOffset = m_restApi->GetWaveBytesWritten();
                 SPEVENT ev = { 0 };
-                ev.ullAudioStreamOffset = m_waveBytesWritten;
+                ev.ullAudioStreamOffset = streamOffset;
                 ev.eEventId = SPEI_TTS_BOOKMARK;
                 ev.elParamType = SPET_LPARAM_IS_STRING;
                 for (auto i = m_bookmarkIndex; i < size; i++)
@@ -380,9 +380,12 @@ bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
     ULONG written = 0;
-    m_pOutputSite->Write(data, len, &written);
-    m_waveBytesWritten += written;
-    return written;
+    // Assumes that the data can be either entirely written or not written at all
+    // because some implementations do not set the written bytes correctly
+    if (SUCCEEDED(m_pOutputSite->Write(data, len, &written)))
+        return len;
+    else
+        return 0;
 }
 void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark)
 {

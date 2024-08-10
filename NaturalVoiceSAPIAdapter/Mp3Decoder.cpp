@@ -128,11 +128,12 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 		.wFormatTag = WAVE_FORMAT_PCM,
 		.nChannels = Channels,
 		.nSamplesPerSec = SamplesPerSec,
-		.nAvgBytesPerSec = SamplesPerSec * 2,
-		.nBlockAlign = (WORD)(BitsPerSample / CHAR_BIT),
+		.nAvgBytesPerSec = SamplesPerSec * Channels * (BitsPerSample / CHAR_BIT),
+		.nBlockAlign = (WORD)(Channels * (BitsPerSample / CHAR_BIT)),
 		.wBitsPerSample = BitsPerSample,
 		.cbSize = 0
 	};
+	m_bytesPerSecond = wavefmt.nAvgBytesPerSec;
 
 	MMRESULT mmr = acmStreamOpen(&m_hAcm, nullptr, &mp3fmt.wfx, &wavefmt, nullptr, 0, 0, 0);
 	if (mmr) throw std::system_error(mmr, mci_category());
@@ -150,31 +151,4 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	m_header.cbDstLength = m_cbWavBuf;
 	mmr = acmStreamPrepareHeader(m_hAcm, &m_header, 0);
 	if (mmr) throw std::system_error(mmr, mci_category());
-}
-
-void Mp3Decoder::Convert(const BYTE* pMp3Chunk, DWORD cbChunkSize, const WriteCallbackType& writeWavCallback)
-{
-	if (!m_pMp3Buf)
-		Init(pMp3Chunk, cbChunkSize);
-
-	while (cbChunkSize > 0)
-	{
-		DWORD cbMp3BufSpace = m_cbMp3Buf - m_cbMp3Leftover;
-		DWORD cbMp3Copy = std::min(cbMp3BufSpace, cbChunkSize);
-		m_header.cbSrcLength = m_cbMp3Leftover + cbMp3Copy; // Change header to indicate size
-		memcpy(m_pMp3Buf.get() + m_cbMp3Leftover, pMp3Chunk, cbMp3Copy); // Append new data after leftover
-		pMp3Chunk += cbMp3Copy;
-		cbChunkSize -= cbMp3Copy;
-
-		MMRESULT mmr = acmStreamConvert(m_hAcm, &m_header, ACM_STREAMCONVERTF_BLOCKALIGN);
-		if (mmr) throw std::system_error(mmr, mci_category());
-
-		writeWavCallback(m_pWavBuf.get(), m_header.cbDstLengthUsed);
-
-		// Some data may not be processed. Save the leftover for next conversion
-		m_cbMp3Leftover = m_header.cbSrcLength - m_header.cbSrcLengthUsed;
-		// Copy the leftover part to the beginning of the buffer
-		if (m_cbMp3Leftover > 0)
-			memcpy(m_pMp3Buf.get(), m_pMp3Buf.get() + m_header.cbSrcLengthUsed, m_cbMp3Leftover);
-	}
 }

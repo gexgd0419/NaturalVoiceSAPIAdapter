@@ -8,6 +8,7 @@
 #include "nlohmann/json.hpp"
 #include "SpeechServiceConstants.h"
 #include "WSLogger.h"
+#include "Mp3Decoder.h"
 
 
 // Custom ASIO config mainly for overwriting the default logger that outputs to stdout.
@@ -65,6 +66,24 @@ public: // Event callbacks
 	AudioReceivedCallbackType AudioReceivedCallback;
 
 private:
+	// Store each event's audio tick (uint64) and json "Metadata" node into a sorted queue (priority_queue)
+	// so that we can dispatch the event at the correct audio time
+	typedef std::pair<uint64_t, nlohmann::json> EventInfo;
+	struct EventComparer
+	{
+		bool operator()(const EventInfo& a, const EventInfo& b) const noexcept
+		{
+			// sort by audio tick value, with the smallest tick at top
+			return a.first > b.first;
+		}
+	};
+	std::priority_queue<EventInfo, std::vector<EventInfo>, EventComparer> m_events;
+	std::mutex m_eventsMutex;
+	uint64_t m_waveBytesWritten = 0;
+public:
+	uint64_t GetWaveBytesWritten() const noexcept { return m_waveBytesWritten; }
+
+private:
 	std::wstring_view m_ssml;
 	std::string m_voiceListUrl, m_websocketUrl, m_key;
 	size_t m_lastWordPos = 0, m_lastSentencePos = 0;
@@ -92,6 +111,7 @@ private: // threading
 	std::queue<std::string> m_mp3Queue;
 	std::mutex m_mp3QueueMutex;
 	std::condition_variable m_mp3ThreadNotifier;
+	std::optional<Mp3Decoder> m_mp3Decoder;
 	bool m_isStopping = false;
 	bool m_mp3QueueDone = false;
 	bool m_firstDataReceived = false;
@@ -99,6 +119,7 @@ private: // threading
 
 	void AsioThread();
 	void Mp3Thread();
+	void ProcessWaveData(BYTE* waveData, uint32_t waveSize);
 	void Mp3QueuePush(std::string&& msg);
 	void Mp3QueueDone();
 
