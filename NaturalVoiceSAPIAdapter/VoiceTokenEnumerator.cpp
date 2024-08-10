@@ -22,8 +22,7 @@ inline static void CheckHr(HRESULT hr)
         throw std::system_error(hr, std::system_category());
 }
 
-// use non-smart pointer so that it won't be released automatically on DLL unload
-static IEnumSpObjectTokens* s_pCachedEnum = nullptr;
+static std::vector<std::shared_ptr<DataKeyData>> s_cachedTokens;
 
 static std::mutex s_cacheMutex;
 static bool s_isCacheTaskScheduled = false;
@@ -49,9 +48,19 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
         std::lock_guard lock(s_cacheMutex);
 
-        if (s_pCachedEnum)
+        CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
+        CheckSapiHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
+        CheckSapiHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
+
+        if (!s_cachedTokens.empty())
         {
-            CheckSapiHr(s_pCachedEnum->Clone(&m_pEnum));
+            for (auto& token : s_cachedTokens)
+            {
+                CComPtr<ISpObjectToken> pToken;
+                CheckSapiHr(CVoiceToken::Create(token, &pToken));
+                CheckSapiHr(pEnumBuilder->AddTokens(1, &pToken.p));
+            }
+            CheckSapiHr(pEnumBuilder->QueryInterface(&m_pEnum));
             return S_OK;
         }
 
@@ -91,10 +100,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
         ErrorMode errorMode = static_cast<ErrorMode>(std::clamp(key.GetDword(L"DefaultErrorMode", 0UL), 0UL, 2UL));
 
-        CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
-        CheckSapiHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
-        CheckSapiHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
-
         if (!key.GetDword(L"Disable"))
         {
             if (!key.GetDword(L"NoNarratorVoices")
@@ -110,7 +115,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
                 for (auto& token : tokens)
                 {
-                    CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
+                    s_cachedTokens.push_back(std::move(token.second));
                 }
             }
 
@@ -124,7 +129,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 if (!key.GetDword(L"EdgeVoicesOverrideAzureVoices"))
                 {
                     for (auto& token : onlineTokens)
-                        CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
+                        s_cachedTokens.push_back(std::move(token.second));
                     onlineTokens.clear();
                 }
             }
@@ -138,7 +143,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             }
 
             for (auto& token : onlineTokens)
-                CheckSapiHr(pEnumBuilder->AddTokens(1, &token.second.p));
+                s_cachedTokens.push_back(std::move(token.second));
         }
 
         if (!s_isCacheTaskScheduled)
@@ -147,20 +152,22 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             g_taskScheduler.StartNewTask(10000, []()
                 {
                     std::lock_guard lock(s_cacheMutex);
-                    s_pCachedEnum->Release();
-                    s_pCachedEnum = nullptr;
+                    s_cachedTokens.clear();
                     s_isCacheTaskScheduled = false;
                 });
         }
 
-        CheckSapiHr(pEnumBuilder->QueryInterface(&s_pCachedEnum));
-        CheckSapiHr(s_pCachedEnum->Clone(&m_pEnum));
+        for (auto& token : s_cachedTokens)
+        {
+            CComPtr<ISpObjectToken> pToken;
+            CheckSapiHr(CVoiceToken::Create(token, &pToken));
+            CheckSapiHr(pEnumBuilder->AddTokens(1, &pToken.p));
+        }
+        CheckSapiHr(pEnumBuilder->QueryInterface(&m_pEnum));
 
         if (logger.should_log(spdlog::level::info))
         {
-            ULONG finalCount = 0;
-            m_pEnum->GetCount(&finalCount);
-            LogInfo("Voice enum: Enumerated {} voice(s)", finalCount);
+            LogInfo("Voice enum: Enumerated {} voice(s)", s_cachedTokens.size());
         }
 
         return S_OK;
@@ -186,24 +193,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         LogCritical("Voice enum: Cannot create enumerator: Unknown error");
         return E_FAIL;
     }
-}
-
-static CComPtr<ISpDataKey> MakeVoiceKey(StringPairCollection&& values, SubkeyCollection&& subkeys)
-{
-    CComPtr<ISpDataKey> pKey;
-    CheckHr(CVoiceKey::_CreatorClass::CreateInstance(nullptr, IID_ISpDataKey, reinterpret_cast<LPVOID*>(&pKey)));
-    CComQIPtr<IDataKeyInit>(pKey)->InitKey(std::move(values), std::move(subkeys));
-    return pKey;
-}
-
-static CComPtr<ISpObjectToken> MakeVoiceToken(LPCWSTR lpszPath, StringPairCollection&& values, SubkeyCollection&& subkeys)
-{
-    CComPtr<ISpObjectToken> pToken;
-    CheckHr(CVoiceToken::_CreatorClass::CreateInstance(nullptr, IID_ISpObjectToken, reinterpret_cast<LPVOID*>(&pToken)));
-    auto pInit = CComQIPtr<IDataKeyInit>(pToken);
-    pInit->InitKey(std::move(values), std::move(subkeys));
-    pInit->SetPath(lpszPath);
-    return pToken;
 }
 
 static std::wstring LanguageIDsFromLocaleName(const std::wstring& locale)
@@ -240,7 +229,7 @@ static void TrimVoiceName(std::wstring& longName)
     }
 }
 
-static CComPtr<ISpObjectToken> MakeLocalVoiceToken(
+static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     const VoiceInfo& voiceInfo,
     ErrorMode errorMode = ErrorMode::ProbeForError,
     const std::wstring& namePrefix = {}
@@ -269,34 +258,34 @@ static CComPtr<ISpObjectToken> MakeLocalVoiceToken(
 
     std::wstring localeName = UTF8ToWString(voiceInfo.Locale);
 
-    return MakeVoiceToken(
-        name.c_str(),
-        StringPairCollection {
+    return std::shared_ptr<DataKeyData>(new DataKeyData {
+        .path = name,
+        .values = {
             { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
-        SubkeyCollection {
-            { L"Attributes", MakeVoiceKey(
-                StringPairCollection {
+        .subkeys = {
+            { L"Attributes", {
+                .path = name + L"\\Attributes",
+                .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(voiceInfo.Properties.GetProperty("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Narrator;Local" }
-                },
-                SubkeyCollection {}
-            ) },
-            { L"NaturalVoiceConfig", MakeVoiceKey(
-                StringPairCollection {
+                }
+            } },
+            { L"NaturalVoiceConfig", {
+                .path = name + L"\\NaturalVoiceConfig",
+                .values = {
                     { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"Path", std::move(path) },
                     { L"Key", MS_TTS_KEY }
-                },
-                SubkeyCollection {}
-            ) }
+                }
+            } }
         }
-    );
+    });
 }
 
 // Exception handling in token enumeration functions:
@@ -431,7 +420,7 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
     }
 }
 
-static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(
+static std::shared_ptr<DataKeyData> MakeEdgeVoiceToken(
     const nlohmann::json& json,
     ErrorMode errorMode = ErrorMode::ProbeForError
 )
@@ -444,38 +433,40 @@ static CComPtr<ISpObjectToken> MakeEdgeVoiceToken(
 
     std::wstring localeName = UTF8ToWString(json.at("Locale"));
 
-    return MakeVoiceToken(
-        (L"Edge-" + shortName).c_str(), // registry key name format: Edge-en-US-AriaNeural
-        StringPairCollection {
+    std::wstring regName = L"Edge-" + shortName; // registry key name format: Edge-en-US-AriaNeural
+
+    return std::shared_ptr<DataKeyData>(new DataKeyData {
+        .path = regName,
+        .values = {
             { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
-        SubkeyCollection {
-            { L"Attributes", MakeVoiceKey(
-                StringPairCollection {
+        .subkeys = {
+            { L"Attributes", {
+                .path = regName + L"\\Attributes",
+                .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Edge;Cloud" }
-                },
-                SubkeyCollection {}
-            ) },
-            { L"NaturalVoiceConfig", MakeVoiceKey(
-                StringPairCollection {
+                }
+            } },
+            { L"NaturalVoiceConfig", {
+                .path = regName + L"\\NaturalVoiceConfig",
+                .values = {
                     { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"WebsocketURL", EDGE_WEBSOCKET_URL },
                     { L"Voice", shortName },
                     { L"IsEdgeVoice", L"1" }
-                },
-                SubkeyCollection {}
-            ) }
+                }
+            } }
         }
-    );
+    });
 }
 
-static CComPtr<ISpObjectToken> MakeAzureVoiceToken(
+static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
     const nlohmann::json& json,
     const std::wstring& key,
     const std::wstring& region,
@@ -489,35 +480,37 @@ static CComPtr<ISpObjectToken> MakeAzureVoiceToken(
     std::wstring localeDisplayName = UTF8ToWString(json.at("LocaleName"));
     std::wstring friendlyName = std::format(L"Azure {} - {}", shortFriendlyName, localeDisplayName);
 
-    return MakeVoiceToken(
-        (L"Azure-" + shortName).c_str(), // registry key name format: Azure-en-US-AriaNeural
-        StringPairCollection {
+    std::wstring regName = L"Azure-" + shortName; // registry key name format: Azure-en-US-AriaNeural
+
+    return std::shared_ptr<DataKeyData>(new DataKeyData {
+        .path = regName,
+        .values = {
             { L"", std::move(friendlyName) },
             { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
         },
-        SubkeyCollection {
-            { L"Attributes", MakeVoiceKey(
-                StringPairCollection {
+        .subkeys = {
+            { L"Attributes", {
+                .path = regName + L"\\Attributes",
+                .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
                     { L"Language", LanguageIDsFromLocaleName(localeName) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Azure;Cloud" }
-                },
-                SubkeyCollection {}
-            ) },
-            { L"NaturalVoiceConfig", MakeVoiceKey(
-                StringPairCollection {
+                }
+            } },
+            { L"NaturalVoiceConfig", {
+                .path = regName + L"\\NaturalVoiceConfig",
+                .values = {
                     { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"Voice", shortName },
                     { L"Key", key },
                     { L"Region", region }
-                },
-                SubkeyCollection {}
-            ) }
+                }
+            } }
         }
-    );
+    });
 }
 
 // Enumerate all language IDs of installed phoneme converters
@@ -638,8 +631,8 @@ static bool IsLanguageInList(const std::wstring& language, const std::vector<std
 nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders);
 
 template <class TokenMaker>
-    requires std::is_invocable_r_v<CComPtr<ISpObjectToken>, TokenMaker, const nlohmann::json&>
-void EnumOnlineVoices(std::map<std::string, CComPtr<ISpObjectToken>>& tokens,
+    requires std::is_invocable_r_v<std::shared_ptr<DataKeyData>, TokenMaker, const nlohmann::json&>
+void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& tokens,
     LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders,
     BOOL allLanguages, const std::vector<std::wstring>& languages,
     TokenMaker&& tokenMaker)

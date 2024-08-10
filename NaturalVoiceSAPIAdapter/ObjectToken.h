@@ -52,7 +52,7 @@ public:
 		if (!ppszCoMemTokenId)
 			return E_POINTER;
 		CSpDynamicString id;
-		RETONFAIL(MergeIntoCoString(id, Traits::SpIdRoot, CDataKey<ISpObjectToken, Traits>::m_subkeyPath));
+		RETONFAIL(MergeIntoCoString(id, Traits::SpIdRoot, CDataKey<ISpObjectToken, Traits>::m_pData->path));
 		*ppszCoMemTokenId = id.Detach();
 		return S_OK;
 	}
@@ -116,6 +116,18 @@ public:
 		ULONG count = 0;
 		CComQIPtr<IEnumSpObjectTokens>(pEnumBuilder)->GetCount(&count);
 		*pfMatches = count != 0; // If this token gets filtered out, it does not match the attributes
+		return S_OK;
+	}
+public:
+	static HRESULT Create(const std::shared_ptr<DataKeyData>& pData, ISpObjectToken** ppOut) noexcept
+	{
+		// Create a new ISpObjectToken that points to the correponding data
+		CComPtr<ISpObjectToken> pToken;
+		RETONFAIL(CObjectToken::_CreatorClass::CreateInstance(nullptr, IID_ISpObjectToken, reinterpret_cast<LPVOID*>(&pToken)));
+		CComPtr<IDataKeyInit> pInit;
+		RETONFAIL(pToken->QueryInterface(&pInit));
+		RETONFAIL(pInit->InitKey(pData));
+		*ppOut = pToken.Detach();
 		return S_OK;
 	}
 };

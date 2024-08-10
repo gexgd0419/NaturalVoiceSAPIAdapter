@@ -8,17 +8,23 @@
 using namespace ATL;
 
 
-typedef std::vector<std::pair<LPCWSTR, CComPtr<ISpDataKey>>> SubkeyCollection;
-typedef std::vector<std::pair<LPCWSTR, std::wstring>> StringPairCollection;
-
+// Data storage type for the root CObjectToken and each sub level of CDataKey.
+// Each CObjectToken has its own DataKeyData tree,
+// and its every existing CDataKey instances will reference the data tree using shared_ptr
+// to prevent the data tree from being destroyed.
+struct DataKeyData
+{
+	std::wstring path;
+	std::vector<std::pair<std::wstring, std::wstring>> values;
+	std::vector<std::pair<std::wstring, DataKeyData>> subkeys;
+};
 
 // Private, non COM-compliant interface for initializing CDataKey instances
 // Note that these methods MAY throw exceptions
 MIDL_INTERFACE("4B88C5F0-B73A-41D9-9439-E229AB8A7C6D")
 IDataKeyInit : public IUnknown
 {
-	virtual void InitKey(StringPairCollection&& values, SubkeyCollection&& subkeys) = 0;
-	virtual void SetPath(LPCWSTR lpszCurrentPath) = 0;
+	virtual HRESULT InitKey(const std::shared_ptr<DataKeyData>& pData) noexcept = 0;
 };
 
 
@@ -51,40 +57,33 @@ END_COM_MAP()
 
 protected:
 	CComPtr<ISpDataKey> m_pKey;
-	std::wstring m_subkeyPath;
-	StringPairCollection m_values;
-	SubkeyCollection m_subkeys;
 	CComPtr<IUnknown> m_pAutomation;
 
-	void InitKey(StringPairCollection&& values, SubkeyCollection&& subkeys) override
-	{
-		m_values = std::move(values);
-		m_subkeys = std::move(subkeys);
-	}
+	// Keeps a reference to the main data tree, but aliased to point to this key's specific node
+	std::shared_ptr<DataKeyData> m_pData;
 
-	void SetPath(LPCWSTR lpszCurrentPath) override
+	HRESULT InitKey(const std::shared_ptr<DataKeyData>& pData) noexcept override
 	{
-		m_subkeyPath = lpszCurrentPath;
+		m_pData = pData;
 		m_pKey.Release();
 		HKEY hKey = nullptr;
-		if (RegOpenKeyExW(Traits::RegRoot, (std::wstring(Traits::RegPrefix) + m_subkeyPath).c_str(),
+		CSpDynamicString keyPath;
+		RETONFAIL(MergeIntoCoString(keyPath, Traits::RegPrefix, m_pData->path));
+		if (RegOpenKeyExW(Traits::RegRoot, keyPath,
 			0, KEY_READ | KEY_WRITE, &hKey) == ERROR_SUCCESS)
 		{
 			CComPtr<ISpRegDataKey> pKey;
 			if (SUCCEEDED(pKey.CoCreateInstance(CLSID_SpDataKey))
 				&& SUCCEEDED(pKey->SetKey(hKey, FALSE)))
 			{
-				pKey->QueryInterface(&m_pKey);
+				return pKey->QueryInterface(&m_pKey);
 			}
 			else
 			{
 				RegCloseKey(hKey);
 			}
 		}
-		for (const auto& subkey : m_subkeys)
-		{
-			CComQIPtr<IDataKeyInit>(subkey.second)->SetPath((std::wstring(lpszCurrentPath) + L'\\' + subkey.first).c_str());
-		}
+		return S_OK;
 	}
 
 	HRESULT EnsureKey() noexcept
@@ -94,7 +93,7 @@ protected:
 		RETONFAIL(pKey.CoCreateInstance(CLSID_SpDataKey));
 		HKEY hKey = nullptr;
 		CSpDynamicString keyPath;
-		RETONFAIL(MergeIntoCoString(keyPath, Traits::RegPrefix, m_subkeyPath));
+		RETONFAIL(MergeIntoCoString(keyPath, Traits::RegPrefix, m_pData->path));
 		LSTATUS stat = RegCreateKeyExW(Traits::RegRoot, keyPath,
 			0, nullptr, 0, KEY_READ | KEY_WRITE, nullptr, &hKey, nullptr);
 		if (stat != ERROR_SUCCESS) return HRESULT_FROM_WIN32(stat);
@@ -102,12 +101,12 @@ protected:
 		return pKey->QueryInterface(&m_pKey);
 	}
 
-	ISpDataKey* FindSubkey(LPCWSTR pszSubKeyName) noexcept
+	DataKeyData* FindSubkey(LPCWSTR pszSubKeyName) noexcept
 	{
-		for (const auto& pair : m_subkeys)
+		for (auto& pair : m_pData->subkeys)
 		{
-			if (_wcsicmp(pair.first, pszSubKeyName) == 0)
-				return pair.second;
+			if (_wcsicmp(pair.first.c_str(), pszSubKeyName) == 0)
+				return &pair.second;
 		}
 		return nullptr;
 	}
@@ -116,9 +115,9 @@ protected:
 	{
 		if (!pszValueName)
 			pszValueName = L"";
-		for (const auto& pair : m_values)
+		for (const auto& pair : m_pData->values)
 		{
-			if (_wcsicmp(pair.first, pszValueName) == 0)
+			if (_wcsicmp(pair.first.c_str(), pszValueName) == 0)
 				return pair.second.c_str();
 		}
 		return nullptr;
@@ -152,7 +151,7 @@ public:
 			return E_POINTER;
 
 		// some attributes are not overridable
-		HRESULT hr = Traits::GetStringValueOverride(m_subkeyPath.c_str(), pszValueName, ppszValue);
+		HRESULT hr = Traits::GetStringValueOverride(m_pData->path.c_str(), pszValueName, ppszValue);
 		if (hr != SPERR_NOT_FOUND)
 			return hr;
 
@@ -200,11 +199,10 @@ public:
 	{
 		if (!pszSubKeyName || !ppSubKey)
 			return E_POINTER;
-		if (ISpDataKey* key = FindSubkey(pszSubKeyName))
+		if (DataKeyData* pKeyData = FindSubkey(pszSubKeyName))
 		{
-			key->AddRef();
-			*ppSubKey = key;
-			return S_OK;
+			// Pass a shared_ptr that references the same data tree, but aliased to point to the key's specific data
+			return Create(std::shared_ptr<DataKeyData>(m_pData, pKeyData), ppSubKey);
 		}
 		if (m_pKey)
 			return m_pKey->OpenKey(pszSubKeyName, ppSubKey);
@@ -246,87 +244,79 @@ public:
 
 	STDMETHODIMP EnumKeys(ULONG Index, _Outptr_ LPWSTR* ppszSubKeyName) noexcept override
 	{
-		// Enumerated keys include both virtual keys and actual registry keys
-		// Virtual keys come first, indexes greater are for actual keys
-		// Actual key that share the same name with a virtual key will be merged into the virtual key
-
-		if (!ppszSubKeyName)
-			return E_POINTER;
-
-		// Enumerate virtual keys first
-		if (Index < m_subkeys.size())
-		{
-			CSpDynamicString name(m_subkeys[Index].first);
-			if (!name)
-				return E_OUTOFMEMORY;
-			*ppszSubKeyName = name.Detach();
-			return S_OK;
-		}
-		else if (m_pKey)
-		{
-			// Out of virtual key range, calculate the index for actual registry key
-			Index -= static_cast<ULONG>(m_subkeys.size());
-			ULONG idx = 0;
-			// We should advance to next item 'Index' times
-			for (ULONG i = 0; i <= Index; i++)
-			{
-				for (;;)
-				{
-					CSpDynamicString subkeyName;
-					RETONFAIL(m_pKey->EnumKeys(idx, &subkeyName));
-					// If this key has the same name as one of the virtual keys, skip it (idx++)
-					if (!FindSubkey(subkeyName))
-						break;
-					idx++;
-				}
-				idx++;
-			}
-			return m_pKey->EnumKeys(idx - 1, ppszSubKeyName);
-		}
-		return SPERR_NO_MORE_ITEMS;
+		return EnumItems<&ISpObjectToken::EnumKeys>(m_pData->subkeys, Index, ppszSubKeyName);
 	}
 
 	STDMETHODIMP EnumValues(ULONG Index, _Outptr_ LPWSTR* ppszValueName) noexcept override
 	{
-		// Enumerated values include both virtual values and actual registry values
-		// Virtual values come first, indexes greater are for actual values
-		// Actual value that share the same name with a virtual value will be merged into the virtual value
+		return EnumItems<&ISpObjectToken::EnumValues>(m_pData->values, Index, ppszValueName);
+	}
 
-		if (!ppszValueName)
+private:
+	template <HRESULT (__stdcall ISpDataKey::*EnumFunc)(ULONG, LPWSTR*), class T>
+	HRESULT EnumItems(
+		const std::vector<std::pair<std::wstring, T>>& items,
+		ULONG Index, _Outptr_ LPWSTR* ppszItemName) noexcept
+	{
+		// Enumerated items include both virtual items and actual registry items
+		// Virtual items come first, indexes greater are for actual items
+		// Actual item that share the same name with a virtual item will be merged into the virtual item
+
+		if (!ppszItemName)
 			return E_POINTER;
 
-		// Enumerate virtual values first
-		if (Index < m_values.size())
+		// Enumerate virtual items first
+		if (Index < items.size())
 		{
-			CSpDynamicString name(m_values[Index].first);
+			CSpDynamicString name(items[Index].first.c_str());
 			if (!name)
 				return E_OUTOFMEMORY;
-			*ppszValueName = name.Detach();
+			*ppszItemName = name.Detach();
 			return S_OK;
 		}
 		else if (m_pKey)
 		{
-			// Out of virtual value range, calculate the index for actual registry value
-			Index -= static_cast<ULONG>(m_values.size());
+			// Out of virtual item range, calculate the index for actual registry item
+			Index -= static_cast<ULONG>(items.size());
 			ULONG idx = 0;
 			// We should advance to next item 'Index' times
 			for (ULONG i = 0; i <= Index; i++)
 			{
 				for (;;)
 				{
-					CSpDynamicString valueName;
-					RETONFAIL(m_pKey->EnumValues(idx, &valueName));
-					// If this value has the same name as one of the virtual values, skip it (idx++)
-					if (!FindValue(valueName))
+					CSpDynamicString itemName;
+					RETONFAIL((m_pKey->*EnumFunc)(idx, &itemName));
+					// If this item has the same name as one of the virtual items, skip it (idx++)
+					if (!std::any_of(items.begin(), items.end(),
+						[itemName](const auto& item) { return _wcsicmp(item.first.c_str(), itemName) == 0; }))
 						break;
 					idx++;
 				}
 				idx++;
 			}
-			return m_pKey->EnumValues(idx - 1, ppszValueName);
+			return (m_pKey->*EnumFunc)(idx - 1, ppszItemName);
 		}
 		return SPERR_NO_MORE_ITEMS;
 	}
+public:
+	static HRESULT Create(const std::shared_ptr<DataKeyData>& pData, ISpDataKey** ppOut) noexcept
+	{
+		// Create a new ISpDataKey that points to the correponding data
+		CComPtr<ISpDataKey> pKey;
 
+		// Force to use ISpDataKey as the base class,
+		// because CObjectToken inherits from CDataKey<ISpObjectToken, Traits>.
+		// Use a pair of parentheses around the function name, to avoid the preprocessor
+		// breaking at the template argument list comma ("CDataKey<ISpDataKey" and "Traits>::_CreatorClass...")
+		RETONFAIL((CDataKey<ISpDataKey, Traits>::_CreatorClass::CreateInstance)
+			(nullptr, IID_ISpDataKey, reinterpret_cast<LPVOID*>(&pKey)));
+
+		CComPtr<IDataKeyInit> pInit;
+		RETONFAIL(pKey->QueryInterface(&pInit));
+		// Pass a shared_ptr that references the same data tree, but aliased to point to the key's specific data
+		RETONFAIL(pInit->InitKey(pData));
+		*ppOut = pKey.Detach();
+		return S_OK;
+	}
 };
 
