@@ -6,6 +6,7 @@
 #include "NetUtils.h"
 #include "SpeechServiceConstants.h"
 #include <VersionHelpers.h>
+#include "RegKey.h"
 
 // CTTSEngine
 
@@ -208,11 +209,16 @@ void CTTSEngine::InitVoice()
     if (FAILED(hr)) dwErrorMode = 0;
     m_errorMode = (ErrorMode)std::clamp(dwErrorMode, 0UL, 2UL);
 
-    if (IsWindows7OrGreater()) // Azure Speech SDK requires at least Win 7
+    RegKey key;
+    key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter", KEY_QUERY_VALUE);
+
+    if (key.GetDword(L"ForceEnableAzureSpeechSDK")
+        || IsWindows7OrGreater()) // Azure Speech SDK requires at least Win 7
     {
         if (InitLocalVoice(pConfigKey))
             return;
-        if (InitCloudVoiceSynthesizer(pConfigKey))
+        if (key.GetDword(L"UseAzureSpeechSDKForAzureVoices")
+            && InitCloudVoiceSynthesizer(pConfigKey))
             return;
     }
     if (InitCloudVoiceRestAPI(pConfigKey))
@@ -475,7 +481,8 @@ void CTTSEngine::SetupRestAPIEvents(ULONGLONG interests)
     m_restApi->AudioReceivedCallback = std::bind_front(&CTTSEngine::OnAudioData, this);
     if (interests & SPEI_TTS_BOOKMARK)
         m_restApi->BookmarkCallback = [this](auto a, auto b) { OnBookmark(a, UTF8ToWString(b)); };
-    if (interests & SPEI_WORD_BOUNDARY)
+    if ((interests & SPEI_WORD_BOUNDARY)
+        || (m_isEdgeVoice && (interests & SPEI_TTS_BOOKMARK))) // Edge voice's bookmarks require word boundary events
         m_restApi->WordBoundaryCallback = [this](auto a, auto b, auto c) { OnBoundary(a, b, c, SPEI_WORD_BOUNDARY); };
     if (interests & SPEI_SENTENCE_BOUNDARY)
         m_restApi->SentenceBoundaryCallback = [this](auto a, auto b, auto c) { OnBoundary(a, b, c, SPEI_SENTENCE_BOUNDARY); };
