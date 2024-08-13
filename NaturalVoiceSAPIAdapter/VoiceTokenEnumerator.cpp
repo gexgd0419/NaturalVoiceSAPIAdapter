@@ -475,10 +475,11 @@ static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
 {
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
-    std::wstring shortFriendlyName = UTF8ToWString(json.at("DisplayName"));
+    // Make Azure voice names begin with "Azure"
+    std::wstring shortFriendlyName = L"Azure " + UTF8ToWString(json.at("DisplayName"));
     std::wstring localeName = UTF8ToWString(json.at("Locale"));
     std::wstring localeDisplayName = UTF8ToWString(json.at("LocaleName"));
-    std::wstring friendlyName = std::format(L"Azure {} - {}", shortFriendlyName, localeDisplayName);
+    std::wstring friendlyName = shortFriendlyName + L" - " + localeDisplayName;
 
     std::wstring regName = L"Azure-" + shortName; // registry key name format: Azure-en-US-AriaNeural
 
