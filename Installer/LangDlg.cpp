@@ -22,7 +22,7 @@ struct LocaleInfo
 };
 
 static std::vector<LocaleInfo> s_locales;
-static std::vector<UINT> s_selectedLocaleIndices;
+static std::vector<size_t> s_selectedLocaleIndices;
 
 static BOOL CALLBACK EnumLocalesProc(LPWSTR lcidHexString)
 {
@@ -62,7 +62,6 @@ static bool LCStrInStr(LCID locale, LPCWSTR str1, LPCWSTR str2)
 
 static bool MatchLocale(const std::vector<LPCWSTR>& searchTokens, const LocaleInfo& locale)
 {
-    LPWSTR pContext = nullptr;
     for (LPCWSTR token : searchTokens)
     {
         if (!LCStrInStr(LOCALE_INVARIANT, locale.name.c_str(), token)
@@ -103,7 +102,7 @@ static void AddLangDlgRefreshList(HWND hDlg)
         auto& locale = s_locales[i];
         if (MatchLocale(tokens, locale))
         {
-            UINT index = SendMessageW(hList, LB_ADDSTRING, 0, (LPARAM)locale.desc.c_str());
+            size_t index = SendMessageW(hList, LB_ADDSTRING, 0, (LPARAM)locale.desc.c_str());
             SendMessageW(hList, LB_SETITEMDATA, index, i);  // item data = locale index, because sorting is enabled
         }
     }
@@ -128,13 +127,13 @@ static INT_PTR CALLBACK AddLangDlg(HWND hDlg, UINT message, WPARAM wParam, LPARA
         {
             HWND hList = GetDlgItem(hDlg, IDC_LANG_LIST);
             s_selectedLocaleIndices.clear();
-            UINT count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
-            for (UINT i = 0; i < count; i++)
+            size_t count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
+            for (size_t i = 0; i < count; i++)
             {
                 if (SendMessageW(hList, LB_GETSEL, i, 0))
                 {
                     // get selected locale index in item data
-                    UINT index = SendMessageW(hList, LB_GETITEMDATA, i, 0);
+                    size_t index = SendMessageW(hList, LB_GETITEMDATA, i, 0);
                     s_selectedLocaleIndices.push_back(index);
                 }
             }
@@ -217,7 +216,7 @@ static BOOL LangDlgInit(HWND hDlg)
                 size_t localeIndex = FindLocaleIndex(language.c_str());
                 // If locale found, use its index and description
                 // If not (-1), use the original text from registry, and set item data to -1
-                UINT itemIndex = SendMessageW(hList, LB_ADDSTRING, 0,
+                size_t itemIndex = SendMessageW(hList, LB_ADDSTRING, 0,
                     (LPARAM)(localeIndex != (size_t)-1 ? s_locales[localeIndex].desc.c_str() : language.c_str()));
                 SendMessageW(hList, LB_SETITEMDATA, itemIndex, localeIndex);
             }
@@ -248,9 +247,9 @@ static void LangDlgOnOK(HWND hDlg)
     {
         key.SetDword(L"EdgeVoiceAllLanguages", 0);
         HWND hList = GetDlgItem(hDlg, IDC_LANG_LIST);
-        UINT count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
+        size_t count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
         std::vector<std::wstring> languages;
-        for (UINT i = 0; i < count; i++)
+        for (size_t i = 0; i < count; i++)
         {
             size_t localeIndex = SendMessageW(hList, LB_GETITEMDATA, i, 0);
             if (localeIndex == (size_t)-1)  // -1: use the list item text
@@ -292,13 +291,13 @@ INT_PTR CALLBACK LangDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             if (DialogBoxParamW(nullptr, MAKEINTRESOURCEW(IDD_ADDLANG), hDlg, AddLangDlg, 0) == IDOK)
             {
                 HWND hList = GetDlgItem(hDlg, IDC_LANG_LIST);
-                for (UINT localeIndex : s_selectedLocaleIndices)
+                for (size_t localeIndex : s_selectedLocaleIndices)
                 {
                     LPCWSTR text = s_locales[localeIndex].desc.c_str();
                     // If same item exists, skip it
-                    if (SendMessageW(hList, LB_FINDSTRINGEXACT, -1, (LPARAM)text) != LB_ERR)
+                    if (SendMessageW(hList, LB_FINDSTRINGEXACT, (WPARAM)-1, (LPARAM)text) != LB_ERR)
                         continue;
-                    UINT itemIndex = SendMessageW(hList, LB_ADDSTRING, 0, (LPARAM)text);
+                    size_t itemIndex = SendMessageW(hList, LB_ADDSTRING, 0, (LPARAM)text);
                     SendMessageW(hList, LB_SETITEMDATA, itemIndex, localeIndex);
                 }
             }
@@ -307,8 +306,8 @@ INT_PTR CALLBACK LangDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         case IDC_LANG_REMOVE:
         {
             HWND hList = GetDlgItem(hDlg, IDC_LANG_LIST);
-            UINT count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
-            for (int i = count - 1; i >= 0; i--)
+            size_t count = SendMessageW(hList, LB_GETCOUNT, 0, 0);
+            for (SSIZE_T i = count - 1; i >= 0; i--)
             {
                 if (SendMessageW(hList, LB_GETSEL, i, 0))
                 {
