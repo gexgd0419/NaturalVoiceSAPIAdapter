@@ -52,7 +52,7 @@ static void AddUninstallRegistryKey()
     wcscat_s(uninstallCmdLine, L" -uninstall");
 
     key.SetString(L"DisplayName", L"NaturalVoiceSAPIAdapter");
-    key.SetString(L"DisplayVersion", L"0.1");
+    key.SetString(L"DisplayVersion", L"0.2");
     key.SetString(L"Publisher", L"gexgd0419 on GitHub");
     key.SetString(L"UninstallString", uninstallCmdLine);
     key.SetString(L"HelpLink", L"https://github.com/gexgd0419/NaturalVoiceSAPIAdapter");
