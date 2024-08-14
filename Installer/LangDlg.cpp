@@ -5,6 +5,8 @@
 #include <memory>
 #include "RegKey.h"
 
+void CheckPhonemeConverters();
+
 struct LocaleInfo
 {
     LCID lcid;
@@ -266,6 +268,7 @@ static void LangDlgOnOK(HWND hDlg)
         }
         key.SetMultiStringList(L"EdgeVoiceLanguages", languages);
     }
+    CheckPhonemeConverters();
 }
 
 INT_PTR CALLBACK LangDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)

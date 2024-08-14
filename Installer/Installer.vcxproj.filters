@@ -32,9 +32,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Installer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LangDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,6 +39,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AboutDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Install.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MainDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

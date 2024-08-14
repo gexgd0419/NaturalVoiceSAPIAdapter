@@ -160,8 +160,10 @@
   <ItemGroup>
     <ClCompile Include="AboutDlg.cpp" />
     <ClCompile Include="AzureKeyDlg.cpp" />
-    <ClCompile Include="Installer.cpp" />
+    <ClCompile Include="Install.cpp" />
     <ClCompile Include="LangDlg.cpp" />
+    <ClCompile Include="MainDlg.cpp" />
+    <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Installer.rc" />
