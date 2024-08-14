@@ -209,7 +209,7 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 		uint32_t waveSizeBefore = evtBytes >= m_waveBytesWritten ? (uint32_t)(evtBytes - m_waveBytesWritten) : 0;
 		if (waveSizeBefore != 0)
 		{
-			// Writing can fail sometimes. Advance the pointer by actual written bytes.
+			// Writing can fail sometimes. Advance the pointer by actual written bytes. We will try again later.
 			int written = AudioReceivedCallback(waveData, waveSizeBefore);
 			m_waveBytesWritten += written;
 			waveData += written;
@@ -223,8 +223,12 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 	// write the rest of the audio data
 	if (waveSize != 0)
 	{
-		AudioReceivedCallback(waveData, waveSize);
+		int written = AudioReceivedCallback(waveData, waveSize);
 		m_waveBytesWritten += waveSize;
+		// If the audio still couldn't be written, log it
+		if ((uint32_t)written != waveSize)
+			LogWarn("Rest API: {} bytes of wave data could not be written at byte position {}",
+				waveSize, m_waveBytesWritten);
 	}
 }
 

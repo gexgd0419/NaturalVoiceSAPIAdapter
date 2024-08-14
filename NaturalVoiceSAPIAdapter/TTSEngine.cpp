@@ -385,12 +385,17 @@ bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
     ULONG written = 0;
+    HRESULT hr = m_pOutputSite->Write(data, len, &written);
     // Assumes that the data can be either entirely written or not written at all
     // because some implementations do not set the written bytes correctly
-    if (SUCCEEDED(m_pOutputSite->Write(data, len, &written)))
+    if (SUCCEEDED(hr))
         return len;
     else
+    {
+        if (logger.should_log(spdlog::level::debug))
+            LogDebug("Speak: Could not write {} bytes of audio data, {}", len, std::system_error(hr, sapi_category()));
         return 0;
+    }
 }
 void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark)
 {
