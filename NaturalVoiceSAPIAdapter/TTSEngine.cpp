@@ -209,11 +209,10 @@ void CTTSEngine::InitVoice()
     if (FAILED(hr)) dwErrorMode = 0;
     m_errorMode = (ErrorMode)std::clamp(dwErrorMode, 0UL, 2UL);
 
-    RegKey key;
-    key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter", KEY_QUERY_VALUE);
+    RegKey key = RegOpenConfigKey();
 
-    if (key.GetDword(L"ForceEnableAzureSpeechSDK")
-        || IsWindows7OrGreater()) // Azure Speech SDK requires at least Win 7
+    if (IsWindows7OrGreater() // Azure Speech SDK requires at least Win 7
+        || key.GetDword(L"ForceEnableAzureSpeechSDK"))
     {
         if (InitLocalVoice(pConfigKey))
             return;

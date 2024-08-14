@@ -29,13 +29,6 @@ public:
 		}
 	}
 	RegKey() noexcept : m_hKey(nullptr) {}
-	RegKey(HKEY hKey, LPCWSTR pSubKey, REGSAM samDesired)
-		: m_hKey(nullptr)
-	{
-		LSTATUS stat = Create(hKey, pSubKey, samDesired);
-		if (stat != ERROR_SUCCESS)
-			throw std::system_error(stat, std::system_category());
-	}
 	RegKey(const RegKey&) = delete;
 	RegKey(RegKey&& other) noexcept
 	{
@@ -52,6 +45,15 @@ public:
 		Close();
 		m_hKey = other.m_hKey;
 		other.m_hKey = nullptr;
+	}
+	explicit operator bool() const { return m_hKey != nullptr; }
+
+public:
+	static RegKey OpenForRead(HKEY hKey, LPCWSTR pSubKey, REGSAM samDesired = KEY_QUERY_VALUE) noexcept
+	{
+		RegKey key;
+		key.Open(hKey, pSubKey, samDesired);
+		return key;
 	}
 
 public:
@@ -128,3 +130,13 @@ public:
 		return SetString(pValueName, result, REG_MULTI_SZ);
 	}
 };
+
+inline RegKey RegOpenConfigKey() noexcept
+{
+	return RegKey::OpenForRead(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter");
+}
+
+inline RegKey RegOpenEnumeratorConfigKey() noexcept
+{
+	return RegKey::OpenForRead(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator");
+}

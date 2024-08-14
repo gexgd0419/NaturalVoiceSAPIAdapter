@@ -175,8 +175,7 @@ void InitializeLogger() noexcept
 		// Output to debug console
 		logger.sinks().push_back(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 
-		RegKey key;
-		key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter", KEY_QUERY_VALUE);
+		RegKey key = RegOpenConfigKey();
 
 		auto userLogPath = key.GetString(L"LogFile");
 

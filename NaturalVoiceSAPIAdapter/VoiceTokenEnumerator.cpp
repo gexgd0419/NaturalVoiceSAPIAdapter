@@ -64,11 +64,8 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             return S_OK;
         }
 
-        RegKey key;
         // Failing to open the key will make all query methods return default values
-        key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter", KEY_QUERY_VALUE);
-        bool forceEnableSDK = key.GetDword(L"ForceEnableAzureSpeechSDK") != 0;
-        key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", KEY_QUERY_VALUE);
+        RegKey key = RegOpenEnumeratorConfigKey();
 
         DWORD fAllLanguages = key.GetDword(L"EdgeVoiceAllLanguages");
         std::vector<std::wstring> languages = key.GetMultiStringList(L"EdgeVoiceLanguages");
@@ -99,13 +96,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 }
             }
         }
-        std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
         ErrorMode errorMode = static_cast<ErrorMode>(std::clamp(key.GetDword(L"DefaultErrorMode", 0UL), 0UL, 2UL));
 
         if (!key.GetDword(L"Disable"))
         {
             if (!key.GetDword(L"NoNarratorVoices")
-                && (forceEnableSDK || IsWindows7OrGreater()))  // this requires Win 7
+                && (IsWindows7OrGreater()  // this requires Win 7
+                    || RegOpenConfigKey().GetDword(L"ForceEnableAzureSpeechSDK")))
             {
                 // Use the same map, so that local voices with the same ID won't appear twice
                 TokenMap tokens;
@@ -136,12 +133,16 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 }
             }
 
-            if (!key.GetDword(L"NoAzureVoices") && !azureKey.empty() && !azureRegion.empty())
+            if (!key.GetDword(L"NoAzureVoices"))
             {
-                // Put Azure voices in the map.
-                // Edge voices may or may not previously be put into the same map, depending on configuration.
-                // If Edge voices are in the map, Azure voices with the same IDs will not be added.
-                EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion, errorMode);
+                std::wstring azureKey = key.GetString(L"AzureVoiceKey"), azureRegion = key.GetString(L"AzureVoiceRegion");
+                if (!azureKey.empty() && !azureRegion.empty())
+                {
+                    // Put Azure voices in the map.
+                    // Edge voices may or may not previously be put into the same map, depending on configuration.
+                    // If Edge voices are in the map, Azure voices with the same IDs will not be added.
+                    EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion, errorMode);
+                }
             }
 
             for (auto& token : onlineTokens)

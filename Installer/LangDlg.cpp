@@ -195,8 +195,8 @@ static BOOL LangDlgInit(HWND hDlg)
     SetWindowLongPtrW(hList, GWLP_USERDATA,
         SetWindowLongPtrW(hList, GWLP_WNDPROC, (LONG_PTR)LangListWndProc));
 
-    RegKey key;
-    key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", KEY_QUERY_VALUE);
+    RegKey key = RegOpenEnumeratorConfigKey();
+
     if (key.GetDword(L"EdgeVoiceAllLanguages"))
     {
         CheckDlgButton(hDlg, IDC_LANG_ALL, BST_CHECKED);
