@@ -198,10 +198,12 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case IDC_UNINSTALL_32BIT:
                 Unregister(false);
+                ReportError(ERROR_SUCCESS);
                 UpdateDisplay(hDlg);
                 break;
             case IDC_UNINSTALL_64BIT:
                 Unregister(true);
+                ReportError(ERROR_SUCCESS);
                 UpdateDisplay(hDlg);
                 break;
 
