@@ -45,6 +45,7 @@ public:
 		Close();
 		m_hKey = other.m_hKey;
 		other.m_hKey = nullptr;
+		return *this;
 	}
 	explicit operator bool() const { return m_hKey != nullptr; }
 
