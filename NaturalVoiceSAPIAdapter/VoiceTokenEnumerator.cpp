@@ -66,6 +66,8 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
         RegKey key;
         // Failing to open the key will make all query methods return default values
+        key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter", KEY_QUERY_VALUE);
+        bool forceEnableSDK = key.GetDword(L"ForceEnableAzureSpeechSDK") != 0;
         key.Open(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator", KEY_QUERY_VALUE);
 
         DWORD fAllLanguages = key.GetDword(L"EdgeVoiceAllLanguages");
@@ -103,7 +105,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         if (!key.GetDword(L"Disable"))
         {
             if (!key.GetDword(L"NoNarratorVoices")
-                && IsWindows7OrGreater())  // this requires Win 7
+                && (forceEnableSDK || IsWindows7OrGreater()))  // this requires Win 7
             {
                 // Use the same map, so that local voices with the same ID won't appear twice
                 TokenMap tokens;
