@@ -40,7 +40,8 @@ static void CheckInstallation(bool is64Bit, HWND hDlg, UINT idStatic, UINT idUni
 
 static void UpdateEnableStates(HWND hDlg)
 {
-    BOOL localEnabled = IsDlgButtonChecked(hDlg, IDC_CHK_NARRATOR_VOICES) == BST_CHECKED;
+    BOOL localEnabled = IsWindowEnabled(GetDlgItem(hDlg, IDC_CHK_NARRATOR_VOICES))
+        && IsDlgButtonChecked(hDlg, IDC_CHK_NARRATOR_VOICES) == BST_CHECKED;
     EnableWindow(GetDlgItem(hDlg, IDC_STATIC_LOCAL_VOICE_PATH), localEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_LOCAL_VOICE_PATH), localEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_BROWSE_LOCAL_VOICE), localEnabled);
@@ -226,15 +227,20 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                 BROWSEINFOW bi = {};
                 bi.hwndOwner = hDlg;
                 bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-                LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+                constexpr auto CoDeleter = [](LPVOID p) { CoTaskMemFree(p); };
+                std::unique_ptr<ITEMIDLIST, decltype(CoDeleter)> pidl(SHBrowseForFolderW(&bi), CoDeleter);
                 if (pidl)
                 {
                     WCHAR path[MAX_PATH];
-                    if (SHGetPathFromIDListW(pidl, path))
+                    if (SHGetPathFromIDListW(pidl.get(), path))
                     {
                         SetDlgItemTextW(hDlg, IDC_LOCAL_VOICE_PATH, path);
+                        std::wstring_view sv = path;
+                        if (!std::all_of(sv.begin(), sv.end(), [](wchar_t ch) { return ch < 128; }))
+                        {
+                            ShowMessageBox(IDS_LOCAL_VOICE_PATH_NONASCII, MB_ICONEXCLAMATION);
+                        }
                     }
-                    CoTaskMemFree(pidl);
                 }
                 break;
             }
