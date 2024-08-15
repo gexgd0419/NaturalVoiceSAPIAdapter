@@ -38,17 +38,16 @@ static DWORD LaunchProcess(LPCWSTR pszApp, LPCWSTR pszCmdLine, bool asAdmin)
 static void AddUninstallRegistryKey()
 {
     RegKey key;
-    if (key.Create(HKEY_LOCAL_MACHINE,
+    if (key.Create(HKEY_CURRENT_USER,
         L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\NaturalVoiceSAPIAdapter",
         KEY_SET_VALUE | KEY_WOW64_64KEY) != ERROR_SUCCESS)
         return;
 
     WCHAR uninstallCmdLine[MAX_PATH + 11];
     DWORD len = GetModuleFileNameW(nullptr, uninstallCmdLine, MAX_PATH);
-    if (len == 0 || len == MAX_PATH)
+    if (len == 0 || len >= MAX_PATH - 3)  // 3 for quotes + null
         return;
-    if (!PathQuoteSpacesW(uninstallCmdLine))
-        return;
+    PathQuoteSpacesW(uninstallCmdLine);
     wcscat_s(uninstallCmdLine, L" -uninstall");
 
     key.SetString(L"DisplayName", L"NaturalVoiceSAPIAdapter");
@@ -62,16 +61,7 @@ static void AddUninstallRegistryKey()
 
 static void RemoveUninstallRegistryKey()
 {
-    // Windows XP does not support RegDeleteKeyEx,
-    // so we open its parent then delete using RegDeleteKey
-    // to make sure to operate on the 64-bit key
-    HKEY hKey;
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
-        0, KEY_ENUMERATE_SUB_KEYS | KEY_WOW64_64KEY, &hKey))
-    {
-        RegDeleteKeyW(hKey, L"NaturalVoiceSAPIAdapter");
-        RegCloseKey(hKey);
-    }
+    RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\NaturalVoiceSAPIAdapter");
 }
 
 void Register(bool is64Bit)
