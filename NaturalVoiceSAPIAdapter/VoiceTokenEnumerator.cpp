@@ -201,8 +201,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 static std::wstring LanguageIDsFromLocaleName(const std::wstring& locale)
 {
     LANGID lang = LangIDFromLocaleName(locale.c_str());
-    if (lang == 0)
-        return {};
+    if (lang == 0 || lang == LOCALE_CUSTOM_UNSPECIFIED)
+    {
+        static std::wstring fallbackstr = RegOpenEnumeratorConfigKey().GetString(L"LanguageForUnknownLocales");
+        if (fallbackstr.empty())
+            LogDebug("Voice enum: locale '{}' cannot be converted to LCID, ignored", locale);
+        return fallbackstr;
+    }
 
     std::wstring ret = LangIDToHexLang(lang);
 
@@ -240,6 +245,11 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
 {
     using namespace Microsoft::CognitiveServices::Speech;
 
+    std::wstring localeName = UTF8ToWString(voiceInfo.Locale);
+    std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
+    if (languageIds.empty())
+        return {};
+
     // Path format: C:\Program Files\WindowsApps\MicrosoftWindows.Voice.en-US.Aria.1_1.0.8.0_x64__cw5n1h2txyewy/
     std::wstring path = UTF8ToWString(voiceInfo.VoicePath);
     if (path.back() == '/' || path.back() == '\\')
@@ -259,8 +269,6 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     std::wstring shortFriendlyName = friendlyName;
     TrimVoiceName(shortFriendlyName);
 
-    std::wstring localeName = UTF8ToWString(voiceInfo.Locale);
-
     return std::shared_ptr<DataKeyData>(new DataKeyData {
         .path = name,
         .values = {
@@ -273,7 +281,7 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(voiceInfo.Properties.GetProperty("Gender")) },
-                    { L"Language", LanguageIDsFromLocaleName(localeName) },
+                    { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Narrator;Local" }
@@ -319,7 +327,9 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
         {
             for (auto& info : result->Voices)
             {
-                tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode));
+                auto token = MakeLocalVoiceToken(*info, errorMode);
+                if (token)
+                    tokens.try_emplace(info->Name, std::move(token));
             }
         }
         else
@@ -405,7 +415,9 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         {
             for (auto& info : result->Voices)
             {
-                tokens.try_emplace(info->Name, MakeLocalVoiceToken(*info, errorMode, prefix));
+                auto token = MakeLocalVoiceToken(*info, errorMode, prefix);
+                if (token)
+                    tokens.try_emplace(info->Name, std::move(token));
             }
         }
         else
@@ -428,13 +440,16 @@ static std::shared_ptr<DataKeyData> MakeEdgeVoiceToken(
     ErrorMode errorMode = ErrorMode::ProbeForError
 )
 {
+    std::wstring localeName = UTF8ToWString(json.at("Locale"));
+    std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
+    if (languageIds.empty())
+        return {};
+
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
     std::wstring friendlyName = UTF8ToWString(json.at("FriendlyName"));
     std::wstring shortFriendlyName = friendlyName;
     TrimVoiceName(shortFriendlyName);
-
-    std::wstring localeName = UTF8ToWString(json.at("Locale"));
 
     std::wstring regName = L"Edge-" + shortName; // registry key name format: Edge-en-US-AriaNeural
 
@@ -450,7 +465,7 @@ static std::shared_ptr<DataKeyData> MakeEdgeVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
-                    { L"Language", LanguageIDsFromLocaleName(localeName) },
+                    { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Edge;Cloud" }
@@ -476,11 +491,15 @@ static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
     ErrorMode errorMode = ErrorMode::ProbeForError
 )
 {
+    std::wstring localeName = UTF8ToWString(json.at("Locale"));
+    std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
+    if (languageIds.empty())
+        return {};
+
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
 
     // Make Azure voice names begin with "Azure"
     std::wstring shortFriendlyName = L"Azure " + UTF8ToWString(json.at("DisplayName"));
-    std::wstring localeName = UTF8ToWString(json.at("Locale"));
     std::wstring localeDisplayName = UTF8ToWString(json.at("LocaleName"));
     std::wstring friendlyName = shortFriendlyName + L" - " + localeDisplayName;
 
@@ -498,7 +517,7 @@ static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
-                    { L"Language", LanguageIDsFromLocaleName(localeName) },
+                    { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
                     { L"NaturalVoiceType", L"Azure;Cloud" }
@@ -678,7 +697,9 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
                         continue;
                 }
             }
-            tokens.try_emplace(voice.at("ShortName"), tokenMaker(voice));
+            auto token = tokenMaker(voice);
+            if (token)
+                tokens.try_emplace(voice.at("ShortName"), std::move(token));
         }
     }
     catch (const std::bad_alloc&)

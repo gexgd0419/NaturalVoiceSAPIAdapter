@@ -91,8 +91,6 @@ LANGID LangIDFromLocaleName(LPCWSTR locale)
 			if (lcid != LOCALE_CUSTOM_UNSPECIFIED && lcid != 0)
 				return LANGIDFROMLCID(lcid);
 		}
-
-		return LOCALE_CUSTOM_UNSPECIFIED;
 	}
 	else
 	{
@@ -114,7 +112,11 @@ LANGID LangIDFromLocaleName(LPCWSTR locale)
 				break;
 			loc.erase(pos);
 		}
-
-		return LOCALE_CUSTOM_UNSPECIFIED;
 	}
+
+	// fix for wuu-CN and yue-CN
+	if (std::wstring_view(locale).ends_with(L"-CN"))
+		return MAKELANGID(LANG_CHINESE, SUBLANG_NEUTRAL);
+
+	return LOCALE_CUSTOM_UNSPECIFIED;
 }
