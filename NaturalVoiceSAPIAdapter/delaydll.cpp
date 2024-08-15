@@ -2,6 +2,7 @@
 #include <delayimp.h>
 #include <Shlwapi.h>
 #include <system_error>
+#include "wrappers.h"
 
 static FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli)
 {
@@ -10,9 +11,34 @@ static FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli)
 		// search the library in the same folder as this DLL, not the EXE
 		// the default implementation calls LoadLibrary directly which will search in the wrong path
 		char path[MAX_PATH];
-		if (GetModuleFileNameA((HMODULE)&__ImageBase, path, MAX_PATH) == MAX_PATH
-			|| !PathRemoveFileSpecA(path)
-			|| !PathAppendA(path, pdli->szDll))
+		DWORD len = GetModuleFileNameA((HMODULE)&__ImageBase, path, MAX_PATH);
+		if (len == 0 || len == MAX_PATH)
+			throw std::system_error(len == MAX_PATH ? ERROR_FILENAME_EXCED_RANGE : GetLastError(), std::system_category());
+		PathRemoveFileSpecA(path);
+
+		// load DLLs required by Speech SDK first to avoid "module not found"
+		// system will use the already loaded DLL with the same name
+		static constexpr const char* RequiredDLLs[] = { "SpeechSDKShim.dll", "msvcp140.dll", "msvcp140_codecvt_ids.dll",
+			"ucrtbase.dll", "vcruntime140.dll"
+#ifdef _WIN64
+			, "vcruntime140_1.dll"
+#endif
+		};
+		constexpr size_t DLLCount = sizeof RequiredDLLs / sizeof RequiredDLLs[0];
+		HandleWrapper<HMODULE, FreeLibrary> hRequiredDLLs[DLLCount];  // wrappers to free the DLLs
+
+		for (size_t i = 0; i < DLLCount; i++)
+		{
+			if (GetModuleHandleA(RequiredDLLs[i]) == nullptr)  // if not loaded
+			{
+				if (!PathAppendA(path, RequiredDLLs[i]))
+					throw std::system_error(ERROR_FILENAME_EXCED_RANGE, std::system_category());
+				hRequiredDLLs[i] = LoadLibraryA(path);
+				PathRemoveFileSpecA(path);
+			}
+		}
+
+		if (!PathAppendA(path, pdli->szDll))
 			throw std::system_error(ERROR_FILENAME_EXCED_RANGE, std::system_category());
 		HMODULE hDll = LoadLibraryA(path);
 		if (!hDll) throw std::system_error(GetLastError(), std::system_category());
