@@ -181,9 +181,10 @@ void CheckPhonemeConverters()
 
     try
     {
-        AddToRegistry(L"x86\\PhoneConverters.reg");
         if (Is64BitSystem())
             AddToRegistry(L"x64\\PhoneConverters.reg");
+        else
+            AddToRegistry(L"x86\\PhoneConverters.reg");
     }
     catch (const std::system_error& ex)
     {
