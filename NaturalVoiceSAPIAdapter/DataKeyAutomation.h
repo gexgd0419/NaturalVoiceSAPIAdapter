@@ -144,7 +144,7 @@ public:
 
 	STDMETHODIMP CreateKey(__RPC__in const BSTR SubKeyName, __RPC__deref_out_opt ISpeechDataKey** SubKey) noexcept override
 	{
-		ISpDataKey* subkey = nullptr;
+		CComPtr<ISpDataKey> subkey;
 		RETONFAIL(m_dataKey->CreateKey(SubKeyName, &subkey));
 		return subkey->QueryInterface(SubKey);
 	}
