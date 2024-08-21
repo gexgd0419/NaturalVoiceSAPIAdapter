@@ -4,7 +4,6 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <asio.hpp>
 #include <queue>
-#include <optional>
 #include "nlohmann/json.hpp"
 #include "SpeechServiceConstants.h"
 #include "WSLogger.h"
@@ -111,7 +110,7 @@ private: // threading
 	std::queue<std::string> m_mp3Queue;
 	std::mutex m_mp3QueueMutex;
 	std::condition_variable m_mp3ThreadNotifier;
-	std::optional<Mp3Decoder> m_mp3Decoder;
+	Mp3Decoder m_mp3Decoder;
 	bool m_isStopping = false;
 	bool m_mp3QueueDone = false;
 	bool m_firstDataReceived = false;

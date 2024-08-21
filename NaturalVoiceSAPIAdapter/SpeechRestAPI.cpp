@@ -184,7 +184,12 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 				else
 					break;
 			}
-			evtBytes = m_events.top().first * m_mp3Decoder->WaveBytesPerSecond() / 10'000'000;
+			evtBytes = m_events.top().first * m_mp3Decoder.GetWaveFormat().nAvgBytesPerSec / 10'000'000;
+
+			// align evtBytes to wave blocks
+			WORD blockAlign = m_mp3Decoder.GetWaveFormat().nBlockAlign;
+			evtBytes = evtBytes / blockAlign * blockAlign;
+
 			if (m_waveBytesWritten + waveSize <= evtBytes)  // we haven't reached the next event yet
 			{
 				if (WordBoundaryCallback && !hasWaited)
@@ -236,7 +241,7 @@ void SpeechRestAPI::Mp3Thread()
 {
 	ScopeTracer tracer("Rest API: MP3 thread begin", "Rest API: MP3 thread end");
 
-	m_mp3Decoder.emplace();
+	m_mp3Decoder.Reset();
 
 	for (;;)
 	{
@@ -251,7 +256,7 @@ void SpeechRestAPI::Mp3Thread()
 					if (m_mp3QueueDone)
 					{
 						SpeakComplete();
-						m_mp3Decoder.emplace(); // re-create the decoder
+						m_mp3Decoder.Reset(); // re-create the decoder
 						m_mp3QueueDone = false;
 						m_firstDataReceived = false;
 					}
@@ -279,7 +284,7 @@ void SpeechRestAPI::Mp3Thread()
 			}
 
 			// Sending audio data to SAPI can block, so do this without lock
-			m_mp3Decoder->Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
+			m_mp3Decoder.Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
 				std::bind_front(&SpeechRestAPI::ProcessWaveData, this));
 		}
 		catch (...)

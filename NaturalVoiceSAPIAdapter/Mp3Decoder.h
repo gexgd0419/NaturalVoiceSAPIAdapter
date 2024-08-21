@@ -13,20 +13,48 @@ private:
 	std::unique_ptr<BYTE[]> m_pMp3Buf = nullptr, m_pWavBuf = nullptr;
 	HandleWrapper<HACMSTREAM, AcmStreamCloser{}> m_hAcm = nullptr;
 	ACMSTREAMHEADER m_header = { sizeof(ACMSTREAMHEADER) };
-	DWORD m_cbMp3Buf = 0, m_cbWavBuf = 0, m_cbMp3Leftover = 0, m_bytesPerSecond = 0;
+	DWORD m_cbMp3Buf = 0, m_cbWavBuf = 0, m_cbMp3Leftover = 0;
+	WAVEFORMATEX m_wavefmt = {};
+
 	void Init(const BYTE* pMp3Chunk, DWORD cbChunkSize);
+	void UnprepareHeader()
+	{
+		if (m_header.fdwStatus & ACMSTREAMHEADER_STATUSF_PREPARED)
+		{
+			// Restore the original (maximum) buffer sizes in headers
+			m_header.cbSrcLength = m_cbMp3Buf;
+			m_header.cbDstLength = m_cbWavBuf;
+			acmStreamUnprepareHeader(m_hAcm, &m_header, 0);
+		}
+	}
+
 public:
 	Mp3Decoder() noexcept {}
-	~Mp3Decoder() noexcept;
+	~Mp3Decoder() noexcept
+	{
+		UnprepareHeader();
+		// Other members will be cleaned up by their destructors
+	}
 
 	// Copying not permitted
 	Mp3Decoder(const Mp3Decoder&) = delete;
 	Mp3Decoder& operator=(const Mp3Decoder&) = delete;
 
+	void Reset()
+	{
+		UnprepareHeader();
+		m_hAcm.Close();
+		m_pMp3Buf = nullptr;
+		m_pWavBuf = nullptr;
+		m_cbMp3Buf = 0;
+		m_cbWavBuf = 0;
+		m_cbMp3Leftover = 0;
+	}
+
 	template <class Func> requires std::invocable<Func, BYTE*, uint32_t>
 	void Convert(const BYTE* pMp3Chunk, size_t cbChunkSize, Func&& writeWavCallback);
 
-	DWORD WaveBytesPerSecond() const noexcept { return m_bytesPerSecond; }
+	const WAVEFORMATEX& GetWaveFormat() const noexcept { return m_wavefmt; }
 };
 
 class mci_category_impl : public std::error_category

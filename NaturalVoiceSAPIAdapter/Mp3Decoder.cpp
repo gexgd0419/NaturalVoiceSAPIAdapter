@@ -3,18 +3,6 @@
 #pragma comment (lib, "msacm32.lib")
 #pragma comment (lib, "winmm.lib")
 
-Mp3Decoder::~Mp3Decoder() noexcept
-{
-	if (m_header.fdwStatus & ACMSTREAMHEADER_STATUSF_PREPARED)
-	{
-		// Restore the original (maximum) buffer sizes in headers
-		m_header.cbSrcLength = m_cbMp3Buf;
-		m_header.cbDstLength = m_cbWavBuf;
-		acmStreamUnprepareHeader(m_hAcm, &m_header, 0);
-	}
-	// Other members will be cleaned up by their destructors
-}
-
 static constexpr WORD BitRates[2][3][16] =
 {
 	{ // Version 1
@@ -123,7 +111,7 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 		.nCodecDelay = 0
 	};
 
-	WAVEFORMATEX wavefmt =
+	m_wavefmt =
 	{
 		.wFormatTag = WAVE_FORMAT_PCM,
 		.nChannels = Channels,
@@ -133,9 +121,8 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 		.wBitsPerSample = BitsPerSample,
 		.cbSize = 0
 	};
-	m_bytesPerSecond = wavefmt.nAvgBytesPerSec;
 
-	MMRESULT mmr = acmStreamOpen(&m_hAcm, nullptr, &mp3fmt.wfx, &wavefmt, nullptr, 0, 0, 0);
+	MMRESULT mmr = acmStreamOpen(&m_hAcm, nullptr, &mp3fmt.wfx, &m_wavefmt, nullptr, 0, 0, 0);
 	if (mmr) throw std::system_error(mmr, mci_category());
 
 	m_cbMp3Buf = cbChunkSize;
