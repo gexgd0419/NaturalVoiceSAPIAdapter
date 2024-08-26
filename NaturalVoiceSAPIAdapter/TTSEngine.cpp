@@ -676,6 +676,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             case SPVA_Pronounce:
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
                 lastSAPIOffset = pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen;
                 break;
 
@@ -694,6 +695,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             case SPVA_Speak:
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
                 break;
 
             case SPVA_Silence: // insert a <break time='xxms'/> (not supported by offline TTS)
@@ -712,6 +714,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
                 m_ssml.append(L"<say-as interpret-as='characters'>");
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
                 m_ssml.append(L"</say-as>");
                 break;
 
@@ -721,6 +724,7 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
                 m_ssml.append(L"'>");
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
+                m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
                 m_ssml.append(L"</phoneme>");
                 break;
 
