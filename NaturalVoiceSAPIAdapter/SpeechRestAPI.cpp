@@ -188,7 +188,7 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 
 			// align evtBytes to wave blocks
 			WORD blockAlign = m_mp3Decoder.GetWaveFormat().nBlockAlign;
-			evtBytes = evtBytes / blockAlign * blockAlign;
+			evtBytes = evtBytes - (evtBytes % blockAlign);
 
 			if (m_waveBytesWritten + waveSize <= evtBytes)  // we haven't reached the next event yet
 			{
