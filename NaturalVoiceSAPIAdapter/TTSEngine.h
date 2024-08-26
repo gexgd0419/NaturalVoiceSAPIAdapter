@@ -158,7 +158,9 @@ private: // Private methods
 	void AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag);
 	void AppendPhonemesToSsml(const SPPHONEID* pPhoneIds);
 	void AppendSAPIContextToSsml(const SPVCONTEXT& context);
-	void BuildSSML(const SPVTEXTFRAG* pTextFragList);
+	bool BuildSSML(const SPVTEXTFRAG* pTextFragList);
+
+	void FinishSimulatingBookmarkEvents(ULONGLONG streamOffset);
 
 	void MapTextOffset(ULONG& ulSSMLOffset, ULONG& ulTextLen);
 	void CheckSynthesisResult(const std::shared_ptr<SpeechSynthesisResult>& result);

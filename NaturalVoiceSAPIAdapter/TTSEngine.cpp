@@ -82,7 +82,15 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             SetupRestAPIEvents(eventInterests);
 
         m_pOutputSite = pOutputSite;
-        BuildSSML(pTextFragList);
+
+        if (!BuildSSML(pTextFragList))
+        {
+            LogDebug("Speak: Built SSML with no speech: {}", m_ssml);
+            // Simulate the bookmark events ourselves without doing actual speech synthesis
+            FinishSimulatingBookmarkEvents(0);
+            return S_OK;
+        }
+
         LogDebug("Speak: Built SSML: {}", m_ssml);
 
         std::future<void> future;
@@ -125,19 +133,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             if (m_isEdgeVoice)
             {
                 // finish all remaining bookmark events at the end
-                const auto size = m_bookmarks.size();
-                const auto streamOffset = m_restApi->GetWaveBytesWritten();
-                SPEVENT ev = { 0 };
-                ev.ullAudioStreamOffset = streamOffset;
-                ev.eEventId = SPEI_TTS_BOOKMARK;
-                ev.elParamType = SPET_LPARAM_IS_STRING;
-                for (auto i = m_bookmarkIndex; i < size; i++)
-                {
-                    auto& bookmark = m_bookmarks[i];
-                    ev.lParam = reinterpret_cast<LPARAM>(bookmark.name.c_str());
-                    ev.wParam = _wtol(bookmark.name.c_str());
-                    pOutputSite->AddEvents(&ev, 1);
-                }
+                FinishSimulatingBookmarkEvents(m_restApi->GetWaveBytesWritten());
             }
         }
 
@@ -574,7 +570,8 @@ void CTTSEngine::AppendSAPIContextToSsml(const SPVCONTEXT& context)
     m_ssml.append(L"'>");
 }
 
-void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
+// returns false if no actual text will be spoken
+bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 {
     m_ssml.assign(L"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='");
     m_ssml.append(m_localeName);
@@ -591,6 +588,12 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
     // Edge online voices only support a limited subset of SSML
     bool isEdgeVoice = m_isEdgeVoice;
+
+    // Some clients send Speak requests with no text, only bookmarks,
+    // supposedly to track positions.
+    // This will add some delay when using online voices,
+    // so we track if there's actually text to be spoken.
+    bool hasText = false;
 
     m_offsetMappings.clear();
     m_mappingIndex = 0;
@@ -610,6 +613,9 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
     for (auto pTextFrag = pTextFragList; pTextFrag; pTextFrag = pTextFrag->pNext)
     {
+        if (pTextFrag->State.eAction != SPVA_Bookmark)
+            hasText = true;
+
         // tag structure: <prosody><emphasis><say-as></say-as></emphasis></prosody>
         // <say-as> cannot contain tags
 
@@ -708,6 +714,8 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
                 m_ssml.append(L"<bookmark mark='");
                 AppendTextFragToSsml(pTextFrag);
                 m_ssml.append(L"'/>");
+                // keep track of every bookmark, so when there's no text, we can simulate bookmark events instead
+                m_bookmarks.emplace_back(pTextFrag->ulTextSrcOffset, std::wstring(pTextFrag->pTextStart, pTextFrag->ulTextLen));
                 break;
 
             case SPVA_SpellOut: // insert a <say-as interpret-as='characters'>...</say-as>
@@ -788,6 +796,24 @@ void CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
     }
 
     m_ssml.append(L"</speak>");
+
+    return hasText;
+}
+
+void CTTSEngine::FinishSimulatingBookmarkEvents(ULONGLONG streamOffset)
+{
+    const auto size = m_bookmarks.size();
+    SPEVENT ev = { 0 };
+    ev.ullAudioStreamOffset = streamOffset;
+    ev.eEventId = SPEI_TTS_BOOKMARK;
+    ev.elParamType = SPET_LPARAM_IS_STRING;
+    for (auto i = m_bookmarkIndex; i < size; i++)
+    {
+        auto& bookmark = m_bookmarks[i];
+        ev.lParam = reinterpret_cast<LPARAM>(bookmark.name.c_str());
+        ev.wParam = _wtol(bookmark.name.c_str());
+        m_pOutputSite->AddEvents(&ev, 1);
+    }
 }
 
 // Convert offset and length in SSML text to those in SAPI text
