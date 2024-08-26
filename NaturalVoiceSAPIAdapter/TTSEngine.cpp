@@ -570,6 +570,47 @@ void CTTSEngine::AppendSAPIContextToSsml(const SPVCONTEXT& context)
     m_ssml.append(L"'>");
 }
 
+// Returns whether we need a space between the existing SSML and the text to be appended.
+static bool NeedAddingSpace(std::wstring_view ssmlBefore, std::wstring_view strAfter)
+{
+    // Different text fragments belongs to different words.
+    // Sometimes XML parsing removes leading & trailing spaces,
+    // and we have to add it back between fragments,
+    // so words in adjacent fragments don't merge together.
+    // XML tags themselves can also separate words,
+    // so if there's already an XML tag, spaces are not needed.
+
+    if (strAfter.empty())  // Nothing is being appended
+        return false;
+
+    wchar_t chBefore = ssmlBefore.back();
+    if (chBefore == L'>')  // An XML tag just ended (common case), no space needed
+        return false;
+    if (iswspace(chBefore))  // already a space
+        return false;
+    if (chBefore < 128)  // assume other ASCII characters are English and a space is needed
+        return true;
+    
+    wchar_t chAfter = strAfter.front();
+    if (iswspace(chAfter))  // already a space
+        return false;
+    if (chAfter < 128)  // assume other ASCII characters are English and a space is needed
+        return true;
+
+    // None of them are English characters, so check their types
+    WORD wTypeBefore = 0, wTypeAfter = 0;
+    GetStringTypeW(CT_CTYPE3, &chBefore, 1, &wTypeBefore);
+    GetStringTypeW(CT_CTYPE3, &chAfter, 1, &wTypeAfter);
+
+    // Check if both characters are one of: ideographs (e.g. Chinese), Japanese Katakanas or Hiraganas
+    // If so, no space needed.
+    // We do this check because Chinese voices add extra pauses during speaking when you add extra spaces.
+    if ((wTypeBefore & wTypeAfter) & (C3_IDEOGRAPH | C3_KATAKANA | C3_HIRAGANA))
+        return false;
+
+    return true;
+}
+
 // returns false if no actual text will be spoken
 bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 {
@@ -680,6 +721,8 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             case SPVA_Speak:
             case SPVA_SpellOut:
             case SPVA_Pronounce:
+                if (NeedAddingSpace(m_ssml, std::wstring_view(pTextFrag->pTextStart, pTextFrag->ulTextLen)))
+                    m_ssml.push_back(L' ');
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
@@ -699,6 +742,8 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             switch (pTextFrag->State.eAction)
             {
             case SPVA_Speak:
+                if (NeedAddingSpace(m_ssml, std::wstring_view(pTextFrag->pTextStart, pTextFrag->ulTextLen)))
+                    m_ssml.push_back(L' ');
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset, (ULONG)m_ssml.size());
                 AppendTextFragToSsml(pTextFrag);
                 m_offsetMappings.emplace_back(pTextFrag->ulTextSrcOffset + pTextFrag->ulTextLen, (ULONG)m_ssml.size());
