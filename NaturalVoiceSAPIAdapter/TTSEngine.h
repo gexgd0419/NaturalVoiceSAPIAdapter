@@ -110,13 +110,16 @@ public: // Interface implementation
 		return S_FALSE;
 	}
 
+private:
+	ISpTTSEngineSite* m_pOutputSite = nullptr;
+	std::recursive_mutex m_outputSiteMutex;
+
 private: // Member variables
 
 	CComPtr<ISpObjectToken> m_cpToken;
 	CComPtr<ISpPhoneConverter> m_phoneConverter;
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
 	std::unique_ptr<SpeechRestAPI> m_restApi;
-	ISpTTSEngineSite* m_pOutputSite = nullptr;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	bool m_isEdgeVoice = false;

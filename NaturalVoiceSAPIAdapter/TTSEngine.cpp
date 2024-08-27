@@ -81,6 +81,13 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         else
             SetupRestAPIEvents(eventInterests);
 
+        // Clear m_pOutputSite automatically when Speak is completed
+        auto siteDeleter = [this](ISpTTSEngineSite*)
+            {
+                std::lock_guard lock(m_outputSiteMutex);
+                m_pOutputSite = nullptr;
+            };
+        std::unique_ptr<ISpTTSEngineSite, decltype(siteDeleter)> siteptr(pOutputSite, siteDeleter);
         m_pOutputSite = pOutputSite;
 
         if (!BuildSSML(pTextFragList))
@@ -380,6 +387,13 @@ bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
 
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
+    std::lock_guard lock(m_outputSiteMutex);
+    if (!m_pOutputSite)
+    {
+        LogWarn("Speak: Audio write with invalid OutputSite, ignored");
+        return len; // ignore the data
+    }
+
     ULONG written = 0;
     HRESULT hr = m_pOutputSite->Write(data, len, &written);
     // Assumes that the data can be either entirely written or not written at all
@@ -395,6 +409,8 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 }
 void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark)
 {
+    std::lock_guard lock(m_outputSiteMutex);
+    if (!m_pOutputSite) return;
     SPEVENT ev = { 0 };
     ev.ullAudioStreamOffset = WaveTicksToBytes(offsetTicks);
     ev.eEventId = SPEI_TTS_BOOKMARK;
@@ -405,6 +421,8 @@ void CTTSEngine::OnBookmark(uint64_t offsetTicks, const std::wstring& bookmark)
 }
 void CTTSEngine::OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint32_t textLength, SPEVENTENUM boundaryType)
 {
+    std::lock_guard lock(m_outputSiteMutex);
+    if (!m_pOutputSite) return;
     SPEVENT ev = { 0 };
     ev.ullAudioStreamOffset = WaveTicksToBytes(audioOffsetTicks);
     ev.eEventId = boundaryType;
@@ -431,6 +449,8 @@ void CTTSEngine::OnBoundary(uint64_t audioOffsetTicks, uint32_t textOffset, uint
 }
 void CTTSEngine::OnViseme(uint64_t offsetTicks, uint32_t visemeId)
 {
+    std::lock_guard lock(m_outputSiteMutex);
+    if (!m_pOutputSite) return;
     SPEVENT ev = { 0 };
     ev.ullAudioStreamOffset = WaveTicksToBytes(offsetTicks);
     ev.eEventId = SPEI_VISEME;
