@@ -123,6 +123,13 @@ private: // Member variables
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	bool m_isEdgeVoice = false;
+	bool m_onlineDelayOptimization = false;
+	bool m_compensatedSilenceWritten = false;
+	size_t m_lastSilentBytes = 0;
+	size_t m_compensatedSilentBytes = 0;
+	DWORD m_lastSpeakCompletedTicks = 0;
+	DWORD m_thisSpeakStartedTicks = 0;
+
 	std::wstring m_localeName;
 	std::wstring m_onlineVoiceName;
 
@@ -178,9 +185,9 @@ private: // Static members
 
 	// 24kHz 16Bit mono
 	static constexpr DWORD nWaveBytesPerMSec = 24000 * 16 / 8 / 1000;
-	static inline ULONGLONG WaveTicksToBytes(uint64_t ticks)
+	ULONGLONG WaveTicksToBytes(uint64_t ticks)
 	{
-		return ticks * nWaveBytesPerMSec / 10000;
+		return ticks * nWaveBytesPerMSec / 10000 + m_compensatedSilentBytes;
 	}
 };
 

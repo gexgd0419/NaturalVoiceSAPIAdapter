@@ -94,11 +94,18 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         {
             LogDebug("Speak: Built SSML with no speech: {}", m_ssml);
             // Simulate the bookmark events ourselves without doing actual speech synthesis
-            FinishSimulatingBookmarkEvents(0);
+            FinishSimulatingBookmarkEvents(m_compensatedSilentBytes);
             return S_OK;
         }
 
         LogDebug("Speak: Built SSML: {}", m_ssml);
+
+        m_compensatedSilenceWritten = false;
+        m_compensatedSilentBytes = 0;
+        m_lastSilentBytes = 0;
+        m_thisSpeakStartedTicks = GetTickCount();
+        m_onlineDelayOptimization =
+            !m_onlineVoiceName.empty() && RegOpenConfigKey().GetDword(L"EnableOnlineDelayOptimization");
 
         std::future<void> future;
 
@@ -133,6 +140,8 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             // Wait for the future, but don't get its exception.
             // Stopping the voice can sometimes cause exceptions to be thrown. Ignore them.
             future.wait();
+
+            m_lastSpeakCompletedTicks = 0;
         }
         else
         {
@@ -140,8 +149,11 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             if (m_isEdgeVoice)
             {
                 // finish all remaining bookmark events at the end
-                FinishSimulatingBookmarkEvents(m_restApi->GetWaveBytesWritten());
+                FinishSimulatingBookmarkEvents(
+                    m_restApi->GetWaveBytesWritten() + m_compensatedSilentBytes - m_lastSilentBytes);
             }
+
+            m_lastSpeakCompletedTicks = GetTickCount();
         }
 
         return S_OK;
@@ -385,6 +397,30 @@ bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
     return true;
 }
 
+// Returns the trailing silence (zero) wave data length, in bytes
+template <typename SampleType>
+static size_t GetTrailingSilenceLengthMono(BYTE* waveData, size_t length)
+{
+    constexpr size_t bytesPerSample = sizeof(SampleType);
+    if (length < bytesPerSample)
+        return 0;
+
+    // Check each sample in reverse order
+    BYTE* p = waveData + (length - (length % bytesPerSample));
+    SampleType smp;
+    do
+    {
+        p -= bytesPerSample;
+        memcpy(&smp, p, bytesPerSample);
+        // this sample is non-zero, so the trailing silence starts at the next sample
+        if (smp != SampleType())
+            return length - (p - waveData) - bytesPerSample;
+    } while (p != waveData);
+
+    // The whole data block is silence
+    return length;
+}
+
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
     std::lock_guard lock(m_outputSiteMutex);
@@ -395,7 +431,61 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
     }
 
     ULONG written = 0;
-    HRESULT hr = m_pOutputSite->Write(data, len, &written);
+
+    if (m_onlineDelayOptimization)
+    {
+        if (!m_compensatedSilenceWritten)
+        {
+            DWORD currentTicks = GetTickCount();
+            DWORD passedMs = currentTicks - m_thisSpeakStartedTicks;  // delay of this connection
+            LogDebug("Speak: Connection delay: {}ms", passedMs);
+            // Speak() usually returns before the audio finishes.
+            // Therefore, if the previous Speak() ends no more than 5 seconds ago,
+            // we will compensate for the full silence duration
+            if (m_lastSpeakCompletedTicks != 0 && currentTicks - m_lastSpeakCompletedTicks < 5000)
+            {
+                // Compensate for the previous removed trailing silence
+                DWORD silenceMs = m_lastSilentBytes / nWaveBytesPerMSec;  // last slience duration
+                m_compensatedSilentBytes = silenceMs > passedMs ? (size_t)(silenceMs - passedMs) * nWaveBytesPerMSec : 0;
+
+                if (m_compensatedSilentBytes != 0)
+                {
+                    LogDebug("Speak: Compensate for the previous trailing {}ms silence", silenceMs - passedMs);
+                    // Write the compensated silence
+                    auto mem = std::make_unique<BYTE[]>(m_compensatedSilentBytes);  // zeroed mem
+                    m_pOutputSite->Write(mem.get(), m_compensatedSilentBytes, &written);
+                }
+            }
+            m_lastSilentBytes = 0;
+            m_compensatedSilenceWritten = true;
+        }
+
+        // assume 16bit mono
+        size_t silentBytes = GetTrailingSilenceLengthMono<USHORT>(data, len);
+        if (silentBytes == len)
+        {
+            // This chunk is completely silent
+            // Hold the silence data for no more than a second
+            if (m_lastSilentBytes < nWaveBytesPerMSec * 1000)
+            {
+                // Hold and accumulate the silence length
+                m_lastSilentBytes += silentBytes;
+                return len;
+            }
+        }
+        else
+        {
+            // This chunk is not completely silent, so send the previous silent data
+            if (m_lastSilentBytes != 0)
+            {
+                auto mem = std::make_unique<BYTE[]>(m_lastSilentBytes);  // zeroed mem
+                m_pOutputSite->Write(mem.get(), m_lastSilentBytes, &written);
+            }
+            m_lastSilentBytes = silentBytes;
+        }
+    }
+
+    HRESULT hr = m_pOutputSite->Write(data, len - m_lastSilentBytes, &written);
     // Assumes that the data can be either entirely written or not written at all
     // because some implementations do not set the written bytes correctly
     if (SUCCEEDED(hr))
