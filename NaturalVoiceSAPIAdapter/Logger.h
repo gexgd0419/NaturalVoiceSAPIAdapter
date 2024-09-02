@@ -16,6 +16,8 @@ constexpr decltype(auto) FormatLogArg(ArgT&& arg)
 	using T = std::remove_cvref_t<ArgT>;
 	if constexpr (std::is_convertible_v<T, std::wstring_view>)
 		return WStringToUTF8(std::forward<ArgT>(arg));
+	else if constexpr (std::is_base_of_v<std::system_error, T>)
+		return AnsiToUTF8(std::format("({}:{}) {}", arg.code().category().name(), (unsigned)arg.code().value(), arg.what()));
 	else if constexpr (std::is_base_of_v<std::exception, T>)
 		return AnsiToUTF8(arg.what());
 	else if constexpr (std::is_convertible_v<T, ISpObjectToken*>)

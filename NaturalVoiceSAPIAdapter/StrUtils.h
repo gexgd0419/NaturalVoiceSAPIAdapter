@@ -87,13 +87,14 @@ inline std::string_view TrimWhitespaces(std::string_view stringview) noexcept
 		if (!isspace(*pStart))
 			break;
 	}
-	for (pEnd--; ; pEnd--)
+	if (pStart == pEnd)
+		return std::string_view();
+	do
 	{
+		pEnd--;
 		if (!isspace(*pEnd))
 			break;
-		if (pEnd == pStart)
-			break;
-	}
+	} while (pEnd != pStart);
 	return std::string_view(pStart, pEnd + 1);
 }
 
