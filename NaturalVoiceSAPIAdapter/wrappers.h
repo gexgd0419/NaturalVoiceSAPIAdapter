@@ -50,3 +50,21 @@ typedef HandleWrapper<HANDLE, CloseHandle> Handle;
 typedef HandleWrapper<HANDLE, CloseHandle, INVALID_HANDLE_VALUE> HFile;
 typedef HandleWrapper<HANDLE, FindClose, INVALID_HANDLE_VALUE> HFindFile;
 typedef HandleWrapper<HKEY, RegCloseKey> HKey;
+
+template <class T>
+class ScopeGuard
+{
+private:
+	T func;
+public:
+	template <class T>
+	constexpr ScopeGuard(T&& func)
+		noexcept(noexcept(T(std::forward<T>(func))))
+		: func(std::forward<T>(func)) {}
+	ScopeGuard(const ScopeGuard&) = delete;
+	ScopeGuard& operator=(const ScopeGuard&) = delete;
+	~ScopeGuard() noexcept { func(); }
+};
+
+template <class T>
+ScopeGuard(T&&) -> ScopeGuard<T>;

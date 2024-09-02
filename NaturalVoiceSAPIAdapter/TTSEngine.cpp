@@ -7,6 +7,7 @@
 #include "SpeechServiceConstants.h"
 #include <VersionHelpers.h>
 #include "RegKey.h"
+#include "wrappers.h"
 
 // CTTSEngine
 
@@ -82,12 +83,11 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             SetupRestAPIEvents(eventInterests);
 
         // Clear m_pOutputSite automatically when Speak is completed
-        auto siteDeleter = [this](ISpTTSEngineSite*)
+        ScopeGuard siteDeleter([this]()
             {
                 std::lock_guard lock(m_outputSiteMutex);
                 m_pOutputSite = nullptr;
-            };
-        std::unique_ptr<ISpTTSEngineSite, decltype(siteDeleter)> siteptr(pOutputSite, siteDeleter);
+            });
         m_pOutputSite = pOutputSite;
 
         if (!BuildSSML(pTextFragList))
