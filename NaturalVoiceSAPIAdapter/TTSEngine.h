@@ -125,8 +125,8 @@ private: // Member variables
 	bool m_isEdgeVoice = false;
 	bool m_onlineDelayOptimization = false;
 	bool m_compensatedSilenceWritten = false;
-	size_t m_lastSilentBytes = 0;
-	size_t m_compensatedSilentBytes = 0;
+	ULONG m_lastSilentBytes = 0;
+	ULONG m_compensatedSilentBytes = 0;
 	DWORD m_lastSpeakCompletedTicks = 0;
 	DWORD m_thisSpeakStartedTicks = 0;
 

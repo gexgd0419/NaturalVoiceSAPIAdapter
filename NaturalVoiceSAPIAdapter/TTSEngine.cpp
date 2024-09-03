@@ -446,7 +446,7 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
             {
                 // Compensate for the previous removed trailing silence
                 DWORD silenceMs = m_lastSilentBytes / nWaveBytesPerMSec;  // last slience duration
-                m_compensatedSilentBytes = silenceMs > passedMs ? (size_t)(silenceMs - passedMs) * nWaveBytesPerMSec : 0;
+                m_compensatedSilentBytes = silenceMs > passedMs ? (silenceMs - passedMs) * nWaveBytesPerMSec : 0;
 
                 if (m_compensatedSilentBytes != 0)
                 {
@@ -461,7 +461,7 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
         }
 
         // assume 16bit mono
-        size_t silentBytes = GetTrailingSilenceLengthMono<USHORT>(data, len);
+        ULONG silentBytes = (ULONG)GetTrailingSilenceLengthMono<USHORT>(data, len);
         if (silentBytes == len)
         {
             // This chunk is completely silent
