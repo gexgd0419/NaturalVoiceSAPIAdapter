@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <wininet.h>
+#include <winhttp.h>
 #include <netlistmgr.h>
 #include <regex>
 #define ASIO_STANDALONE 1
@@ -11,6 +12,8 @@
 #include "StrUtils.h"
 #pragma comment (lib, "wininet.lib")
 #include "Logger.h"
+#include "RegKey.h"
+#include "SystemLibraryErrorCategory.h"
 
 static std::string RegexEscape(std::string_view str)
 {
@@ -68,6 +71,9 @@ static std::regex BuildBypassRegex(std::string_view bypassItem)
 
 static bool ShouldBypassProxy(std::string_view url, std::string_view proxyBypass)
 {
+	if (proxyBypass.empty())
+		return false;
+
 	bool bypassLocal = false;
 
 	// check every bypass item to see if the url should bypass
@@ -97,6 +103,8 @@ static bool ShouldBypassProxy(std::string_view url, std::string_view proxyBypass
 
 static std::string_view GetProxyForUrl(std::string_view url, std::string_view proxySetting, std::string_view proxyBypass)
 {
+	if (proxySetting.empty())
+		return {};
 	if (ShouldBypassProxy(url, proxyBypass))
 		return {};
 
@@ -129,45 +137,188 @@ static std::string_view GetProxyForUrl(std::string_view url, std::string_view pr
 	return {};
 }
 
-std::string GetProxyForUrl(std::string_view url)
+static auto& wininet_category()
 {
-	INTERNET_PER_CONN_OPTIONA opt = { INTERNET_PER_CONN_FLAGS };
+	return system_library_category("wininet");
+}
+
+static auto& winhttp_category()
+{
+	return system_library_category("winhttp");
+}
+
+struct GlobalDeleter
+{
+	void operator()(LPVOID p) noexcept { GlobalFree(p); }
+};
+typedef std::unique_ptr<char, GlobalDeleter> GlobalPStr;
+
+static INTERNET_PER_CONN_OPTIONA GetInetPerConnOptionRaw(DWORD flags)
+{
+	INTERNET_PER_CONN_OPTIONA opt = { flags };
 	INTERNET_PER_CONN_OPTION_LISTA optlist = { sizeof optlist };
 	optlist.dwOptionCount = 1;
 	optlist.pOptions = &opt;
 	DWORD optlistsize = sizeof optlist;
 	if (!InternetQueryOptionA(nullptr, INTERNET_OPTION_PER_CONNECTION_OPTION, &optlist, &optlistsize))
+		throw std::system_error(GetLastError(), wininet_category());
+	return opt;
+}
+
+static DWORD GetInetPerConnOptionDword(DWORD flags)
+{
+	return GetInetPerConnOptionRaw(flags).Value.dwValue;
+}
+
+static GlobalPStr GetInetPerConnOptionString(DWORD flags)
+{
+	return GlobalPStr(GetInetPerConnOptionRaw(flags).Value.pszValue);
+}
+
+static std::string GetProxyForUrl_PAC(std::string_view url, DWORD inetFlags)
+{
+	// Use WinHttp (if supported) to resolve auto proxy config
+	static HandleWrapper<HMODULE, FreeLibrary> hWinHttp = LoadLibraryW(L"winhttp.dll");
+	if (!hWinHttp)
+	{
+		if (inetFlags & PROXY_TYPE_AUTO_PROXY_URL)
+		{
+			// Warn for lack of support, if an explicit PAC URL is set
+			static bool pacUnsupportedWarned = false;
+			if (!pacUnsupportedWarned)
+			{
+				LogWarn("Proxy: PAC is not supported. Connections will be made directly.");
+				pacUnsupportedWarned = true;
+			}
+		}
+		return {};
+	}
+
+	static auto pfnWinHttpOpen
+		= reinterpret_cast<decltype(WinHttpOpen)*>
+		(GetProcAddress(hWinHttp, "WinHttpOpen"));
+	static auto pfnWinHttpGetProxyForUrl
+		= reinterpret_cast<decltype(WinHttpGetProxyForUrl)*>
+		(GetProcAddress(hWinHttp, "WinHttpGetProxyForUrl"));
+	static auto pfnWinHttpCloseHandle
+		= reinterpret_cast<decltype(WinHttpCloseHandle)*>
+		(GetProcAddress(hWinHttp, "WinHttpCloseHandle"));
+
+	struct WinHttpSession
+	{
+		HINTERNET hSession;
+		WinHttpSession()
+		{
+			hSession = pfnWinHttpOpen(nullptr, WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0);
+			if (!hSession)
+				LogWarn("Proxy: WinHTTP initialization failed: {}",
+					std::system_error(GetLastError(), winhttp_category()));
+		}
+		~WinHttpSession() noexcept { pfnWinHttpCloseHandle(hSession); }
+		operator HINTERNET() { return hSession; }
+	};
+
+	// Use a single static WinHTTP session
+	static WinHttpSession session;
+	if (!session)
 		return {};
 
-	struct GlobalDeleter
+	WINHTTP_AUTOPROXY_OPTIONS autoProxyOpts = {};
+
+	if (inetFlags & PROXY_TYPE_AUTO_DETECT)
 	{
-		void operator()(LPVOID p) { GlobalFree(p); }
-	};
-	typedef std::unique_ptr<char, GlobalDeleter> GlobalPStr;
-
-	// We are only supporting explicitly set proxy right now, no PAC support
-	if (opt.Value.dwValue & PROXY_TYPE_PROXY)
-	{
-		opt.dwOption = INTERNET_PER_CONN_PROXY_SERVER;
-		if (!InternetQueryOptionA(nullptr, INTERNET_OPTION_PER_CONNECTION_OPTION, &optlist, &optlistsize))
-			return {};
-		GlobalPStr proxyServer(opt.Value.pszValue);
-
-		opt.dwOption = INTERNET_PER_CONN_PROXY_BYPASS;
-		if (!InternetQueryOptionA(nullptr, INTERNET_OPTION_PER_CONNECTION_OPTION, &optlist, &optlistsize))
-			return {};
-		GlobalPStr proxyBypass(opt.Value.pszValue);
-
-		return std::string(GetProxyForUrl(url, proxyServer.get(), proxyBypass.get()));
+		autoProxyOpts.dwFlags = WINHTTP_AUTOPROXY_AUTO_DETECT;
+		autoProxyOpts.dwAutoDetectFlags = WINHTTP_AUTO_DETECT_TYPE_DHCP | WINHTTP_AUTO_DETECT_TYPE_DNS_A;
 	}
-	else if (opt.Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL)
+
+	if (inetFlags & PROXY_TYPE_AUTO_PROXY_URL)
 	{
-		static bool pacUnsupportedWarned = false;
-		if (!pacUnsupportedWarned)
+		GlobalPStr autoConfigUrl = GetInetPerConnOptionString(INTERNET_PER_CONN_AUTOCONFIG_URL);
+		std::wstring autoConfigUrlW;
+		if (autoConfigUrl)
 		{
-			LogWarn("Proxy: PAC is not supported. Connections will be made directly.");
-			pacUnsupportedWarned = true;
+			autoConfigUrlW = StringToWString(autoConfigUrl.get());
+			autoProxyOpts.dwFlags |= WINHTTP_AUTOPROXY_CONFIG_URL;
+			autoProxyOpts.lpszAutoConfigUrl = autoConfigUrlW.c_str();
 		}
+	}
+
+	WINHTTP_PROXY_INFO proxyInfo;
+
+	if (!pfnWinHttpGetProxyForUrl(session, StringToWString(url).c_str(), &autoProxyOpts, &proxyInfo))
+		throw std::system_error(GetLastError(), winhttp_category());
+
+	ScopeGuard proxyInfoDeleter([&proxyInfo]()
+		{
+			if (proxyInfo.lpszProxy)
+				GlobalFree(proxyInfo.lpszProxy);
+			if (proxyInfo.lpszProxyBypass)
+				GlobalFree(proxyInfo.lpszProxyBypass);
+		});
+
+	if (proxyInfo.dwAccessType != WINHTTP_ACCESS_TYPE_NAMED_PROXY)
+		return {};
+
+	std::string proxyServer, proxyBypass;
+	if (proxyInfo.lpszProxy)
+		proxyServer = WStringToString(proxyInfo.lpszProxy);
+	if (proxyInfo.lpszProxyBypass)
+		proxyBypass = WStringToString(proxyInfo.lpszProxyBypass);
+
+	return std::string(GetProxyForUrl(url, proxyServer, proxyBypass));
+}
+
+std::string GetProxyForUrl(std::string_view url)
+{
+	try
+	{
+		if (RegKey key = RegOpenConfigKey(); key.GetDword(L"ProxyOverrideSystemDefault"))
+		{
+			std::string proxyServer = WStringToString(key.GetString(L"ProxyServer"));
+			std::string proxyBypass = WStringToString(key.GetString(L"ProxyBypass"));
+			return std::string(GetProxyForUrl(url, proxyServer, proxyBypass));
+		}
+
+		DWORD flags = GetInetPerConnOptionDword(INTERNET_PER_CONN_FLAGS);
+
+		if (flags & PROXY_TYPE_PROXY)
+		{
+			GlobalPStr proxyServer = GetInetPerConnOptionString(INTERNET_PER_CONN_PROXY_SERVER);
+			GlobalPStr proxyBypass = GetInetPerConnOptionString(INTERNET_PER_CONN_PROXY_BYPASS);
+
+			return std::string(GetProxyForUrl(
+				url,
+				proxyServer ? proxyServer.get() : std::string_view(),
+				proxyBypass ? proxyBypass.get() : std::string_view()
+			));
+		}
+		else if (flags & (PROXY_TYPE_AUTO_PROXY_URL | PROXY_TYPE_AUTO_DETECT))
+		{
+			// WinHttp only accepts http(s) schemes. Convert ws(s) to http(s) first.
+
+			size_t schemeDelimPos = url.find("://");
+			std::string newUrl;
+			if (schemeDelimPos == url.npos)
+			{
+				newUrl = "http://";
+				newUrl += url;
+			}
+			else
+			{
+				auto scheme = url.substr(0, schemeDelimPos);
+				if (EqualsIgnoreCase(scheme, "ws"))
+					newUrl = "http://";
+				else if (EqualsIgnoreCase(scheme, "wss"))
+					newUrl = "https://";
+				newUrl += url.substr(schemeDelimPos + 3);
+			}
+
+			return GetProxyForUrl_PAC(newUrl, flags);
+		}
+	}
+	catch (const std::system_error& ex)
+	{
+		LogWarn("Proxy: Failed to get proxy settings, connections will be made directly: {}", ex);
 	}
 
 	return {}; // Empty string indicates no proxy (direct)

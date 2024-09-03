@@ -103,6 +103,9 @@
     <ClInclude Include="WSLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SystemLibraryErrorCategory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter.cpp">
