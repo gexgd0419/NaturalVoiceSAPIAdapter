@@ -18,11 +18,15 @@ static FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli)
 
 		// load DLLs required by Speech SDK first to avoid "module not found"
 		// system will use the already loaded DLL with the same name
-		static constexpr const char* RequiredDLLs[] = { "SpeechSDKShim.dll", "ucrtbase.dll",
-			"msvcp140.dll", "msvcp140_codecvt_ids.dll", "vcruntime140.dll"
+		static constexpr const char* RequiredDLLs[] = {
+			"SpeechSDKShim.dll",
+			"ucrtbase.dll",
+			"vcruntime140.dll",
 #ifdef _WIN64
-			, "vcruntime140_1.dll"
+			"vcruntime140_1.dll",
 #endif
+			"msvcp140.dll",  // depends on vcruntime140
+			"msvcp140_codecvt_ids.dll"  // depends on vcruntime140
 		};
 		constexpr size_t DLLCount = sizeof RequiredDLLs / sizeof RequiredDLLs[0];
 		HandleWrapper<HMODULE, FreeLibrary> hRequiredDLLs[DLLCount];  // wrappers to free the DLLs
