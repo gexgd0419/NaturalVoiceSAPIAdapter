@@ -250,114 +250,105 @@ inline static bool CheckHrNotFound(HRESULT hr)
     return false;
 }
 
+LSTATUS TryLoadAzureSpeechSDK();
+
 bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
 {
-    try
+    if (TryLoadAzureSpeechSDK() != ERROR_SUCCESS)
+        return false; // fallback
+
+    CSpDynamicString pszPath, pszKey;
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"Path", &pszPath))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
+        return false;
+
+    auto path = WStringToUTF8(pszPath.m_psz);
+
+    if (logger.should_log(spdlog::level::warn))
     {
-        CSpDynamicString pszPath, pszKey;
-        if (CheckHrNotFound(pConfigKey->GetStringValue(L"Path", &pszPath))
-            || CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
-            return false;
-
-        auto path = WStringToUTF8(pszPath.m_psz);
-
-        if (logger.should_log(spdlog::level::warn))
+        if (!std::all_of(path.begin(), path.end(),
+            [](unsigned char ch) { return ch < 128; }))
         {
-            if (!std::all_of(path.begin(), path.end(),
-                [](unsigned char ch) { return ch < 128; }))
-            {
-                LogWarn("TTS init: Local voice path contains non-ASCII characters, may not work correctly: {}",
-                    path);
-            }
+            LogWarn("TTS init: Local voice path contains non-ASCII characters, may not work correctly: {}",
+                path);
         }
-
-        auto config = EmbeddedSpeechConfig::FromPath(path);
-
-        config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
-        config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
-        config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
-
-        // get the voice name by loading it first
-        auto synthesizer = SpeechSynthesizer::FromConfig(config);
-        auto result = synthesizer->GetVoicesAsync().get();
-        if (result->Reason != ResultReason::VoicesListRetrieved
-            || result->Voices.empty())
-        {
-            LogErr("Invalid local voice folder: {}", path);
-            throw std::invalid_argument(UTF8ToAnsi(result->ErrorDetails));
-        }
-        auto& voiceName = result->Voices[0]->Name;
-        config->SetSpeechSynthesisVoice(voiceName, WStringToUTF8(pszKey.m_psz));
-
-        if (m_errorMode == ErrorMode::ProbeForError)
-        {
-            auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
-        }
-
-        m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
-            AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
-
-        LogInfo("Local voice created: {}", voiceName);
-        return true;
     }
-    catch (const std::system_error& ex) // Possibly DLL loading error
+
+    auto config = EmbeddedSpeechConfig::FromPath(path);
+
+    config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
+    config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+    config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
+
+    // get the voice name by loading it first
+    auto synthesizer = SpeechSynthesizer::FromConfig(config);
+    auto result = synthesizer->GetVoicesAsync().get();
+    if (result->Reason != ResultReason::VoicesListRetrieved
+        || result->Voices.empty())
     {
-        if (ex.code().category() == std::system_category()) // Is DLL loading error
-            return false; // If so, fall back
-        throw;
+        LogErr("Invalid local voice folder: {}", path);
+        throw std::invalid_argument(UTF8ToAnsi(result->ErrorDetails));
     }
+    auto& voiceName = result->Voices[0]->Name;
+    config->SetSpeechSynthesisVoice(voiceName, WStringToUTF8(pszKey.m_psz));
+
+    if (m_errorMode == ErrorMode::ProbeForError)
+    {
+        auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
+        CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
+    }
+
+    m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
+        AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
+
+    LogInfo("Local voice created: {}", voiceName);
+    return true;
 }
 
 bool CTTSEngine::InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey)
 {
-    try
+    if (LSTATUS stat = TryLoadAzureSpeechSDK(); stat != ERROR_SUCCESS)
     {
-        CSpDynamicString pszKey, pszRegion, pszVoice;
-        if (CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey))
-            || CheckHrNotFound(pConfigKey->GetStringValue(L"Region", &pszRegion))
-            || CheckHrNotFound(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
-            return false;
-
-        auto config = SpeechConfig::FromSubscription(WStringToUTF8(pszKey.m_psz), WStringToUTF8(pszRegion.m_psz));
-
-        config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
-        config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
-        config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
-
-        auto proxy = GetProxyForUrl("https://" + WStringToUTF8(pszRegion.m_psz) + AZURE_TTS_HOST_AFTER_REGION);
-        if (!proxy.empty())
-        {
-            auto url = ParseUrl(proxy);
-            uint32_t port = 80;
-            std::from_chars(url.port.data(), url.port.data() + url.port.size(), port);
-            config->SetProxy(std::string(url.host), port);
-        }
-
-        config->SetSpeechSynthesisVoiceName(WStringToUTF8(pszVoice.m_psz));
-        m_onlineVoiceName = pszVoice;
-
-        if (m_errorMode == ErrorMode::ProbeForError)
-        {
-            auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
-            CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
-        }
-
-        m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
-            AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
-
-        LogInfo("Cloud voice (Azure Speech SDK) created: {}", pszVoice.m_psz);
-        return true;
+        LogInfo("TTS init: Azure Speech SDK failed ({}), falling back to Rest API",
+            std::system_category().message(stat));
+        return false; // fallback
     }
-    catch (const std::system_error& ex) // Possibly DLL loading error
+
+    CSpDynamicString pszKey, pszRegion, pszVoice;
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Region", &pszRegion))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Voice", &pszVoice)))
+        return false;
+
+    auto config = SpeechConfig::FromSubscription(WStringToUTF8(pszKey.m_psz), WStringToUTF8(pszRegion.m_psz));
+
+    config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);
+    config->SetProperty(PropertyId::SpeechServiceResponse_RequestSentenceBoundary, "true");
+    config->SetProperty(PropertyId::SpeechServiceResponse_RequestPunctuationBoundary, "false");
+
+    auto proxy = GetProxyForUrl("https://" + WStringToUTF8(pszRegion.m_psz) + AZURE_TTS_HOST_AFTER_REGION);
+    if (!proxy.empty())
     {
-        if (ex.code().category() == std::system_category()) // Is DLL loading error
-        {
-            LogInfo("TTS init: Azure Speech SDK failed ({}), falling back to Rest API", ex);
-            return false; // fallback
-        }
-        throw;
+        auto url = ParseUrl(proxy);
+        uint32_t port = 80;
+        std::from_chars(url.port.data(), url.port.data() + url.port.size(), port);
+        config->SetProxy(std::string(url.host), port);
     }
+
+    config->SetSpeechSynthesisVoiceName(WStringToUTF8(pszVoice.m_psz));
+    m_onlineVoiceName = pszVoice;
+
+    if (m_errorMode == ErrorMode::ProbeForError)
+    {
+        auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
+        CheckSynthesisResult(synthesizer->SpeakText("")); // test for possible error
+    }
+
+    m_synthesizer = SpeechSynthesizer::FromConfig(config, AudioConfig::FromStreamOutput(
+        AudioOutputStream::CreatePushStream(std::bind_front(&CTTSEngine::OnAudioData, this))));
+
+    LogInfo("Cloud voice (Azure Speech SDK) created: {}", pszVoice.m_psz);
+    return true;
 }
 
 bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)

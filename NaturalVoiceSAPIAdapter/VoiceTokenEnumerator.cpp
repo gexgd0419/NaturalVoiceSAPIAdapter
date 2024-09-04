@@ -299,6 +299,8 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     });
 }
 
+LSTATUS TryLoadAzureSpeechSDK();
+
 // Exception handling in token enumeration functions:
 //   Fail immediately on std::bad_alloc, which is often critical;
 //   Log and ignore on other exceptions, because we don't want to break SAPI and prevent enumerating other SAPI voices.
@@ -307,6 +309,9 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
 {
     try
     {
+        if (LSTATUS stat = TryLoadAzureSpeechSDK(); stat != ERROR_SUCCESS)
+            throw std::system_error(stat, std::system_category());
+
         // Get all package paths, and then load all voices in one call
         // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
         // slowing down the enumeration process as more voices are installed
@@ -351,6 +356,10 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
             LogWarn("Voice enum: Cannot get installed voice list: {}", ex.message());
         }
     }
+    catch (const std::system_error& ex)
+    {
+        LogWarn("Voice enum: Cannot get installed voice list: {}", ex);
+    }
     catch (const std::exception& ex)
     {
         LogWarn("Voice enum: Cannot get installed voice list: {}", ex);
@@ -367,6 +376,9 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
 
     try
     {
+        if (LSTATUS stat = TryLoadAzureSpeechSDK(); stat != ERROR_SUCCESS)
+            throw std::system_error(stat, std::system_category());
+
         // Get all package paths, and then load all voices in one call
         // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
         // slowing down the enumeration process as more voices are installed
@@ -428,6 +440,10 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
     catch (const std::bad_alloc&)
     {
         throw;
+    }
+    catch (const std::system_error& ex)
+    {
+        LogWarn("Voice enum: Cannot get voice list from folder: {}", ex);
     }
     catch (const std::exception& ex)
     {
@@ -705,6 +721,10 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
     catch (const std::bad_alloc&)
     {
         throw;
+    }
+    catch (const std::system_error& ex)
+    {
+        LogWarn("Voice enum: Cannot get online voice list: {}", ex);
     }
     catch (const std::exception& ex)
     {
