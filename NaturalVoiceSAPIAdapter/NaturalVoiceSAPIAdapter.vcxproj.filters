@@ -17,135 +17,162 @@
       <UniqueIdentifier>{14675bda-c880-4248-bd7f-e515cdcc355b}</UniqueIdentifier>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
+    <Filter Include="Header Files\Exceptions">
+      <UniqueIdentifier>{98096fce-90b2-46e5-aa64-e39e42a61df9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SAPI Classes">
+      <UniqueIdentifier>{beed096d-2a33-4b55-b2f6-79f51ab1a791}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utils">
+      <UniqueIdentifier>{35f6fbb8-b9a1-49c5-8665-938b149153a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Framework">
+      <UniqueIdentifier>{9619d39a-d161-412b-a12b-4018cb8c0f83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SpeechRestAPI">
+      <UniqueIdentifier>{17591154-f59d-48a1-ba4a-f5da554c05f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SAPI Classes">
+      <UniqueIdentifier>{dbdcb9ee-7996-4260-99ca-78a8d404440b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{6d96aed6-c3de-4d63-904b-635d05503b1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SpeechRestAPI">
+      <UniqueIdentifier>{1727ac58-e025-4ac7-bb84-71a955080afa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Framework">
+      <UniqueIdentifier>{37d56345-4034-4b17-b3b8-154417d00e4e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dllmain.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NaturalVoiceSAPIAdapter_i.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TTSEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SpeechRestAPI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VoiceTokenEnumerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectToken.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DataKey.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DataKeyAutomation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectTokenAutomation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SpeechServiceConstants.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Mp3Decoder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StringTokenizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="NetUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StrUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LangUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TokenEnumerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VoiceToken.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TaskScheduler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RegKey.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AzacException.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SapiException.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Logger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WSLogger.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Exceptions</Filter>
     </ClInclude>
     <ClInclude Include="SystemLibraryErrorCategory.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="SapiException.h">
+      <Filter>Header Files\Exceptions</Filter>
+    </ClInclude>
+    <ClInclude Include="DataKey.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="DataKeyAutomation.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectToken.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectTokenAutomation.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceToken.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="VoiceTokenEnumerator.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="TTSEngine.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="TokenEnumerator.h">
+      <Filter>Header Files\SAPI Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="LangUtils.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="NetUtils.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="StrUtils.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="StringTokenizer.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskScheduler.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="RegKey.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="dllmain.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files\Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeechRestAPI.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="SpeechServiceConstants.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="Mp3Decoder.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="WSLogger.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NaturalVoiceSAPIAdapter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="NaturalVoiceSAPIAdapter_i.c">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="VoiceTokenEnumerator.cpp">
+      <Filter>Source Files\SAPI Classes</Filter>
     </ClCompile>
     <ClCompile Include="TTSEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SpeechRestAPI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="delaydll.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VoiceTokenEnumerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mp3Decoder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="NetUtils.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\SAPI Classes</Filter>
     </ClCompile>
     <ClCompile Include="LangUtils.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="FileCache.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="NetUtils.cpp">
+      <Filter>Source Files\Utils</Filter>
     </ClCompile>
     <ClCompile Include="Logger.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="FileCache.cpp">
+      <Filter>Source Files\SpeechRestAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="Mp3Decoder.cpp">
+      <Filter>Source Files\SpeechRestAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="SpeechRestAPI.cpp">
+      <Filter>Source Files\SpeechRestAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="delaydll.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="NaturalVoiceSAPIAdapter.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files\Framework</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -156,9 +183,6 @@
   <ItemGroup>
     <None Include="NaturalVoiceSAPIAdapter.rgs">
       <Filter>Resource Files</Filter>
-    </None>
-    <None Include="NaturalVoiceSAPIAdapter.def">
-      <Filter>Source Files</Filter>
     </None>
     <None Include="TTSEngine.rgs">
       <Filter>Resource Files</Filter>
@@ -179,10 +203,13 @@
     <None Include="EdgeVoiceListCache.json">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="NaturalVoiceSAPIAdapter.def">
+      <Filter>Source Files\Framework</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Framework</Filter>
     </Midl>
   </ItemGroup>
 </Project>
