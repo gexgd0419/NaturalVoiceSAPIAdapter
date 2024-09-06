@@ -63,6 +63,18 @@ public:
 	const char* name() const noexcept override { return "mci"; }
 	std::string message(int ev) const override
 	{
+		switch (ev)
+		{
+		case ACMERR_NOTPOSSIBLE:
+			return "ACM decoder cannot decode MP3 audio";
+		case ACMERR_BUSY:
+			return "ACMERR_BUSY";
+		case ACMERR_UNPREPARED:
+			return "ACMERR_UNPREPARED";
+		case ACMERR_CANCELED:
+			return "ACMERR_CANCELED";
+		}
+
 		char msg[256];
 		mciGetErrorStringA(ev, msg, sizeof msg);
 		return msg;

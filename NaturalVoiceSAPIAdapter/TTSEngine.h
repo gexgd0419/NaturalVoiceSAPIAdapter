@@ -178,7 +178,7 @@ private: // Private methods
 	template <class Exception, class... Args>
 	HRESULT OnException(
 		Exception&& exception,
-		FormatStringT<Args..., std::string> logFormat,
+		FormatStringT<Args..., Exception> logFormat,
 		Args&&... logArgs) noexcept;
 
 private: // Static members
@@ -196,7 +196,7 @@ OBJECT_ENTRY_AUTO(__uuidof(TTSEngine), CTTSEngine)
 template <class Exception, class... Args>
 HRESULT CTTSEngine::OnException(
 	Exception&& ex,
-	FormatStringT<Args..., std::string> logFormat,
+	FormatStringT<Args..., Exception> logFormat,
 	Args&&... logArgs) noexcept
 {
 	using T = std::remove_cvref_t<Exception>;
@@ -205,7 +205,7 @@ HRESULT CTTSEngine::OnException(
 	{
 		std::wstring wmsg = StringToWString(ex.what());
 		Error(wmsg.c_str());
-		LogErr(logFormat, std::forward<Args>(logArgs)..., wmsg);
+		LogErr(logFormat, std::forward<Args>(logArgs)..., ex);
 		if (m_errorMode == ErrorMode::ShowMessageOnError)
 		{
 			if constexpr (std::is_base_of_v<std::system_error, T>)
