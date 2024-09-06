@@ -11,6 +11,16 @@
 
 // CTTSEngine
 
+// GetTickCount() is deprecated and can overflow every 49 days.
+// But GetTickCount64() isn't supported on XP,
+// and we are only using the ticks to calculate intervals by subtracting two ticks,
+// so overflowing does not matter, and we use this to disable the warning
+static inline DWORD _GetTickCount()
+{
+#pragma warning (disable: 28159)
+    return GetTickCount();
+#pragma warning (default: 28159)
+}
 
 // ISpObjectWithToken Implementation
 
@@ -103,7 +113,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         m_compensatedSilenceWritten = false;
         m_compensatedSilentBytes = 0;
         m_lastSilentBytes = 0;
-        m_thisSpeakStartedTicks = GetTickCount();
+        m_thisSpeakStartedTicks = _GetTickCount();
         m_onlineDelayOptimization =
             !m_onlineVoiceName.empty() && RegOpenConfigKey().GetDword(L"EnableOnlineDelayOptimization");
 
@@ -153,7 +163,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                     m_restApi->GetWaveBytesWritten() + m_compensatedSilentBytes - m_lastSilentBytes);
             }
 
-            m_lastSpeakCompletedTicks = GetTickCount();
+            m_lastSpeakCompletedTicks = _GetTickCount();
         }
 
         return S_OK;
@@ -427,7 +437,7 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
     {
         if (!m_compensatedSilenceWritten)
         {
-            DWORD currentTicks = GetTickCount();
+            DWORD currentTicks = _GetTickCount();
             DWORD passedMs = currentTicks - m_thisSpeakStartedTicks;  // delay of this connection
             LogDebug("Speak: Connection delay: {}ms", passedMs);
             // Speak() usually returns before the audio finishes.
