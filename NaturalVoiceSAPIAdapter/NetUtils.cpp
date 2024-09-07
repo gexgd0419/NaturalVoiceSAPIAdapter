@@ -223,6 +223,15 @@ static std::string GetProxyForUrl_PAC(std::string_view url, DWORD inetFlags)
 	if (!session)
 		return {};
 
+	static DWORD lastFailedTicks = 0;
+
+#pragma warning (suppress: 28159)  // Suppress GetTickCount deprecated warning
+	if (lastFailedTicks != 0 && GetTickCount() - lastFailedTicks <= 60000 * 5)
+	{
+		// if there was no PAC file in the past 5 minutes, don't requery
+		return {};
+	}
+
 	WINHTTP_AUTOPROXY_OPTIONS autoProxyOpts = {};
 
 	if (inetFlags & PROXY_TYPE_AUTO_DETECT)
@@ -246,7 +255,22 @@ static std::string GetProxyForUrl_PAC(std::string_view url, DWORD inetFlags)
 	WINHTTP_PROXY_INFO proxyInfo;
 
 	if (!pfnWinHttpGetProxyForUrl(session, StringToWString(url).c_str(), &autoProxyOpts, &proxyInfo))
-		throw std::system_error(GetLastError(), winhttp_category());
+	{
+		DWORD err = GetLastError();
+		if (err == ERROR_WINHTTP_AUTODETECTION_FAILED)
+		{
+			// A common error when proxy auto-detect is enabled but no PAC is set.
+			// Don't throw or log at warning level in this case.
+#pragma warning (suppress: 28159)  // Suppress GetTickCount deprecated warning
+			lastFailedTicks = GetTickCount();  // Do not requery in the next 5 minutes
+			LogDebug("Proxy: Auto detection failed");
+			return {};
+		}
+		else
+			throw std::system_error(err, winhttp_category());
+	}
+
+	lastFailedTicks = 0;
 
 	ScopeGuard proxyInfoDeleter([&proxyInfo]()
 		{
