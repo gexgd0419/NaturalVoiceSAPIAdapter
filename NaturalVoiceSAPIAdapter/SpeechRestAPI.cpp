@@ -43,7 +43,10 @@ SpeechRestAPI::SpeechRestAPI()
 SpeechRestAPI::~SpeechRestAPI()
 {
 	m_client.stop();
-	m_isStopping = true;
+	{
+		std::lock_guard lock(m_mp3QueueMutex);
+		m_isStopping = true;
+	}
 	m_mp3ThreadNotifier.notify_all();
 	m_asioThread.join();
 	m_mp3Thread.join();
