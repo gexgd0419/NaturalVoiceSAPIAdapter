@@ -29,7 +29,7 @@ static std::string ReadTextFromFile(HANDLE hFile)
     return str;
 }
 
-static std::string GetInitialCacheContent(LPCWSTR cacheName)
+static std::string_view GetInitialCacheContent(LPCWSTR cacheName)
 {
     HMODULE hThisModule = reinterpret_cast<HMODULE>(&__ImageBase);
     HRSRC hResInfo = FindResourceW(hThisModule, cacheName, L"CACHEFILE");
@@ -40,7 +40,7 @@ static std::string GetInitialCacheContent(LPCWSTR cacheName)
         throw std::system_error(GetLastError(), std::system_category());
     DWORD size = SizeofResource(hThisModule, hResInfo);
     LPSTR pContent = static_cast<LPSTR>(LockResource(hRes));
-    return std::string(pContent, size);
+    return std::string_view(pContent, size);
 }
 
 static bool IsFolderWritable(LPWSTR path) noexcept
