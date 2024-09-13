@@ -351,6 +351,7 @@
     <None Include="packages.config" />
     <None Include="TTSEngine.rgs" />
     <None Include="ObjectTokenAutomation.rgs" />
+    <None Include="VoiceExtraAttrs.json" />
     <None Include="VoiceTokenEnumerator.rgs" />
   </ItemGroup>
   <ItemGroup>

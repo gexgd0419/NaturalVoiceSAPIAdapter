@@ -7,7 +7,7 @@
 #define IDR_TTSENGINE                   106
 #define IDR_VOICETOKENENUMERATOR        107
 #define IDR_DATAKEYAUTOMATION           201
-#define IDR_OBJECTTOKENAUTOMATION        202
+#define IDR_OBJECTTOKENAUTOMATION       202
 
 // Next default values for new objects
 // 

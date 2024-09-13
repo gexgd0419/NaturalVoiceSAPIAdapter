@@ -108,3 +108,25 @@ inline HRESULT MergeIntoCoString(CSpDynamicString& destString, std::wstring_view
 	destString.m_psz = p;
 	return S_OK;
 }
+
+inline std::wstring_view GetResString(UINT uID) noexcept
+{
+	HMODULE hThisModule = reinterpret_cast<HMODULE>(&__ImageBase);
+	LPWSTR pStr = nullptr;
+	int cch = LoadStringW(hThisModule, uID, reinterpret_cast<LPWSTR>(&pStr), 0);
+	return std::wstring_view(pStr, cch);
+}
+
+inline std::string_view GetResData(LPCWSTR name, LPCWSTR type)
+{
+	HMODULE hThisModule = reinterpret_cast<HMODULE>(&__ImageBase);
+	HRSRC hResInfo = FindResourceW(hThisModule, name, type);
+	if (!hResInfo)
+		throw std::system_error(GetLastError(), std::system_category());
+	HGLOBAL hRes = LoadResource(hThisModule, hResInfo);
+	if (!hRes)
+		throw std::system_error(GetLastError(), std::system_category());
+	DWORD size = SizeofResource(hThisModule, hResInfo);
+	LPSTR pContent = static_cast<LPSTR>(LockResource(hRes));
+	return std::string_view(pContent, size);
+}

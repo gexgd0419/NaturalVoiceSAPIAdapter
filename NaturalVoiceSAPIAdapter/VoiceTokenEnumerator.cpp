@@ -237,14 +237,30 @@ static void TrimVoiceName(std::wstring& longName)
     }
 }
 
+static const nlohmann::json& GetVoiceExtraAttrs()
+{
+    static nlohmann::json json = nlohmann::json::parse(GetResData(L"VoiceExtraAttrs.json", L"JSON"));
+    return json;
+}
+
+static std::wstring GetVoiceAge(const std::string& shortName)
+{
+    auto& json = GetVoiceExtraAttrs();
+    auto voice = json.find(shortName);
+    if (voice == json.end())
+        return {};
+    auto age = voice->find("Age");
+    if (age == voice->end())
+        return {};
+    return UTF8ToWString(age->get<std::string>());
+}
+
 static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     const VoiceInfo& voiceInfo,
     ErrorMode errorMode = ErrorMode::ProbeForError,
     const std::wstring& namePrefix = {}
 )
 {
-    using namespace Microsoft::CognitiveServices::Speech;
-
     std::wstring localeName = UTF8ToWString(voiceInfo.Locale);
     std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
     if (languageIds.empty())
@@ -269,6 +285,16 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     std::wstring shortFriendlyName = friendlyName;
     TrimVoiceName(shortFriendlyName);
 
+    const char* pName = voiceInfo.Name.data();
+    // Get the base name, e.g. Microsoft Aria -> Aria
+    std::string baseName(
+        voiceInfo.Name.starts_with("Microsoft ") ? pName + 10 : pName, // remove "Microsoft " prefix if exists
+        pName + shortFriendlyName.size() // cut the end at the trimmed voice name length
+    );
+
+    // Make the shortName like "en-US-AriaNeural" because local voices do not have a short name
+    std::string shortName = voiceInfo.Locale + '-' + std::move(baseName) + "Neural";
+
     return std::shared_ptr<DataKeyData>(new DataKeyData {
         .path = name,
         .values = {
@@ -281,6 +307,7 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(voiceInfo.Properties.GetProperty("Gender")) },
+                    { L"Age", GetVoiceAge(shortName) },
                     { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
@@ -481,6 +508,7 @@ static std::shared_ptr<DataKeyData> MakeEdgeVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
+                    { L"Age", GetVoiceAge(json.at("ShortName")) },
                     { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },
@@ -533,6 +561,7 @@ static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
                 .values = {
                     { L"Name", std::move(shortFriendlyName) },
                     { L"Gender", UTF8ToWString(json.at("Gender")) },
+                    { L"Age", GetVoiceAge(json.at("ShortName")) },
                     { L"Language", std::move(languageIds) },
                     { L"Locale", std::move(localeName) },
                     { L"Vendor", L"Microsoft" },

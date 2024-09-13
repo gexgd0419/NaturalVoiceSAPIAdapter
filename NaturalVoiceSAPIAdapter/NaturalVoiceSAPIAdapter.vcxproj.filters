@@ -206,6 +206,7 @@
     <None Include="NaturalVoiceSAPIAdapter.def">
       <Filter>Source Files\Framework</Filter>
     </None>
+    <None Include="VoiceExtraAttrs.json" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl">

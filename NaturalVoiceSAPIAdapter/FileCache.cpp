@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include "TaskScheduler.h"
 #include "Logger.h"
+#include "StrUtils.h"
 
 extern TaskScheduler g_taskScheduler;
 
@@ -27,20 +28,6 @@ static std::string ReadTextFromFile(HANDLE hFile)
             return readlen;
         });
     return str;
-}
-
-static std::string_view GetInitialCacheContent(LPCWSTR cacheName)
-{
-    HMODULE hThisModule = reinterpret_cast<HMODULE>(&__ImageBase);
-    HRSRC hResInfo = FindResourceW(hThisModule, cacheName, L"CACHEFILE");
-    if (!hResInfo)
-        throw std::system_error(GetLastError(), std::system_category());
-    HGLOBAL hRes = LoadResource(hThisModule, hResInfo);
-    if (!hRes)
-        throw std::system_error(GetLastError(), std::system_category());
-    DWORD size = SizeofResource(hThisModule, hResInfo);
-    LPSTR pContent = static_cast<LPSTR>(LockResource(hRes));
-    return std::string_view(pContent, size);
 }
 
 static bool IsFolderWritable(LPWSTR path) noexcept
@@ -188,7 +175,7 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
 
     WCHAR szPath[MAX_PATH];
     if (!GetCachePath(szPath) || !PathAppendW(szPath, cacheName))
-        return nlohmann::json::parse(GetInitialCacheContent(cacheName));
+        return nlohmann::json::parse(GetResData(cacheName, L"JSON"));
 
     HANDLE hCacheFile = CreateFileW(szPath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
     if (hCacheFile != INVALID_HANDLE_VALUE)
@@ -240,5 +227,5 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
     }
 
     // Return the built-in cache data immediately.
-    return nlohmann::json::parse(GetInitialCacheContent(cacheName));
+    return nlohmann::json::parse(GetResData(cacheName, L"JSON"));
 }
