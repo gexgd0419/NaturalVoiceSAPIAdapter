@@ -2,7 +2,6 @@
 // Microsoft Visual C++ 生成的包含文件。
 // 供 NaturalVoiceSAPIAdapter.rc 使用
 //
-#define IDS_PROJNAME                    100
 #define IDR_NATURALVOICESAPIADAPTER     101
 #define IDR_TTSENGINE                   106
 #define IDR_VOICETOKENENUMERATOR        107
