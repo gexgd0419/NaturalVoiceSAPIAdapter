@@ -765,7 +765,7 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
     for (auto pTextFrag = pTextFragList; pTextFrag; pTextFrag = pTextFrag->pNext)
     {
-        if (pTextFrag->State.eAction != SPVA_Bookmark)
+        if (pTextFrag->State.eAction != SPVA_Bookmark && pTextFrag->ulTextLen != 0)
             hasText = true;
 
         // tag structure: <prosody><emphasis><say-as></say-as></emphasis></prosody>
