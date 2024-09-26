@@ -37,7 +37,7 @@ inline std::wstring StringToWString(std::string_view str, UINT codePage = CP_ACP
 {
 	if (str.empty()) return {};
 	int size = MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, str.data(), (int)str.size(), nullptr, 0);
-	if (size <= 0) throw std::system_error(GetLastError(), std::system_category());
+	if (size == 0) throw std::system_error(GetLastError(), std::system_category());
 	std::wstring ret;
 	ret.resize_and_overwrite(size, [str, codePage](wchar_t* buf, size_t size)
 		{
@@ -50,7 +50,7 @@ inline std::string WStringToString(std::wstring_view str, UINT codePage = CP_ACP
 {
 	if (str.empty()) return {};
 	int size = WideCharToMultiByte(codePage, 0, str.data(), (int)str.size(), nullptr, 0, nullptr, nullptr);
-	if (size <= 0) throw std::system_error(GetLastError(), std::system_category());
+	if (size == 0) throw std::system_error(GetLastError(), std::system_category());
 	std::string ret;
 	ret.resize_and_overwrite(size, [str, codePage](char* buf, size_t size)
 		{
