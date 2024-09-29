@@ -722,6 +722,41 @@ static bool NeedAddingSpace(std::wstring_view ssmlBefore, std::wstring_view strA
     return true;
 }
 
+static std::wstring_view GetXMLTagName(const std::wstring& tag)
+{
+    // from the first non-space character after the first '<',
+    // to the first space character after that
+    auto begin = std::find_if_not(tag.begin() + 1, tag.end() - 1, iswspace);
+    auto end = std::find_if(begin, tag.end() - 1, iswspace); // find the first space until the last '>'
+
+    return std::wstring_view(begin, end);
+}
+
+static std::wstring_view GetXMLClosingTagName(std::wstring_view tag)
+{
+    // from the first non-space character after the first '/',
+    // to the first space character after that
+    auto slash = std::find(tag.begin() + 1, tag.end() - 1, L'/');
+    auto begin = std::find_if_not(slash + 1, tag.end() - 1, iswspace);
+    auto end = std::find_if(begin, tag.end() - 1, iswspace); // find the first space until the last '>'
+
+    return std::wstring_view(begin, end);
+}
+
+static bool IsXMLClosingTag(std::wstring_view tag)  // </xxx>
+{
+    if (tag.size() < 4) return false;  // malformed
+    auto it = std::find_if_not(tag.begin() + 1, tag.end() - 1, iswspace);
+    return it != tag.end() - 1 && *it == L'/';
+}
+
+static bool IsXMLSelfClosingTag(std::wstring_view tag)  // <xxx/>
+{
+    if (tag.size() < 4) return false;  // malformed
+    auto it = std::find_if_not(tag.rbegin() + 1, tag.rend() - 1, iswspace);
+    return it != tag.rend() - 1 && *it == L'/';
+}
+
 // returns false if no actual text will be spoken
 bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 {
@@ -737,6 +772,11 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         mainRate = 0;
 
     bool isInProsodyTag = false, isInEmphasisTag = false, isInSayAsTag = false;
+
+    // A list of currently open custom XML tags from SPVA_ParseUnknownTag.
+    // We keep a list so that we can close and reopen the tags when appropriate.
+    std::vector<std::wstring> customTags;
+    bool isInCustomTags = false;
 
     // Edge online voices only support a limited subset of SSML
     bool isEdgeVoice = m_isEdgeVoice;
@@ -768,7 +808,7 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         if (pTextFrag->State.eAction != SPVA_Bookmark && pTextFrag->ulTextLen != 0)
             hasText = true;
 
-        // tag structure: <prosody><emphasis><say-as></say-as></emphasis></prosody>
+        // tag structure: <prosody><emphasis><custom-tags...><say-as></say-as></custom-tags...></emphasis></prosody>
         // <say-as> cannot contain tags
 
         if (!isInProsodyTag)
@@ -807,6 +847,14 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         {
             m_ssml.append(L"<emphasis>"); // (not supported by offline TTS)
             isInEmphasisTag = true;
+        }
+
+        // reopen all custom tags
+        if (!isInCustomTags)
+        {
+            for (const auto& customTag : customTags)
+                m_ssml.append(customTag);
+            isInCustomTags = true;
         }
 
         // NOTE: <say-as> tag cannot contain child tags.
@@ -893,10 +941,59 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
                 break;
 
             case SPVA_ParseUnknownTag: // insert it into SSML as-is
-                // TODO: Custom XML tags may not be closed properly
-                // when using VOICE tags to switch away from this voice
-                m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+            {
+                // The string should always start with '<' and end with '>',
+                // but no further warranty is given, as SAPI does no further check.
+                // So the actual XML tag might be malformed.
+
+                std::wstring_view tag(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+
+                if (IsXMLSelfClosingTag(tag))
+                {
+                    m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+                }
+                else if (IsXMLClosingTag(tag))
+                {
+                    std::wstring_view tagName = GetXMLClosingTagName(tag);
+
+                    auto tagToClose = std::find_if(customTags.rbegin(), customTags.rend(),
+                        [tagName](const std::wstring& tag)
+                        { return EqualsIgnoreCase(GetXMLTagName(tag), tagName); });
+
+                    // if there's no matching opening tag, ignore this closing tag
+                    if (tagToClose != customTags.rend())
+                    {
+                        if (tagToClose != customTags.rbegin())
+                        {
+                            LogWarn("Speak: XML tag '{}' closed in the wrong order", tag);
+                            // close all previous unclosed tags in reverse order
+                            for (auto it = customTags.rbegin(); it != tagToClose; ++it)
+                            {
+                                m_ssml.append(L"</");
+                                m_ssml.append(GetXMLTagName(*it));
+                                m_ssml.push_back(L'>');
+                            }
+                        }
+                        m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+                        customTags.erase(tagToClose.base() - 1, customTags.end());  // remove from tag list
+                    }
+                    else
+                    {
+                        LogWarn("Speak: Unmatched closing tag '{}', ignored", tag);
+                    }
+                }
+                else if (pTextFrag->ulTextLen >= 3) // opening tag
+                {
+                    m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+                    customTags.emplace_back(pTextFrag->pTextStart, pTextFrag->ulTextLen);  // add to tag list
+                }
+                else
+                {
+                    LogWarn("Speak: Malformed XML tag '{}', ignored", tag);
+                }
+
                 break;
+            }
             }
         }
 
@@ -933,6 +1030,17 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         {
             m_ssml.append(L"</say-as>");
             isInSayAsTag = false;
+        }
+        if (isInCustomTags && preserveTagLevel < 2)
+        {
+            // close all custom tags in reverse order
+            for (auto it = customTags.rbegin(); it != customTags.rend(); ++it)
+            {
+                m_ssml.append(L"</");
+                m_ssml.append(GetXMLTagName(*it));
+                m_ssml.push_back(L'>');
+            }
+            isInCustomTags = false;
         }
         if (isInEmphasisTag && preserveTagLevel < 2)
         {
