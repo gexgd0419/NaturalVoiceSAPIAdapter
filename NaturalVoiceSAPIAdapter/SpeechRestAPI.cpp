@@ -4,6 +4,9 @@
 #include "StrUtils.h"
 #include <format>
 #include "Logger.h"
+#include "WSConnectionPool.h"
+
+std::unique_ptr<WSConnectionPool> g_pConnectionPool = std::make_unique<WSConnectionPool>();
 
 static std::string MakeRandomUuid()
 {

@@ -133,6 +133,9 @@
     <ClInclude Include="WSLogger.h">
       <Filter>Header Files\SpeechRestAPI</Filter>
     </ClInclude>
+    <ClInclude Include="WSConnectionPool.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter_i.c">
@@ -173,6 +176,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files\Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="WSConnectionPool.cpp">
+      <Filter>Source Files\SpeechRestAPI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

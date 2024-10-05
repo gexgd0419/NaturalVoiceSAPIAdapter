@@ -6,10 +6,12 @@
 #include "NaturalVoiceSAPIAdapter_i.h"
 #include "dllmain.h"
 #include "TaskScheduler.h"
+#include "WSConnectionPool.h"
 
 CNaturalVoiceSAPIAdapterModule _AtlModule;
 
 TaskScheduler g_taskScheduler;
+extern std::unique_ptr<WSConnectionPool> g_pConnectionPool;
 
 void InitializeLogger() noexcept;
 void UninitializeLogger() noexcept;
@@ -32,6 +34,10 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
 		}
 		else
 		{
+			// skip its destruction, or ASIO would deadlock
+			// https://github.com/chriskohlhoff/asio/issues/869
+			g_pConnectionPool.release();
+
 			g_taskScheduler.Uninitialize(false);
 		}
 	}

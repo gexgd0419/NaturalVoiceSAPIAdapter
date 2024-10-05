@@ -109,8 +109,10 @@ private:
 	}
 
 public:
+	using TaskHandle = HANDLE;
+
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
-	HANDLE StartNewTask(DWORD delayMs, DWORD periodMs, Func&& func, Args&&... args)
+	TaskHandle StartNewTask(DWORD delayMs, DWORD periodMs, Func&& func, Args&&... args)
 	{
 		Initialize();
 		using Tuple = std::tuple<std::decay_t<Func>, std::decay_t<Args>...>;
@@ -140,18 +142,18 @@ public:
 	}
 
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
-	HANDLE StartNewTask(DWORD delayMs, Func&& func, Args&&... args)
+	TaskHandle StartNewTask(DWORD delayMs, Func&& func, Args&&... args)
 	{
 		return StartNewTask(delayMs, 0, std::forward<Func>(func), std::forward<Args>(args)...);
 	}
 
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
-	HANDLE StartNewTask(Func&& func, Args&&... args)
+	TaskHandle StartNewTask(Func&& func, Args&&... args)
 	{
 		return StartNewTask(0, 0, std::forward<Func>(func), std::forward<Args>(args)...);
 	}
 
-	void CancelTask(HANDLE hTask, bool waitForTask)
+	void CancelTask(TaskHandle hTask, bool waitForTask)
 	{
 		(void)DeleteTimerQueueTimer(hTimerQueue, hTask, waitForTask ? INVALID_HANDLE_VALUE : nullptr);
 	}

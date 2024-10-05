@@ -6,6 +6,11 @@
 
 extern spdlog::logger logger;
 
+template <class Type, template <class...> class Template>
+constexpr bool is_specialization_v = false;
+template <template <class...> class Template, class... Types>
+constexpr bool is_specialization_v<Template<Types...>, Template> = true;
+
 // spdlog assumes that everything is UTF8.
 // Unfortunately on Windows, many strings are wide,
 // and std::exception::what() often returns char* but ANSI.
@@ -28,6 +33,10 @@ constexpr decltype(auto) FormatLogArg(ArgT&& arg)
 		else
 			return std::string("(unknown)");
 	}
+	else if constexpr (is_specialization_v<T, std::unique_ptr> || is_specialization_v<T, std::shared_ptr>)
+		return (void*)arg.get();
+	else if constexpr (is_specialization_v<T, std::weak_ptr>)
+		return (void*)arg.lock().get();
 	else
 		return std::forward<ArgT>(arg);
 }

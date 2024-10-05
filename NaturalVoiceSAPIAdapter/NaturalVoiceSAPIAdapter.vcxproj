@@ -293,6 +293,7 @@
     <ClInclude Include="ObjectTokenAutomation.h" />
     <ClInclude Include="VoiceToken.h" />
     <ClInclude Include="VoiceTokenEnumerator.h" />
+    <ClInclude Include="WSConnectionPool.h" />
     <ClInclude Include="WSLogger.h" />
     <ClInclude Include="wrappers.h" />
   </ItemGroup>
@@ -338,6 +339,7 @@
     <ClCompile Include="FileCache.cpp" />
     <ClCompile Include="TTSEngine.cpp" />
     <ClCompile Include="VoiceTokenEnumerator.cpp" />
+    <ClCompile Include="WSConnectionPool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc" />
