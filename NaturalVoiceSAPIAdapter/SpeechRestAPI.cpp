@@ -6,7 +6,8 @@
 #include "Logger.h"
 #include "WSConnectionPool.h"
 
-std::unique_ptr<WSConnectionPool> g_pConnectionPool = std::make_unique<WSConnectionPool>();
+std::unique_ptr<WSConnectionPool> g_pConnectionPool;
+static std::once_flag s_initOnce;
 
 static std::string MakeRandomUuid()
 {
@@ -27,6 +28,11 @@ static std::string GetTimeStamp()
 
 SpeechRestAPI::SpeechRestAPI()
 {
+	std::call_once(s_initOnce, []()
+		{
+			if (!g_pConnectionPool)
+				g_pConnectionPool = std::make_unique<WSConnectionPool>();
+		});
 }
 
 SpeechRestAPI::~SpeechRestAPI()
