@@ -36,6 +36,10 @@
 #include <format>
 #include <queue>
 #include <optional>
+#include <map>
+#include <set>
+#include <mutex>
+#include <condition_variable>
 
 using ATL::CComPtr; // put this here to avoid 'CComPtr undeclared' in spddkhlp.h
 #pragma warning(suppress : 4996) // 'GetVersionExW' deprecated
