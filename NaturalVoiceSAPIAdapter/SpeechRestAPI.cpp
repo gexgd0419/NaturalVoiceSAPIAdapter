@@ -27,32 +27,11 @@ static std::string GetTimeStamp()
 
 SpeechRestAPI::SpeechRestAPI()
 {
-	m_client.init_asio();
-	m_client.set_tls_init_handler([](websocketpp::connection_hdl)
-		{
-			auto ctx = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23_client);
-			return ctx;
-		});
-	m_client.set_open_handler(std::bind_front(&SpeechRestAPI::OnOpen, this));
-	m_client.set_message_handler(std::bind_front(&SpeechRestAPI::OnMessage, this));
-	m_client.set_close_handler(std::bind_front(&SpeechRestAPI::OnClose, this));
-	m_client.set_fail_handler(std::bind_front(&SpeechRestAPI::OnFail, this));
-
-	// the two threads will run until this object is destroyed
-	m_asioThread = std::thread(std::bind_front(&SpeechRestAPI::AsioThread, this));
-	m_mp3Thread = std::thread(std::bind_front(&SpeechRestAPI::Mp3Thread, this));
 }
 
 SpeechRestAPI::~SpeechRestAPI()
 {
-	m_client.stop();
-	{
-		std::lock_guard lock(m_mp3QueueMutex);
-		m_isStopping = true;
-	}
-	m_mp3ThreadNotifier.notify_all();
-	m_asioThread.join();
-	m_mp3Thread.join();
+	m_stopSource.request_stop();
 }
 
 std::future<void> SpeechRestAPI::SpeakAsync(const std::wstring& ssml)
@@ -62,65 +41,18 @@ std::future<void> SpeechRestAPI::SpeakAsync(const std::wstring& ssml)
 	m_lastSentencePos = 0;
 	m_events = {};
 	m_waveBytesWritten = 0;
-	m_speakPromise = {};
-	m_isPromiseSet.clear();
+	m_stopSource = {};
+	m_firstDataReceived = false;
+	m_allDataReceived = false;
 
-	if (m_connection && m_connection->get_state() == websocketpp::session::state::open)
-	{
-		// Reuse existing connection
-		LogDebug("Rest API: Connection reused");
-		SendRequest(m_connection->get_handle());
-	}
-	else
-	{
-		// Open a new connection
-		std::error_code ec;
-		auto con = m_client.get_connection(m_websocketUrl, ec);
-		asio::detail::throw_error(ec);
-		if (!m_key.empty())
-			con->append_header("Ocp-Apim-Subscription-Key", m_key);
-		std::string proxy = GetProxyForUrl(m_websocketUrl);
-		if (!proxy.empty())
-		{
-			size_t schemeDelimPos = proxy.find("://");
-			if (schemeDelimPos == proxy.npos)
-			{
-				con->set_proxy("http://" + proxy);
-			}
-			else
-			{
-				std::string_view scheme(proxy.data(), schemeDelimPos);
-				if (EqualsIgnoreCase(scheme, "http"))
-					con->set_proxy(proxy);
-			}
-		}
+	auto fut = std::async(std::launch::async, std::bind(&SpeechRestAPI::DoSpeakAsync, this));
 
-		m_connection = std::move(con);
-		m_client.connect(m_connection);
-	}
-
-	auto fut = m_speakPromise.get_future();
 	return fut;
 }
 
 void SpeechRestAPI::Stop()
 {
-	m_allDataReceived = true;  // prevent warnings about incomplete data
-	std::error_code ec;
-	if (m_connection)
-	{
-		// Use terminate() instead of close() here to close the connection immediately.
-		// If not, we can still receive "connection opened" notification after closing
-		// if the user requested stopping before the connection is fully established,
-		// thus crashing the app when processing messages.
-		m_connection->terminate(ec);
-	}
-	{
-		std::lock_guard lock(m_mp3QueueMutex);
-		m_mp3Queue = {}; // clear the unread data
-		m_mp3QueueDone = true;
-	}
-	m_mp3ThreadNotifier.notify_one();
+	m_stopSource.request_stop();
 }
 
 void SpeechRestAPI::SetSubscription(std::string key, const std::string& region)
@@ -136,33 +68,33 @@ void SpeechRestAPI::SetWebsocketUrl(std::string key, std::string websocketUrl)
 	m_websocketUrl = std::move(websocketUrl);
 }
 
-bool SpeechRestAPI::IsCurrentConnection(const websocketpp::connection_hdl& hdl)
+void SpeechRestAPI::DoSpeakAsync()
 {
-	std::error_code ec;
-	return m_connection && m_connection == m_client.get_con_from_hdl(hdl, ec);
+	auto conn = g_pConnectionPool->TakeConnection(m_websocketUrl, m_key, m_stopSource.get_token());
+	if (!conn)
+		return;
+	ScopeGuard connectionCloser([this, &conn]()
+		{
+			// conn will be reset to nullptr by OnMessage when all data has been received.
+			// If not, close the connection before returning.
+			if (conn)
+				conn->terminate({});
+		});
+
+	BlockingQueue<std::string> queue;
+
+	conn->set_message_handler([this, &conn, &queue](websocketpp::connection_hdl, WSClient::message_ptr msg)
+		{ OnMessage(queue, conn, msg); });
+	conn->set_close_handler([this, &conn, &queue](websocketpp::connection_hdl)
+		{ OnClose(queue, conn); });
+
+	SendRequest(conn);
+
+	// does not return until all MP3 data are written
+	Mp3ProcessLoop(queue, m_stopSource.get_token());
 }
 
-void SpeechRestAPI::AsioThread()
-{
-	ScopeTracer tracer("Rest API: ASIO thread begin", "Rest API: ASIO thread end");
-
-	m_client.start_perpetual();
-	for (;;) // allows IO loop to recover from exceptions thrown from handlers
-	{
-		try
-		{
-			m_client.run();
-			break; // exit the thread on normal return
-		}
-		catch (...)
-		{
-			// pass the exception, then rejoin the IO loop
-			SpeakError(std::current_exception());
-		}
-	}
-}
-
-void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
+void SpeechRestAPI::ProcessWaveData(const WAVEFORMATEX& wfx, BYTE* waveData, uint32_t waveSize)
 {
 	// Most of the time, the server will send event data before audio data.
 	// But sometimes, event data may fall behind audio data.
@@ -190,10 +122,10 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 				else
 					break;
 			}
-			evtBytes = m_events.top().first * m_mp3Decoder.GetWaveFormat().nAvgBytesPerSec / 10'000'000;
+			evtBytes = m_events.top().first * wfx.nAvgBytesPerSec / 10'000'000;
 
 			// align evtBytes to wave blocks
-			WORD blockAlign = m_mp3Decoder.GetWaveFormat().nBlockAlign;
+			WORD blockAlign = wfx.nBlockAlign;
 			evtBytes = evtBytes - (evtBytes % blockAlign);
 
 			if (m_waveBytesWritten + waveSize <= evtBytes)  // we haven't reached the next event yet
@@ -243,137 +175,56 @@ void SpeechRestAPI::ProcessWaveData(BYTE* waveData, uint32_t waveSize)
 	}
 }
 
-void SpeechRestAPI::Mp3Thread()
+void SpeechRestAPI::Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_token token)
 {
-	ScopeTracer tracer("Rest API: MP3 thread begin", "Rest API: MP3 thread end");
-
-	m_mp3Decoder.Reset();
+	Mp3Decoder mp3Decoder;
 
 	for (;;)
 	{
-		try
+		auto msg = queue.take(token);
+		if (!msg.has_value())
+			return;
+
+		// msg is the whole message (including header) from server
+		// after "Path:audio\r\n" are audio binary data
+		// Note that the first 2 bytes are not part of the header string
+		std::string_view mp3data = *msg;
+		mp3data.remove_prefix(2);
+		size_t delimPos = mp3data.find("Path:audio\r\n");
+		if (delimPos == mp3data.npos) continue;
+		mp3data.remove_prefix(delimPos + 12);
+
+		if (!m_firstDataReceived)
 		{
-			std::string msg;
-
-			{ // begin lock
-				std::unique_lock lock(m_mp3QueueMutex);
-				while (!m_isStopping && m_mp3Queue.empty())
-				{
-					if (m_mp3QueueDone)
-					{
-						SpeakComplete();
-						m_mp3Decoder.Reset(); // re-create the decoder
-						m_mp3QueueDone = false;
-						m_firstDataReceived = false;
-					}
-					m_mp3ThreadNotifier.wait(lock);
-				}
-				if (m_isStopping)
-					return;
-				msg = std::move(m_mp3Queue.front());
-				m_mp3Queue.pop();
-			} // end lock
-
-			// msg is the whole message (including header) from server
-			// after "Path:audio\r\n" are audio binary data
-			// Note that the first 2 bytes are not part of the header string
-			std::string_view mp3data = msg;
-			mp3data.remove_prefix(2);
-			size_t delimPos = mp3data.find("Path:audio\r\n");
-			if (delimPos == mp3data.npos) continue;
-			mp3data.remove_prefix(delimPos + 12);
-
-			if (!m_firstDataReceived)
-			{
-				LogDebug("Rest API: MP3 data received");
-				m_firstDataReceived = true;
-			}
-
-			// Sending audio data to SAPI can block, so do this without lock
-			m_mp3Decoder.Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
-				std::bind_front(&SpeechRestAPI::ProcessWaveData, this));
+			LogDebug("Rest API: MP3 data received");
+			m_firstDataReceived = true;
 		}
-		catch (...)
-		{
-			SpeakError(std::current_exception());
-		}
+
+		// Sending audio data to SAPI can block, so do this without lock
+		mp3Decoder.Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
+			std::bind_front(&SpeechRestAPI::ProcessWaveData, this, std::ref(mp3Decoder.GetWaveFormat())));
 	}
 }
 
-void SpeechRestAPI::Mp3QueuePush(std::string&& msg)
+void SpeechRestAPI::OnClose(BlockingQueue<std::string>& queue, WSConnection& conn)
 {
-	{
-		std::lock_guard lock(m_mp3QueueMutex);
-		m_mp3Queue.emplace(std::move(msg));
-	}
-	m_mp3ThreadNotifier.notify_one();
-}
-
-void SpeechRestAPI::Mp3QueueDone()
-{
-	{
-		std::lock_guard lock(m_mp3QueueMutex);
-		m_mp3QueueDone = true;
-	}
-	m_mp3ThreadNotifier.notify_one();
-}
-
-void SpeechRestAPI::SpeakComplete()
-{
-	if (!m_isPromiseSet.test_and_set())
-		m_speakPromise.set_value();
-}
-
-void SpeechRestAPI::SpeakError(std::exception_ptr ex)
-{
-	if (!m_isPromiseSet.test_and_set())
-		m_speakPromise.set_exception(ex);
-}
-
-void SpeechRestAPI::OnClose(websocketpp::connection_hdl hdl)
-{
-	if (!IsCurrentConnection(hdl))
-		return;
-
 	LogDebug("Rest API: Connection closed");
-	if (!m_allDataReceived)
+	if (!m_allDataReceived && !m_stopSource.stop_requested())
 	{
 		LogWarn("Rest API: Connection closed before all data could be received.");
 	}
 
-	auto code = m_connection->get_remote_close_code();
-	m_connection->get_remote_close_reason();
+	auto code = conn->get_remote_close_code();
 	if (code == websocketpp::close::status::invalid_payload)
 	{
-		auto msg = std::string("Payload rejected by server: ") + UTF8ToAnsi(m_connection->get_remote_close_reason());
-		SpeakError(std::make_exception_ptr(std::runtime_error(msg)));
+		auto msg = std::string("Payload rejected by server: ") + UTF8ToAnsi(conn->get_remote_close_reason());
+		queue.fail(std::make_exception_ptr(std::runtime_error(msg)));
 	}
-	m_connection.reset();
-	Mp3QueueDone();
-}
-
-void SpeechRestAPI::OnFail(websocketpp::connection_hdl hdl)
-{
-	if (!IsCurrentConnection(hdl))
-		return;
-
-	LogDebug("Rest API: Connection failed");
-
-	auto ec = m_client.get_con_from_hdl(hdl)->get_ec();
-	if (ec)
-	{
-		asio::system_error e(ec);
-		// this should be before Mp3QueueDone()
-		// because the MP3 thread will call SpeakComplete() to set promise
-		SpeakError(std::make_exception_ptr(e));
-	}
-
-	m_connection.reset();
-	Mp3QueueDone();
+	queue.complete();
 }
 
 // Send configuration and wait for audio data response
-void SpeechRestAPI::SendRequest(websocketpp::connection_hdl hdl)
+void SpeechRestAPI::SendRequest(WSConnection& conn)
 {
 	m_allDataReceived = false;
 
@@ -399,14 +250,14 @@ void SpeechRestAPI::SendRequest(websocketpp::connection_hdl hdl)
 
 	std::string reqId = MakeRandomUuid();
 
-	m_client.send(hdl,
+	conn->send(
 		"X-Timestamp:" + GetTimeStamp() + "\r\n"
 		"Content-Type:application/json; charset=utf-8\r\n"
 		"Path:speech.config\r\n\r\n"
 		+ json.dump(),
 		websocketpp::frame::opcode::text);
 
-	m_client.send(hdl,
+	conn->send(
 		"X-Timestamp:" + GetTimeStamp() + "\r\n"
 		"X-RequestId:" + reqId + "\r\n"
 		"Content-Type:application/ssml+xml\r\n"
@@ -415,56 +266,51 @@ void SpeechRestAPI::SendRequest(websocketpp::connection_hdl hdl)
 		websocketpp::frame::opcode::text);
 }
 
-void SpeechRestAPI::OnOpen(websocketpp::connection_hdl hdl)
+void SpeechRestAPI::OnMessage(BlockingQueue<std::string>& queue, WSConnection& conn, WSClient::message_ptr msg)
 {
-	if (!IsCurrentConnection(hdl))
-		return;
-
-	LogDebug("Rest API: Connection opened");
-	
-	SendRequest(hdl);
-}
-
-void SpeechRestAPI::OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg)
-{
-	if (!IsCurrentConnection(hdl))
-		return;
-
-	if (msg->get_opcode() == websocketpp::frame::opcode::binary)
+	try
 	{
-		// If the message is binary, place this message in the queue to let the MP3 thread process it
-		Mp3QueuePush(std::move(msg->get_raw_payload()));
-	}
-	else
-	{
-		// If not, after "Path:xxx\r\n\r\n" are JSON texts
-		std::string_view text = msg->get_payload();
-		size_t pathStartPos = text.find("Path:");
-		if (pathStartPos == text.npos) return;
-		pathStartPos += 5;
-		size_t pathEndPos = text.find("\r\n\r\n", pathStartPos);
-		if (pathEndPos == text.npos) return;
-
-		std::string_view path = text.substr(pathStartPos, pathEndPos - pathStartPos);
-		if (path == "audio.metadata")
+		if (msg->get_opcode() == websocketpp::frame::opcode::binary)
 		{
-			auto json = nlohmann::json::parse(text.substr(pathEndPos + 4));
-			std::lock_guard lock(m_eventsMutex);
-			for (auto& event : json.at("Metadata"))
+			// If the message is binary, place this message in the queue to let the MP3 thread process it
+			queue.push(std::move(msg->get_raw_payload()));
+		}
+		else
+		{
+			// If not, after "Path:xxx\r\n\r\n" are JSON texts
+			std::string_view text = msg->get_payload();
+			size_t pathStartPos = text.find("Path:");
+			if (pathStartPos == text.npos) return;
+			pathStartPos += 5;
+			size_t pathEndPos = text.find("\r\n\r\n", pathStartPos);
+			if (pathEndPos == text.npos) return;
+
+			std::string_view path = text.substr(pathStartPos, pathEndPos - pathStartPos);
+			if (path == "audio.metadata")
 			{
-				// use audio offset ticks to sort the events
-				auto& data = event.at("Data");
-				auto it = data.find("Offset");
-				if (it != data.end())
-					m_events.emplace(it->get<uint64_t>(), std::move(event));
+				auto json = nlohmann::json::parse(text.substr(pathEndPos + 4));
+				std::lock_guard lock(m_eventsMutex);
+				for (auto& event : json.at("Metadata"))
+				{
+					// use audio offset ticks to sort the events
+					auto& data = event.at("Data");
+					auto it = data.find("Offset");
+					if (it != data.end())
+						m_events.emplace(it->get<uint64_t>(), std::move(event));
+				}
+			}
+			else if (path == "turn.end")
+			{
+				// Data receiving completed
+				m_allDataReceived = true;
+				queue.complete();
+				conn.reset();  // return the connection to the pool
 			}
 		}
-		else if (path == "turn.end")
-		{
-			// Data receiving completed
-			m_allDataReceived = true;
-			Mp3QueueDone();
-		}
+	}
+	catch (...)
+	{
+		queue.fail(std::current_exception());
 	}
 }
 

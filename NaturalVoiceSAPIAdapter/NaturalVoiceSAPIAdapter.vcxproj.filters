@@ -136,6 +136,9 @@
     <ClInclude Include="WSConnectionPool.h">
       <Filter>Header Files\SpeechRestAPI</Filter>
     </ClInclude>
+    <ClInclude Include="BlockingQueue.h">
+      <Filter>Header Files\SpeechRestAPI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter_i.c">

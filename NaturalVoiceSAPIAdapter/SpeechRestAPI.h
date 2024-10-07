@@ -9,6 +9,7 @@
 #include "WSLogger.h"
 #include "Mp3Decoder.h"
 #include "WSConnectionPool.h"
+#include "BlockingQueue.h"
 
 
 class SpeechRestAPI
@@ -57,19 +58,9 @@ private:
 	std::string m_voiceListUrl, m_websocketUrl, m_key;
 	size_t m_lastWordPos = 0, m_lastSentencePos = 0;
 
-private:
-	typedef websocketpp::client<WSConfig> WSClient;
-	typedef websocketpp::connection<WSConfig> WSConnection;
-	WSClient m_client;
-	std::shared_ptr<WSConnection> m_connection;
-	bool IsCurrentConnection(const websocketpp::connection_hdl& hdl);
-
 private: // threading
 
-	// We use two background threads to run the IO loop for ASIO,
-	// and the MP3 decoder loop that sends audio to SAPI.
-	std::thread m_asioThread;
-	std::thread m_mp3Thread;
+	std::stop_source m_stopSource;
 
 	// We have to queue received audio data instead of sending them directly to SAPI.
 	// SAPI will block write calls before it needs more data,
@@ -77,33 +68,17 @@ private: // threading
 	// even if not all data are sent.
 	// So we have to store all received audio data in a queue temporarily,
 	// then use another thread for sending the data to SAPI.
-	std::queue<std::string> m_mp3Queue;
-	std::mutex m_mp3QueueMutex;
-	std::condition_variable m_mp3ThreadNotifier;
-	Mp3Decoder m_mp3Decoder;
-	bool m_isStopping = false;
-	bool m_mp3QueueDone = false;
 	bool m_firstDataReceived = false;
 	bool m_allDataReceived = false;
 
-	void AsioThread();
-	void Mp3Thread();
-	void ProcessWaveData(BYTE* waveData, uint32_t waveSize);
-	void Mp3QueuePush(std::string&& msg);
-	void Mp3QueueDone();
-
-	// asynchronous results returned through SpeakAsync()
-	std::atomic_flag m_isPromiseSet;
-	std::promise<void> m_speakPromise;
-	void SpeakComplete();
-	void SpeakError(std::exception_ptr ex);
+	void DoSpeakAsync();
+	void Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_token token);
+	void ProcessWaveData(const WAVEFORMATEX& wfx, BYTE* waveData, uint32_t waveSize);
 
 private:
-	void SendRequest(websocketpp::connection_hdl hdl);
-	void OnOpen(websocketpp::connection_hdl hdl);
-	void OnMessage(websocketpp::connection_hdl hdl, WSClient::message_ptr msg);
-	void OnClose(websocketpp::connection_hdl hdl);
-	void OnFail(websocketpp::connection_hdl hdl);
+	void SendRequest(WSConnection& conn);
+	void OnMessage(BlockingQueue<std::string>& queue, WSConnection& conn, WSClient::message_ptr msg);
+	void OnClose(BlockingQueue<std::string>& queue, WSConnection& conn);
 	void OnSynthEvent(const nlohmann::json& metadata);
 	size_t FindWord(const std::string& utf8Word, size_t& lastPos);
 };

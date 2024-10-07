@@ -267,6 +267,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AzacException.h" />
+    <ClInclude Include="BlockingQueue.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LangUtils.h" />

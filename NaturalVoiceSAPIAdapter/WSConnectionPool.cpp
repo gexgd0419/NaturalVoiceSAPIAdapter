@@ -155,9 +155,20 @@ WSConnection WSConnectionPool::TakeConnection(
 
 	auto& info = host_it->second;
 
+	std::stop_callback stopCallback(stop_token, [this, &info]()
+		{
+			{ std::lock_guard lock(info.mutex); }  // lock and unlock
+			info.connectionChanged.notify_all();
+		});
+
+	// Define unique_lock AFTER stop_callback.
+	// This makes sure that the lock is unlocked BEFORE stop_callback is destroyed.
+	// Because the destructor of stop_callback will wait for the callback to complete,
+	// which can cause deadlocks.
 	std::unique_lock lock(info.mutex);
 
-	std::stop_callback stopCallback(stop_token, [this, &info]() { info.connectionChanged.notify_all(); });
+	if (stop_token.stop_requested())
+		return {};
 
 	for (;;)
 	{
@@ -316,8 +327,6 @@ void WSConnectionPool::KeepConnectionsAlive()
 	// but still no more than 4 minutes.
 	// So here we check if any connection lives long enough,
 	// if so, replace it with a new connection.
-
-	// TODO: Do not close old connections if new connections aren't ready.
 
 	const auto now = clock::now();
 
