@@ -129,7 +129,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         }
 
         while (!(pOutputSite->GetActions() & SPVES_ABORT)
-            && future.wait_for(std::chrono::milliseconds(50)) == std::future_status::timeout)
+            && future.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
         {
             if (pOutputSite->GetActions() & SPVES_SKIP)
             {
@@ -137,6 +137,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                 LogWarn("Speak: Skipping not supported, ignored");
                 pOutputSite->CompleteSkip(0);
             }
+            Sleep(50);
         }
 
         if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
