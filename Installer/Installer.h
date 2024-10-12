@@ -16,6 +16,17 @@ inline BOOL Is64BitSystem() noexcept
 #endif
 }
 
+inline BOOL IsArm64System() noexcept
+{
+#ifdef _M_ARM64
+    return TRUE;
+#else
+    static auto pfn = (decltype(IsWow64Process2)*)GetProcAddress(GetModuleHandleW(L"kernel32"), "IsWow64Process2");
+    USHORT proc_arch, host_arch;
+    return pfn && pfn(GetCurrentProcess(), &proc_arch, &host_arch) && host_arch == IMAGE_FILE_MACHINE_ARM64;
+#endif
+}
+
 inline BOOL IsWindowsVersionOrGreater(DWORD dwMajor, DWORD dwMinor) noexcept
 {
     OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };

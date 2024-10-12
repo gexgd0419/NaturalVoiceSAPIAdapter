@@ -74,7 +74,7 @@ void Register(bool is64Bit)
             std::system_category());
 
     PathRemoveFileSpecW(path);
-    if (!PathAppendW(path, is64Bit ? L"x64" : L"x86"))
+    if (!PathAppendW(path, is64Bit ? (IsArm64System() ? L"arm64" : L"x64") : L"x86"))
         throw std::system_error(ERROR_FILENAME_EXCED_RANGE, std::system_category());
 
     if (!SupportsInstallingNarratorVoices())
