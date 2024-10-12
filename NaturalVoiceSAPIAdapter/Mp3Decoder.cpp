@@ -3,7 +3,7 @@
 #pragma comment (lib, "msacm32.lib")
 #pragma comment (lib, "winmm.lib")
 
-static constexpr WORD BitRates[2][3][16] =
+static constexpr WORD BitRates[2][3][15] =  // unit: kbps
 {
 	{ // Version 1
 		{ // Layer 1
@@ -28,7 +28,7 @@ static constexpr WORD BitRates[2][3][16] =
 		}
 	}
 };
-static constexpr WORD SampleRates[4][4] =
+static constexpr WORD SampleRates[4][3] =
 {
 	{ 11025, 12000, 8000 }, // MPEG 2.5
 	{},
@@ -37,8 +37,8 @@ static constexpr WORD SampleRates[4][4] =
 };
 static constexpr WORD SamplesPerFrame[2][3] = 
 {
-	{ 384, 1152, 1152 },
-	{ 384, 1152, 576 }
+	{ 384, 1152, 1152 },  // MPEG 1
+	{ 384, 1152, 576 }    // Other
 };
 
 void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
@@ -82,7 +82,10 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	int padding			= (pFrame[2] & 0b00000010) >> 1;
 	int channelMode		= (pFrame[3] & 0b11000000) >> 6; // 0: Stereo; 1: Joint stereo; 2: Dual channel (2 mono); 3: Single channel (mono)
 	int versionIndex	= mpegVersion == 3 ? 0 : 1;
-	int layerIndex		= layer == 3 ? 0 : layer == 2 ? 1 : 2;
+	int layerIndex		= layer - 3;
+
+	if (mpegVersion == 1 || layer == 0 || bitRateIndex == 0 || bitRateIndex == 15 || sampleRateIndex == 3)
+		throw std::system_error(ACMERR_NOTPOSSIBLE, mci_category());
 
 	DWORD Mp3BitRate = BitRates[versionIndex][layerIndex][bitRateIndex] * 1000;
 	DWORD SamplesPerSec = SampleRates[mpegVersion][sampleRateIndex];

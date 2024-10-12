@@ -4,7 +4,7 @@ HKCR
 	{
 		ForceRemove {013ab33b-ad1a-401c-8bee-f6e2b046a94e} = s 'TTSEngine class'
 		{
-			InprocServer32 = s '%MODULE%'
+			InprocServer32 = s '%MODULEPATH%'
 			{
 				val ThreadingModel = s 'Both'
 			}

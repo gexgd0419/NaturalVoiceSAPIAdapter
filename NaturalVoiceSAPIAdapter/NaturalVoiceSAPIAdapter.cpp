@@ -10,6 +10,26 @@
 
 using namespace ATL;
 
+WCHAR g_regModulePath[MAX_PATH];
+_ATL_REGMAP_ENTRY g_regEntries[] = { {L"ModulePath", g_regModulePath}, {nullptr, nullptr} };
+
+static HRESULT GetRegModulePath()
+{
+	DWORD len = GetModuleFileNameW((HMODULE)&__ImageBase, g_regModulePath, MAX_PATH);
+	if (len == 0)
+		return AtlHresultFromLastError();
+	else if (len == MAX_PATH)
+		return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
+#ifdef _M_ARM64
+	// Replace the module path in the registry with Arm64XForwarder,
+	// only in the ARM64 version.
+	PathRemoveFileSpecW(g_regModulePath);
+	if (!PathAppendW(g_regModulePath, L"Arm64XForwarder.dll"))
+		return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
+#endif
+	return S_OK;
+}
+
 // 用于确定 DLL 是否可由 OLE 卸载。
 _Use_decl_annotations_
 STDAPI DllCanUnloadNow(void)
@@ -29,7 +49,10 @@ _Use_decl_annotations_
 STDAPI DllRegisterServer(void)
 {
 	// 注册对象、类型库和类型库中的所有接口
-	HRESULT hr = _AtlModule.DllRegisterServer();
+	HRESULT hr = GetRegModulePath();
+	if (FAILED(hr))
+		return hr;
+	hr = _AtlModule.DllRegisterServer();
 	return hr;
 }
 
@@ -37,7 +60,10 @@ STDAPI DllRegisterServer(void)
 _Use_decl_annotations_
 STDAPI DllUnregisterServer(void)
 {
-	HRESULT hr = _AtlModule.DllUnregisterServer();
+	HRESULT hr = GetRegModulePath();
+	if (FAILED(hr))
+		return hr;
+	hr = _AtlModule.DllUnregisterServer();
 	return hr;
 }
 

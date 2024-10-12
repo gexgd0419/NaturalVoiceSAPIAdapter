@@ -4,7 +4,7 @@ HKCR
 	{
 		ForceRemove {b8b9e38f-e5a2-4661-9fde-4ac7377aa6f6} = s 'VoiceTokenEnumerator class'
 		{
-			InprocServer32 = s '%MODULE%'
+			InprocServer32 = s '%MODULEPATH%'
 			{
 				val ThreadingModel = s 'Both'
 			}

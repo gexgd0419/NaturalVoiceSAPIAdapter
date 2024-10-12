@@ -24,6 +24,14 @@
 
 #define RETONFAIL(hresult) if (HRESULT __hr = hresult; FAILED(__hr)) return __hr
 
+extern WCHAR g_regModulePath[];
+extern ATL::_ATL_REGMAP_ENTRY g_regEntries[];
+
+#undef DECLARE_REGISTRY_RESOURCEID
+#define DECLARE_REGISTRY_RESOURCEID(x)\
+static HRESULT WINAPI UpdateRegistry(_In_ BOOL bRegister) throw()\
+{ return ATL::_pAtlModule->UpdateRegistryFromResource(x, bRegister, g_regEntries); }
+
 // C++ standard library headers
 #include <memory>
 #include <string>
