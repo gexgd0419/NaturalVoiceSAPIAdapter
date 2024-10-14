@@ -9,11 +9,20 @@ template <typename Func>
 	requires std::is_invocable_r_v<HRESULT, Func, LPCVOID, ULONG>  // HRESULT(LPCVOID data, ULONG size)
 HRESULT GetVariantData(const VARIANT* pvar, Func&& dataRecvFunc)
 {
-	if (!pvar)
+	if (pvar && pvar->vt == (VT_VARIANT | VT_BYREF))
+		pvar = pvar->pvarVal;
+
+	if (!pvar || pvar->vt == VT_EMPTY || pvar->vt == VT_NULL)
 		return dataRecvFunc(nullptr, 0);
 
+	VARTYPE vt = pvar->vt;
+	SAFEARRAY* parr = nullptr;
+
+	if (vt & VT_ARRAY)
+		parr = (vt & VT_BYREF) ? *pvar->pparray : pvar->parray;
+
 	ULONG cbElem;
-	switch (pvar->vt & VT_TYPEMASK)
+	switch (vt & VT_TYPEMASK)
 	{
 	case VT_I1:
 	case VT_UI1:
@@ -27,32 +36,34 @@ HRESULT GetVariantData(const VARIANT* pvar, Func&& dataRecvFunc)
 	case VT_I8:
 	case VT_UI8:
 		cbElem = 8; break;
+	case VT_INT:
+	case VT_UINT:
+		cbElem = sizeof(int); break;
+	case VT_INT_PTR:
+	case VT_UINT_PTR:
+		cbElem = sizeof(INT_PTR); break;
 	default: // other types are not accepted
 		return E_INVALIDARG;
 	}
-	VARTYPE vtFlags = pvar->vt & ~VT_TYPEMASK;
-	if (vtFlags == VT_ARRAY)
+
+	if (parr)
 	{
-		if (pvar->parray->cDims == 0)
+		if (parr->cDims == 0)
 			return E_INVALIDARG;
-		ULONG cElems = pvar->parray->rgsabound[0].cElements;
-		for (USHORT i = 1; i < pvar->parray->cDims; i++)
-			cElems *= pvar->parray->rgsabound[i].cElements;
+		ULONG cElems = parr->rgsabound[0].cElements;
+		for (USHORT i = 1; i < parr->cDims; i++)
+			cElems *= parr->rgsabound[i].cElements;
 		if (cElems == 0)
 			return E_INVALIDARG;
 		void* pArrayData;
-		RETONFAIL(SafeArrayAccessData(pvar->parray, &pArrayData));
-		HRESULT hr = dataRecvFunc(static_cast<LPCVOID>(pArrayData), cbElem * cElems);
-		SafeArrayUnaccessData(pvar->parray);
+		RETONFAIL(SafeArrayAccessData(parr, &pArrayData));
+		HRESULT hr = dataRecvFunc(static_cast<LPCVOID>(pArrayData), parr->cbElements * cElems);
+		SafeArrayUnaccessData(parr);
 		return hr;
 	}
-	else if (vtFlags == 0) // only a single element
+	else // only a single element
 	{
-		return dataRecvFunc(static_cast<LPCVOID>(&pvar->bVal), cbElem);
-	}
-	else // if other flags such as VT_BYREF exist
-	{
-		return E_INVALIDARG;
+		return dataRecvFunc(static_cast<LPCVOID>((vt & VT_BYREF) ? pvar->pbVal : &pvar->bVal), cbElem);
 	}
 }
 

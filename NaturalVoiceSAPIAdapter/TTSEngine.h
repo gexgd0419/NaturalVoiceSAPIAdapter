@@ -23,24 +23,6 @@ using namespace Microsoft::CognitiveServices::Speech::Audio;
 
 
 
-struct TextOffsetMapping
-{
-	ULONG ulSAPITextOffset; // offset in source string from SAPI
-	ULONG ulSSMLTextOffset; // offset in our SSML buffer
-	constexpr TextOffsetMapping(ULONG ulSAPITextOffset, ULONG ulSSMLTextOffset) noexcept
-		: ulSAPITextOffset(ulSAPITextOffset), ulSSMLTextOffset(ulSSMLTextOffset) {}
-};
-
-
-struct BookmarkInfo
-{
-	ULONG ulSAPITextOffset; // offset in source string from SAPI
-	std::wstring name;
-	constexpr BookmarkInfo(ULONG ulSAPITextOffset, std::wstring name) noexcept
-		: ulSAPITextOffset(ulSAPITextOffset), name(name) {}
-};
-
-
 enum class ErrorMode : DWORD
 {
 	ProbeForError = 0,
@@ -109,6 +91,23 @@ public: // Interface implementation
 			return S_OK;
 		return S_FALSE;
 	}
+
+private:
+	struct TextOffsetMapping
+	{
+		ULONG ulSAPITextOffset; // offset in source string from SAPI
+		ULONG ulSSMLTextOffset; // offset in our SSML buffer
+		constexpr TextOffsetMapping(ULONG ulSAPITextOffset, ULONG ulSSMLTextOffset) noexcept
+			: ulSAPITextOffset(ulSAPITextOffset), ulSSMLTextOffset(ulSSMLTextOffset) {}
+	};
+
+	struct BookmarkInfo
+	{
+		ULONG ulSAPITextOffset; // offset in source string from SAPI
+		std::wstring name;
+		constexpr BookmarkInfo(ULONG ulSAPITextOffset, std::wstring name) noexcept
+			: ulSAPITextOffset(ulSAPITextOffset), name(name) {}
+	};
 
 private:
 	ISpTTSEngineSite* m_pOutputSite = nullptr;
