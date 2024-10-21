@@ -79,7 +79,7 @@ void SpeechRestAPI::DoSpeakAsync()
 	auto conn = g_pConnectionPool->TakeConnection(m_websocketUrl, m_key, m_stopSource.get_token());
 	if (!conn)
 		return;
-	ScopeGuard connectionCloser([this, &conn]()
+	ScopeGuard connectionCloser([&conn]()
 		{
 			// conn will be reset to nullptr by OnMessage when all data has been received.
 			// If not, close the connection before returning.

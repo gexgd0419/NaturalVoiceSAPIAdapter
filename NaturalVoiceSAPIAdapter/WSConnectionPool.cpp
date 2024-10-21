@@ -155,7 +155,7 @@ WSConnection WSConnectionPool::TakeConnection(
 
 	auto& info = host_it->second;
 
-	std::stop_callback stopCallback(stop_token, [this, &info]()
+	std::stop_callback stopCallback(stop_token, [&info]()
 		{
 			{ std::lock_guard lock(info.mutex); }  // lock and unlock
 			info.connectionChanged.notify_all();
@@ -246,7 +246,7 @@ void WSConnectionPool::CreateConnection(
 	if (ec)
 		throw std::system_error(ec);
 
-	conn->set_open_handler([this, &info](websocketpp::connection_hdl hdl)
+	conn->set_open_handler([&info](websocketpp::connection_hdl hdl)
 		{
 			std::lock_guard lock(info.mutex);
 			info.lastException = nullptr;
