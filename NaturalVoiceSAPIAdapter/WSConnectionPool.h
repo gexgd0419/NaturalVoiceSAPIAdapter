@@ -91,7 +91,7 @@ private:
 		clock::time_point lastActiveTime;
 		size_t count;
 		HostInfo()
-			: count(0), lastActiveTime(clock::now())
+			: lastActiveTime(clock::now()), count(0)
 		{ }
 	};
 

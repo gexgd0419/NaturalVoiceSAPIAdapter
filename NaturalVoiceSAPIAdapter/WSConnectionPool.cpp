@@ -36,10 +36,12 @@ WSConnectionPool::WSConnectionPool()
 
 	DWORD intervalMs = (DWORD)duration_cast<milliseconds>(m_keepAliveInterval).count();
 	if (intervalMs != 0 && m_keepAliveDuration != clock::duration::zero())
+	{
 		m_keepAliveTimer = g_taskScheduler.StartNewTask(
 			intervalMs, intervalMs,
 			std::bind_front(&WSConnectionPool::KeepConnectionsAlive, this)
 		);
+	}
 }
 
 WSConnectionPool::~WSConnectionPool()
