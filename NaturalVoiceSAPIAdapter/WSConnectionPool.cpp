@@ -51,14 +51,9 @@ WSConnectionPool::~WSConnectionPool()
 	for (auto& host : m_hosts)
 	{
 		std::lock_guard inner_lock(host.second.mutex);
-		for (auto& conninfo : host.second.connections)
+		for (auto& conn : host.second.connections)
 		{
-			std::error_code ec;
-			auto conn = m_client.get_con_from_hdl(conninfo.hdl, ec);
-			if (conn)
-			{
-				conn->terminate(std::error_code());
-			}
+			conn->terminate(std::error_code());
 		}
 	}
 	m_hosts.clear();
@@ -94,53 +89,32 @@ void WSConnectionPool::AsioThread()
 	}
 }
 
-// Check every connection in the list, remove the dead ones, and return the first open one
-WSConnection WSConnectionPool::CheckAndGetConnection(HostInfo& info)
+// Check every connection in the list, and return the first open one
+WSConnectionPtr WSConnectionPool::GetConnection(HostInfo& info)
 {
 	auto& conns = info.connections;
-	WSConnection result = nullptr;
+	WSConnectionPtr result = nullptr;
 	const auto now = clock::now();
 
-	for (auto it = conns.begin(); it != conns.end(); )
+	auto it = std::find_if(conns.begin(), conns.end(),
+		[](const WSConnectionUPtr& conn) { return conn->get_state() == websocketpp::session::state::open; });
+
+	// choose the first working connection
+	if (it != conns.end())
 	{
-		std::error_code ec;
-		auto conn = m_client.get_con_from_hdl(it->hdl, ec);
-		if (!conn || conn->get_state() == websocketpp::session::state::closed)
-		{
-			// remove the current, skip to the next
-			auto curr = it;
-			++it;
-			conns.erase(curr);
-			--info.count;  // decrease the actual count
-			LogDebug("Connection pool: Removed dead connection {}", conn);
-			continue;
-		}
-
-		if (conn->get_state() == websocketpp::session::state::open)
-		{
-			// choose the first working connection
-			if (!result)
-			{
-				// take it out of the list, without decreasing the actual count
-				auto curr = it;
-				++it;
-				result = MakeConnectionPtr(info, std::move(*curr), std::move(conn));
-				conns.erase(curr);
-				info.lastActiveTime = clock::now();
-				LogDebug("Connection pool: Connection {} taken from pool ({}/{})",
-					result, conns.size(), info.count);
-				continue;
-			}
-		}
-
-		++it;
+		// take it out of the list, without decreasing the actual count
+		result = MakeConnectionPtr(info, std::move(*it));
+		conns.erase(it);
+		info.lastActiveTime = clock::now();
+		LogDebug("Connection pool: Connection {} taken from pool ({}/{})",
+			result->m_conn, conns.size(), info.count);
 	}
 
 	return result;
 }
 
 // Take the first usable connection from the list. If there isn't any, wait for a new connection.
-WSConnection WSConnectionPool::TakeConnection(
+WSConnectionPtr WSConnectionPool::TakeConnection(
 	const std::string& url,
 	const std::string& key,
 	std::stop_token stop_token)
@@ -150,9 +124,7 @@ WSConnection WSConnectionPool::TakeConnection(
 	{
 		HostId host_id(url, key);
 		std::lock_guard lock(m_mutex);
-		host_it = m_hosts.find(host_id);
-		if (host_it == m_hosts.end())  // if not found, add a new host
-			host_it = m_hosts.try_emplace(std::move(host_id)).first;
+		host_it = m_hosts.try_emplace(std::move(host_id)).first;  // if not found, add a new host
 	}
 
 	auto& info = host_it->second;
@@ -174,12 +146,12 @@ WSConnection WSConnectionPool::TakeConnection(
 
 	for (;;)
 	{
-		auto conn = CheckAndGetConnection(info);
+		auto conn = GetConnection(info);
 
 		// Replenish connections to the minimum count.
 		// If there's no spare connection, add an extra one,
 		// unless we are at the maxCount limit.
-		const size_t replenishToCount = info.connections.empty()
+		const size_t replenishToCount = (conn == nullptr)
 			? std::clamp(info.count + 1, m_minCount, m_maxCount)
 			: m_minCount;
 		for (size_t n = info.count; n < replenishToCount; n++)
@@ -201,41 +173,47 @@ WSConnection WSConnectionPool::TakeConnection(
 	}
 }
 
-void WSConnectionPool::PutBackConnection(HostInfo& info, ConnInfo&& conninfo, const WSConnection& conn)
+void WSConnectionPool::PutBackConnection(HostInfo& info, WSConnectionUPtr&& conn)
 {
 	std::lock_guard lock(info.mutex);
-	SetConnectionHandlers(info, conn);
+	conn->set_message_handler(nullptr);
+	conn->set_close_handler(nullptr);
 	if (conn->get_state() == websocketpp::session::state::open)
 	{
-		info.connections.push_back(std::move(conninfo));  // put at the end of the pool
 		LogDebug("Connection pool: Connection {} put back to pool ({}/{})",
-			conn, info.connections.size(), info.count);
+			conn->m_conn, info.connections.size(), info.count);
+		info.connections.push_back(std::move(conn));  // put at the end of the pool
 		info.connectionChanged.notify_all();
 	}
 	else
 	{
 		info.count--;
 		LogDebug("Connection pool: Connection {} closed and dropped ({}/{})",
-			conn, info.connections.size(), info.count);
+			conn->m_conn, info.connections.size(), info.count);
+
+		// remove it (reset its handlers) instead of putting it back to the pool
+		// connection count won't be decreased again, because it's not in the pool
+		RemoveConnection(info, conn.get());
+		conn.reset();
 	}
 }
 
 // Create a shared_ptr that put the connection back to the pool automatically
-WSConnection WSConnectionPool::MakeConnectionPtr(HostInfo& info, ConnInfo&& conninfo, WSConnection&& conn)
+WSConnectionPtr WSConnectionPool::MakeConnectionPtr(HostInfo& info, WSConnectionUPtr&& conn)
 {
 	// A shared_ptr that keeps a reference to the original connection (pointer),
 	// with a deleter that puts the connection back to the pool
-	std::shared_ptr<WSConnection> ptr(
-		new WSConnection(std::move(conn)),
-		[this, &info, conninfo = std::move(conninfo)](WSConnection* pConn) mutable
+	std::shared_ptr<WSConnectionUPtr> ptr(
+		new WSConnectionUPtr(std::move(conn)),
+		[&info](WSConnectionUPtr* pPtr)
 		{
-			PutBackConnection(info, std::move(conninfo), *pConn);
-			delete pConn;
+			PutBackConnection(info, std::move(*pPtr));
+			delete pPtr;
 		}
 	);
 
 	// Returns an aliasing pointer that points to the actual connection object
-	return WSConnection(ptr, ptr->get());
+	return WSConnectionPtr(ptr, ptr->get());
 }
 
 void WSConnectionPool::CreateConnection(
@@ -248,14 +226,9 @@ void WSConnectionPool::CreateConnection(
 	if (ec)
 		throw std::system_error(ec);
 
-	conn->set_open_handler([&info](websocketpp::connection_hdl hdl)
-		{
-			std::lock_guard lock(info.mutex);
-			info.lastException = nullptr;
-			LogDebug("Connection pool: Connection {} opened", hdl);
-			info.connectionChanged.notify_all();
-		});
-	SetConnectionHandlers(info, conn);
+	WSConnectionUPtr wrapper(new WSConnection(conn));
+
+	SetConnectionHandlers(info, wrapper.get());
 
 	if (!key.empty())
 		conn->append_header("Ocp-Apim-Subscription-Key", key);
@@ -277,49 +250,68 @@ void WSConnectionPool::CreateConnection(
 	}
 
 	m_client.connect(conn);
-	info.connections.emplace_back(conn->get_handle());
+	info.connections.push_back(std::move(wrapper));
 	info.count++;
 	LogDebug("Connection pool: New connection {} created and put into pool ({}/{})",
 		conn, info.connections.size(), info.count);
 }
 
-void WSConnectionPool::SetConnectionHandlers(HostInfo& info, const WSConnection& conn)
+void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapper)
 {
-	conn->set_message_handler(nullptr);
-	conn->set_close_handler([this, &info](websocketpp::connection_hdl hdl)
+	// Here we assume that the wrapper will live as long as the connection does.
+	// When the wrapper is going to be destroyed, reset the connection's handlers
+	// using RemoveConnection().
+
+	auto& conn = wrapper->m_conn;
+
+	conn->set_open_handler([&info](websocketpp::connection_hdl hdl)
 		{
 			std::lock_guard lock(info.mutex);
-			RemoveConnection(info, hdl);
+			info.lastException = nullptr;
+			LogDebug("Connection pool: Connection {} opened", hdl);
+			info.connectionChanged.notify_all();
+		});
+
+	conn->set_message_handler([wrapper](websocketpp::connection_hdl hdl, WSClient::message_ptr msg)
+		{
+			wrapper->on_message(hdl, msg);
+		});
+
+	conn->set_close_handler([&info, wrapper](websocketpp::connection_hdl hdl)
+		{
+			wrapper->on_close(hdl);
+			std::lock_guard lock(info.mutex);
 			info.lastException = nullptr;
 			LogDebug("Connection pool: Connection {} closed, removed from pool ({}/{})",
 				hdl, info.connections.size(), info.count);
+			RemoveConnection(info, wrapper);
 			info.connectionChanged.notify_all();
 		});
-	conn->set_fail_handler([this, &info](websocketpp::connection_hdl hdl)
+
+	conn->set_fail_handler([&info, wrapper](websocketpp::connection_hdl hdl)
 		{
 			std::lock_guard lock(info.mutex);
-			RemoveConnection(info, hdl);
-			auto ec = m_client.get_con_from_hdl(hdl)->get_ec();
+			auto ec = wrapper->get_ec();
 			std::system_error ex(ec);
 			info.lastException = ec ? std::make_exception_ptr(ex) : nullptr;
 			LogDebug("Connection pool: Connection {} failed, removed from pool: {}", hdl, ex);
+			RemoveConnection(info, wrapper);
 			info.connectionChanged.notify_all();
 		});
 }
 
-void WSConnectionPool::RemoveConnection(HostInfo& info, const websocketpp::connection_hdl& hdl)
+void WSConnectionPool::RemoveConnection(HostInfo& info, WSConnection* wrapper)
 {
-	auto& conns = info.connections;
-	auto it = std::find_if(conns.begin(), conns.end(),
-		[ptr = hdl.lock()](const ConnInfo& conninfo)
-		{
-			return ptr == conninfo.hdl.lock();
-		});
-	if (it != conns.end())
-	{
-		conns.erase(it);
-		info.count--;
-	}
+	// reset handlers to prevent them being called after free
+	auto& conn = wrapper->m_conn;
+	conn->set_open_handler(nullptr);
+	conn->set_message_handler(nullptr);
+	conn->set_close_handler(nullptr);
+	conn->set_fail_handler(nullptr);
+
+	// here the wrapper object and the connection are freed
+	info.count -=
+		info.connections.remove_if([wrapper](const WSConnectionUPtr& other) { return other.get() == wrapper; });
 }
 
 void WSConnectionPool::KeepConnectionsAlive()
@@ -345,9 +337,8 @@ void WSConnectionPool::KeepConnectionsAlive()
 
 		for (auto it = info.connections.begin(); it != info.connections.end(); ++it)
 		{
-			std::error_code ec;
-			auto conn = m_client.get_con_from_hdl(it->hdl, ec);
-			if (!conn || conn->get_state() != websocketpp::session::state::open)  // already dead
+			auto& conn = *it;
+			if (conn->get_state() != websocketpp::session::state::open)  // already dead
 				continue;
 
 			// keep the connection alive
@@ -357,7 +348,7 @@ void WSConnectionPool::KeepConnectionsAlive()
 				"{}", 70,
 				websocketpp::frame::opcode::text);
 
-			if (now - it->creation_time > m_maxConnectionAge)
+			if (now - conn->get_creation_time() > m_maxConnectionAge)
 			{
 				// should be closed later
 				connectionsToClose.push_back(it);
@@ -372,15 +363,12 @@ void WSConnectionPool::KeepConnectionsAlive()
 			{
 				// If we cannot close all of them, sort to get the oldest N connections we can close
 				std::sort(connectionsToClose.begin(), connectionsToClose.end(),
-					[](auto& a, auto& b) { return a->creation_time > b->creation_time; });
+					[](auto& a, auto& b) { return (*a)->get_creation_time() > (*b)->get_creation_time(); });
 			}
 			// close the oldest N connections
 			for (size_t i = 0; i < closeCount; i++)
 			{
-				std::error_code ec;
-				auto conn = m_client.get_con_from_hdl(connectionsToClose[i]->hdl, ec);
-				if (conn)
-					conn->close(websocketpp::close::status::normal, {});
+				(*connectionsToClose[i])->close(websocketpp::close::status::normal, {});
 			}
 		}
 

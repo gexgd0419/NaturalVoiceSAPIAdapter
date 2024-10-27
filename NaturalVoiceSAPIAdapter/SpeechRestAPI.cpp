@@ -212,7 +212,7 @@ void SpeechRestAPI::Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_
 	}
 }
 
-void SpeechRestAPI::OnClose(BlockingQueue<std::string>& queue, WSConnection& conn)
+void SpeechRestAPI::OnClose(BlockingQueue<std::string>& queue, const WSConnectionPtr& conn)
 {
 	LogDebug("Rest API: Connection closed");
 	if (!m_allDataReceived && !m_stopSource.stop_requested())
@@ -230,7 +230,7 @@ void SpeechRestAPI::OnClose(BlockingQueue<std::string>& queue, WSConnection& con
 }
 
 // Send configuration and wait for audio data response
-void SpeechRestAPI::SendRequest(WSConnection& conn)
+void SpeechRestAPI::SendRequest(const WSConnectionPtr& conn)
 {
 	m_allDataReceived = false;
 
@@ -272,7 +272,7 @@ void SpeechRestAPI::SendRequest(WSConnection& conn)
 		websocketpp::frame::opcode::text);
 }
 
-void SpeechRestAPI::OnMessage(BlockingQueue<std::string>& queue, WSConnection& conn, WSClient::message_ptr msg)
+void SpeechRestAPI::OnMessage(BlockingQueue<std::string>& queue, WSConnectionPtr& conn, WSClient::message_ptr msg)
 {
 	try
 	{

@@ -76,9 +76,9 @@ private: // threading
 	void ProcessWaveData(const WAVEFORMATEX& wfx, BYTE* waveData, uint32_t waveSize);
 
 private:
-	void SendRequest(WSConnection& conn);
-	void OnMessage(BlockingQueue<std::string>& queue, WSConnection& conn, WSClient::message_ptr msg);
-	void OnClose(BlockingQueue<std::string>& queue, WSConnection& conn);
+	void SendRequest(const WSConnectionPtr& conn);
+	void OnMessage(BlockingQueue<std::string>& queue, WSConnectionPtr& conn, WSClient::message_ptr msg);
+	void OnClose(BlockingQueue<std::string>& queue, const WSConnectionPtr& conn);
 	void OnSynthEvent(const nlohmann::json& metadata);
 	size_t FindWord(const std::string& utf8Word, size_t& lastPos);
 };

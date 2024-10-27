@@ -41,14 +41,109 @@ struct WSConfig : websocketpp::config::asio_tls_client
 };
 
 typedef websocketpp::client<WSConfig> WSClient;
-typedef WSClient::connection_ptr WSConnection;
+
+// A wrapper for websocketpp connection, that will be returned to the connection user.
+// Limits what can be done by the user, and makes changing the handler thread-safe.
+class WSConnection
+{
+private:
+	friend class WSConnectionPool;
+	WSConnection(WSClient::connection_ptr conn)  // only WSConnectionPool can create this
+		: m_conn(conn), m_creation_time(std::chrono::steady_clock::now())
+	{}
+
+public:
+	typedef WSClient::message_handler message_handler;
+	typedef websocketpp::close_handler close_handler;
+
+public:
+	~WSConnection()
+	{
+		m_conn->terminate({});
+		m_conn.reset();
+	}
+	void set_message_handler(message_handler handler)
+	{
+		std::lock_guard lock(m_mutex);
+		m_message_handler = std::move(handler);
+	}
+	void set_close_handler(close_handler handler)
+	{
+		std::lock_guard lock(m_mutex);
+		m_close_handler = std::move(handler);
+	}
+	void on_message(websocketpp::connection_hdl hdl, WSClient::message_ptr msg)
+	{
+		std::lock_guard lock(m_mutex);
+		if (m_message_handler)
+			m_message_handler(hdl, msg);
+	}
+	void on_close(websocketpp::connection_hdl hdl)
+	{
+		std::lock_guard lock(m_mutex);
+		if (m_close_handler)
+			m_close_handler(hdl);
+	}
+	std::chrono::steady_clock::time_point get_creation_time() const
+	{
+		return m_creation_time;
+	}
+	websocketpp::session::state::value get_state() const
+	{
+		return m_conn->get_state();
+	}
+	std::error_code send(std::string const& payload, websocketpp::frame::opcode::value op =
+		websocketpp::frame::opcode::text)
+	{
+		return m_conn->send(payload, op);
+	}
+	std::error_code send(void const* payload, size_t len, websocketpp::frame::opcode::value
+		op = websocketpp::frame::opcode::binary)
+	{
+		return m_conn->send(payload, len, op);
+	}
+	void close(websocketpp::close::status::value const code, std::string const& reason)
+	{
+		m_conn->close(code, reason);
+	}
+	void close(websocketpp::close::status::value const code, std::string const& reason,
+		std::error_code& ec)
+	{
+		m_conn->close(code, reason, ec);
+	}
+	websocketpp::close::status::value get_remote_close_code() const
+	{
+		return m_conn->get_remote_close_code();
+	}
+	std::string const& get_remote_close_reason() const
+	{
+		return m_conn->get_remote_close_reason();
+	}
+	std::error_code get_ec() const
+	{
+		return m_conn->get_ec();
+	}
+	void terminate(std::error_code const& ec)
+	{
+		m_conn->terminate(ec);
+	}
+
+private:
+	WSClient::connection_ptr m_conn;
+	std::chrono::steady_clock::time_point m_creation_time;
+	std::recursive_mutex m_mutex;
+	message_handler m_message_handler;
+	close_handler m_close_handler;
+};
+
+typedef std::shared_ptr<WSConnection> WSConnectionPtr;
 
 class WSConnectionPool
 {
 public:
 	WSConnectionPool();
 	~WSConnectionPool();
-	WSConnection TakeConnection(
+	WSConnectionPtr TakeConnection(
 		const std::string& url,
 		const std::string& key = {},
 		std::stop_token stop_token = {});
@@ -56,6 +151,7 @@ public:
 private:
 	using clock = std::chrono::steady_clock;
 	using duration = clock::duration;
+	using WSConnectionUPtr = std::unique_ptr<WSConnection>;
 
 	struct HostId
 	{
@@ -73,18 +169,9 @@ private:
 		}
 	};
 
-	struct ConnInfo
-	{
-		websocketpp::connection_hdl hdl;
-		clock::time_point creation_time;
-		explicit ConnInfo(websocketpp::connection_hdl hdl)
-			: hdl(hdl), creation_time(clock::now())
-		{}
-	};
-
 	struct HostInfo
 	{
-		std::list<ConnInfo> connections;
+		std::list<WSConnectionUPtr> connections;
 		std::mutex mutex;
 		std::condition_variable connectionChanged;
 		std::exception_ptr lastException;
@@ -96,15 +183,15 @@ private:
 	};
 
 	void AsioThread();
-	WSConnection CheckAndGetConnection(HostInfo& info);
-	void PutBackConnection(HostInfo& info, ConnInfo&& conninfo, const WSConnection& conn);
-	WSConnection MakeConnectionPtr(HostInfo& info, ConnInfo&& conninfo, WSConnection&& conn);
+	static WSConnectionPtr GetConnection(HostInfo& info);
+	static void PutBackConnection(HostInfo& info, WSConnectionUPtr&& conn);
+	static WSConnectionPtr MakeConnectionPtr(HostInfo& info, WSConnectionUPtr&& conn);
 	void CreateConnection(
 		const std::string& url,
 		const std::string& key,
 		HostInfo& info);
-	void SetConnectionHandlers(HostInfo& info, const WSConnection& conn);
-	void RemoveConnection(HostInfo& info, const websocketpp::connection_hdl& hdl);
+	static void SetConnectionHandlers(HostInfo& info, WSConnection* wrapper);
+	static void RemoveConnection(HostInfo& info, WSConnection* wrapper);
 	void KeepConnectionsAlive();
 
 	WSClient m_client;
