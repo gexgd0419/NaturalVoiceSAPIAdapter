@@ -240,10 +240,10 @@ static std::string GetProxyForUrl_PAC(std::string_view url, DWORD inetFlags)
 		autoProxyOpts.dwAutoDetectFlags = WINHTTP_AUTO_DETECT_TYPE_DHCP | WINHTTP_AUTO_DETECT_TYPE_DNS_A;
 	}
 
+	std::wstring autoConfigUrlW;
 	if (inetFlags & PROXY_TYPE_AUTO_PROXY_URL)
 	{
 		GlobalPStr autoConfigUrl = GetInetPerConnOptionString(INTERNET_PER_CONN_AUTOCONFIG_URL);
-		std::wstring autoConfigUrlW;
 		if (autoConfigUrl)
 		{
 			autoConfigUrlW = StringToWString(autoConfigUrl.get());
@@ -431,9 +431,9 @@ std::string DownloadToString(LPCSTR lpszUrl, LPCSTR lpszHeaders)
 	request_stream << "\r\n";
 	asio::write(sslstream, request);
 
-	asio::streambuf response;
+	std::string response;
 	asio::error_code ec;
-	asio::read(sslstream, response, ec);
+	asio::read(sslstream, asio::dynamic_string_buffer(response), ec);
 
 	// stream_truncated means that TCP connection was terminated without proper notification on SSL channel
 	// Ignore it anyway
@@ -441,15 +441,13 @@ std::string DownloadToString(LPCSTR lpszUrl, LPCSTR lpszHeaders)
 		asio::detail::throw_error(ec);
 
 	// Get the string in the underlying buffer
-	std::string_view response_str(static_cast<const char*>(response.data().data()), response.size());
-	if (!response_str.starts_with("HTTP/1.1 200 "))
-		throw std::runtime_error("Server responded "
-			+ std::string(response_str.substr(0, response_str.find('\r'))));
+	if (!response.starts_with("HTTP/1.1 200 "))
+		throw std::runtime_error("Server responded " + response.substr(0, response.find('\r')));
 
-	size_t delimpos = response_str.find("\r\n\r\n");
-	if (delimpos == response_str.npos)
+	size_t delimpos = response.find("\r\n\r\n");
+	if (delimpos == response.npos)
 		throw std::runtime_error("Invalid server response");
-	response_str.remove_prefix(delimpos + 4);
+	response.erase(0, delimpos + 4);
 
-	return std::string(response_str);
+	return response;
 }

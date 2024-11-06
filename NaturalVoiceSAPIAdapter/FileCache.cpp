@@ -135,8 +135,6 @@ static bool ReplaceCacheFileContent(LPCWSTR cacheName, const std::string& data) 
     return true;
 }
 
-static bool s_downloadInProgress = false;
-
 nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders)
 {
     // We use files to cache voice list JSONs locally,
@@ -150,6 +148,9 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
     //   while downloading newest data in the background.
     // If we cannot even get a path to store the cache file:
     //   Always use the built-in cache data.
+
+    static std::mutex downloadMutex;
+    static std::set<std::wstring> downloading;
 
     // save the two arguments, because this will be run in the background
     auto backgroundDownload =
@@ -170,7 +171,8 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
             catch (...)
             { }
 
-            s_downloadInProgress = false;
+            std::lock_guard lock(downloadMutex);
+            downloading.erase(cacheName);
         };
 
     WCHAR szPath[MAX_PATH];
@@ -183,7 +185,7 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
         FILETIME ftNow;
         GetSystemTimeAsFileTime(&ftNow);
         FILETIME ftWrite;
-        GetFileTime(hCacheFile, nullptr, &ftWrite, nullptr);
+        GetFileTime(hCacheFile, nullptr, nullptr, &ftWrite);
         ULARGE_INTEGER uiNow = { ftNow.dwLowDateTime, ftNow.dwHighDateTime };
         ULARGE_INTEGER uiWrite = { ftWrite.dwLowDateTime, ftWrite.dwHighDateTime };
 
@@ -219,10 +221,10 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
 
     // Failed to read from cache, or the cache does not exist.
     // Starts background downloading.
-    // Avoid starting two simultaneous downloads.
-    if (!s_downloadInProgress)
+    // Avoid starting multiple simultaneous downloads for one file.
+    if (std::lock_guard lock(downloadMutex); downloading.contains(cacheName))
     {
-        s_downloadInProgress = true;
+        downloading.insert(cacheName);
         g_taskScheduler.StartNewTask(std::move(backgroundDownload), cacheName, downloadUrl, downloadHeaders);
     }
 
