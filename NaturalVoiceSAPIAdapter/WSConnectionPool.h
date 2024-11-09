@@ -8,6 +8,7 @@
 #include <map>
 #include "NetUtils.h"
 #include "TaskScheduler.h"
+#include <wininet.h>
 
 // Custom ASIO config mainly for overwriting the default logger that outputs to stdout.
 // See Logging Reference: https://docs.websocketpp.org/reference_8logging.html
@@ -127,6 +128,21 @@ public:
 	{
 		m_conn->terminate(ec);
 	}
+	LONGLONG get_response_filetime()
+	{
+		auto& datestr = m_conn->get_response_header("Date");
+		if (datestr.empty())
+			return 0;
+
+		SYSTEMTIME st;
+		if (!InternetTimeToSystemTimeA(datestr.c_str(), &st, 0))
+			return 0;
+		FILETIME ftResponse;
+		if (!SystemTimeToFileTime(&st, &ftResponse))
+			return 0;
+
+		return ULARGE_INTEGER{ ftResponse.dwLowDateTime, ftResponse.dwHighDateTime }.QuadPart;
+	}
 
 private:
 	WSClient::connection_ptr m_conn;
@@ -187,7 +203,7 @@ private:
 	static void PutBackConnection(HostInfo& info, WSConnectionUPtr&& conn);
 	static WSConnectionPtr MakeConnectionPtr(HostInfo& info, WSConnectionUPtr&& conn);
 	void CreateConnection(
-		const std::string& url,
+		std::string url,
 		const std::string& key,
 		HostInfo& info);
 	static void SetConnectionHandlers(HostInfo& info, WSConnection* wrapper);

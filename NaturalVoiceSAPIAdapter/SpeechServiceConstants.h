@@ -12,9 +12,13 @@ constexpr inline const wchar_t* MS_TTS_KEY
 constexpr inline const wchar_t* MS_SR_KEY
 	= L"XUw7C0rcZAIQvG837YP4F1KHz2RqYuQgtyXrcbFhsWFNGjG08HJElmPGesxNMbib0s8y39NEti3q3RwPNRbuDv75ejZbTa9yLcTAUixC";
 
+constexpr inline const char* EDGE_TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+
 constexpr inline const char* EDGE_VOICE_LIST_URL = "https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/voices/list?trustedclienttoken=6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 
-constexpr inline const wchar_t* EDGE_WEBSOCKET_URL = L"wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+constexpr inline const wchar_t* EDGE_WEBSOCKET_URL
+	= L"wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
+	  L"?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC={Sec-MS-GEC}&Sec-MS-GEC-Version=1-130.0.2849.80";
 
 constexpr inline const char* AZURE_TTS_HOST_AFTER_REGION = ".tts.speech.microsoft.com";
 
