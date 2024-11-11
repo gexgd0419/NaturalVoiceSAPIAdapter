@@ -64,7 +64,7 @@ WSConnectionPool::WSConnectionPool()
 	using namespace std::chrono;
 	using namespace std::chrono_literals;
 
-	auto key = RegOpenConfigKey();
+	auto key = RegOpenNetworkConfigKey();
 
 	m_minCount = key.GetDword(L"ConnectionPoolMinCount", 3);
 	m_maxCount = key.GetDword(L"ConnectionPoolMaxCount", 10);
@@ -424,7 +424,7 @@ void WSConnectionPool::KeepConnectionsAlive()
 			{
 				// If we cannot close all of them, sort to get the oldest N connections we can close
 				std::sort(connectionsToClose.begin(), connectionsToClose.end(),
-					[](auto& a, auto& b) { return (*a)->get_creation_time() > (*b)->get_creation_time(); });
+					[](auto& a, auto& b) { return (*a)->get_creation_time() < (*b)->get_creation_time(); });
 			}
 			// close the oldest N connections
 			for (size_t i = 0; i < closeCount; i++)

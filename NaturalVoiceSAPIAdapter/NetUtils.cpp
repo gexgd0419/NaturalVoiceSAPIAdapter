@@ -296,7 +296,7 @@ std::string GetProxyForUrl(std::string_view url)
 {
 	try
 	{
-		if (RegKey key = RegOpenConfigKey(); key.GetDword(L"ProxyOverrideSystemDefault"))
+		if (RegKey key = RegOpenNetworkConfigKey(); key.GetDword(L"ProxyOverrideSystemDefault"))
 		{
 			std::string proxyServer = WStringToString(key.GetString(L"ProxyServer"));
 			std::string proxyBypass = WStringToString(key.GetString(L"ProxyBypass"));

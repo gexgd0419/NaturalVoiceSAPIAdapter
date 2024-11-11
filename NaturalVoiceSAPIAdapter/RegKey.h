@@ -141,3 +141,8 @@ inline RegKey RegOpenEnumeratorConfigKey() noexcept
 {
 	return RegKey::OpenForRead(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Enumerator");
 }
+
+inline RegKey RegOpenNetworkConfigKey() noexcept
+{
+	return RegKey::OpenForRead(HKEY_CURRENT_USER, L"Software\\NaturalVoiceSAPIAdapter\\Network");
+}
