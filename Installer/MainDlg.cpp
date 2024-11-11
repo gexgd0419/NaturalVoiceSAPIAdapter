@@ -188,21 +188,25 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
 
             case IDC_INSTALL_32BIT:
+                SaveChanges(hDlg);
                 Register(false);
                 ShowMessageBox(IDS_INSTALL_COMPLETE, MB_ICONINFORMATION);
                 UpdateDisplay(hDlg);
                 break;
             case IDC_INSTALL_64BIT:
+                SaveChanges(hDlg);
                 Register(true);
                 ShowMessageBox(IDS_INSTALL_COMPLETE, MB_ICONINFORMATION);
                 UpdateDisplay(hDlg);
                 break;
             case IDC_UNINSTALL_32BIT:
+                SaveChanges(hDlg);
                 Unregister(false);
                 ReportError(ERROR_SUCCESS);
                 UpdateDisplay(hDlg);
                 break;
             case IDC_UNINSTALL_64BIT:
+                SaveChanges(hDlg);
                 Unregister(true);
                 ReportError(ERROR_SUCCESS);
                 UpdateDisplay(hDlg);
@@ -212,6 +216,12 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             case IDC_CHK_EDGE_VOICES:
             case IDC_CHK_AZURE_VOICES:
                 UpdateEnableStates(hDlg);
+                SaveChanges(hDlg);
+                break;
+
+            case IDC_LOG_LEVEL:
+                if (HIWORD(wParam) == CBN_SELCHANGE)
+                    SaveChanges(hDlg);
                 break;
 
             case IDC_SET_AZURE_KEY:
@@ -241,6 +251,7 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                             ShowMessageBox(IDS_LOCAL_VOICE_PATH_NONASCII, MB_ICONEXCLAMATION);
                         }
                     }
+                    SaveChanges(hDlg);
                 }
                 break;
             }
