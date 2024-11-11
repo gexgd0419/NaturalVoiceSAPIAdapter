@@ -82,7 +82,7 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	int padding			= (pFrame[2] & 0b00000010) >> 1;
 	int channelMode		= (pFrame[3] & 0b11000000) >> 6; // 0: Stereo; 1: Joint stereo; 2: Dual channel (2 mono); 3: Single channel (mono)
 	int versionIndex	= mpegVersion == 3 ? 0 : 1;
-	int layerIndex		= layer - 3;
+	int layerIndex		= 3 - layer;
 
 	if (mpegVersion == 1 || layer == 0 || bitRateIndex == 0 || bitRateIndex == 15 || sampleRateIndex == 3)
 		throw std::system_error(ACMERR_NOTPOSSIBLE, mci_category());
