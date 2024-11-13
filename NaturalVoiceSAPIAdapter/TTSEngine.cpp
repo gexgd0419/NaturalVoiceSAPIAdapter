@@ -781,6 +781,8 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
     // Edge online voices only support a limited subset of SSML
     bool isEdgeVoice = m_isEdgeVoice;
+    // Edge voices do not allow more than two prosody tags (changes).
+    int prosodyCount = 0;
 
     // Some clients send Speak requests with no text, only bookmarks,
     // supposedly to track positions.
@@ -804,6 +806,12 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         m_ssml.append(L"'>");
     }
 
+    constexpr auto IsSpeakableEdgeFrag = [](const SPVTEXTFRAG* pTextFrag)
+        {
+            auto action = pTextFrag->State.eAction;
+            return action == SPVA_Speak || action == SPVA_SpellOut || action == SPVA_Pronounce;
+        };
+
     for (auto pTextFrag = pTextFragList; pTextFrag; pTextFrag = pTextFrag->pNext)
     {
         if (pTextFrag->State.eAction != SPVA_Bookmark && pTextFrag->ulTextLen != 0)
@@ -812,7 +820,10 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         // tag structure: <prosody><emphasis><custom-tags...><say-as></say-as></custom-tags...></emphasis></prosody>
         // <say-as> cannot contain tags
 
-        if (!isInProsodyTag)
+        if (!isInProsodyTag
+            // avoid introducing empty prosody tags for non-speakable fragments
+            && (!isEdgeVoice || IsSpeakableEdgeFrag(pTextFrag))
+            )
         {
             USHORT volume = (USHORT)std::clamp(mainVolume * pTextFrag->State.Volume / 100, 0UL, 100UL);
             long rate = std::clamp(mainRate + pTextFrag->State.RateAdj, -10L, 10L);
@@ -820,6 +831,7 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
 
             if (volume != 100 || rate != 0 || pitch != 0) // if not default value, add a prosody tag
             {
+                prosodyCount++;
                 m_ssml.append(L"<prosody");
                 if (volume != 100)
                 {
@@ -999,14 +1011,33 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
         }
 
         int preserveTagLevel = 0;
+        auto pNextTextFrag = pTextFrag->pNext;
 
-        if (pTextFrag->pNext)
+        if (isEdgeVoice)
+        {
+            // skip fragments that are ignored for Edge voices
+            // to avoid introducing empty prosody tags
+            for (; pNextTextFrag; pNextTextFrag = pNextTextFrag->pNext)
+            {
+                if (IsSpeakableEdgeFrag(pNextTextFrag))
+                    break;
+            }
+        }
+
+        if (pNextTextFrag)
         {
             auto& curState = pTextFrag->State;
-            auto& nextState = pTextFrag->pNext->State;
-            if (curState.Volume == nextState.Volume && curState.RateAdj == nextState.RateAdj
-                && curState.PitchAdj.MiddleAdj == nextState.PitchAdj.MiddleAdj)
-            {
+            auto& nextState = pNextTextFrag->State;
+
+            bool sameProsody = (curState.Volume == nextState.Volume
+                && curState.RateAdj == nextState.RateAdj
+                && curState.PitchAdj.MiddleAdj == nextState.PitchAdj.MiddleAdj);
+
+			if (sameProsody || (isEdgeVoice && prosodyCount >= 2))
+			{
+                if (!sameProsody && isEdgeVoice)
+                    LogWarn("Speak: Edge voices do not support more than two prosody tags. Some prosody changes may be lost.");
+
                 preserveTagLevel = 1; // if prosody is the same, no need to close it
 
                 if (curState.EmphAdj == nextState.EmphAdj)
