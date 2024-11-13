@@ -222,7 +222,7 @@ nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downl
     // Failed to read from cache, or the cache does not exist.
     // Starts background downloading.
     // Avoid starting multiple simultaneous downloads for one file.
-    if (std::lock_guard lock(downloadMutex); downloading.contains(cacheName))
+    if (std::lock_guard lock(downloadMutex); !downloading.contains(cacheName))
     {
         downloading.insert(cacheName);
         g_taskScheduler.StartNewTask(std::move(backgroundDownload), cacheName, downloadUrl, downloadHeaders);
