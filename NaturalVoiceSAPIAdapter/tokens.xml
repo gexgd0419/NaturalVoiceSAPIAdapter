@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Tokens>
+  <Category name="Voices" categoryBase="HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore">
+    <TokenEnum name="NaturalVoiceEnumerator">
+      <String name="CLSID" value="{b8b9e38f-e5a2-4661-9fde-4ac7377aa6f6}" />
+    </TokenEnum>
+  </Category>
+</Tokens>

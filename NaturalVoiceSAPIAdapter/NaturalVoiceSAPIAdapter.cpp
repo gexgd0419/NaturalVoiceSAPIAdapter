@@ -13,6 +13,8 @@ using namespace ATL;
 WCHAR g_regModulePath[MAX_PATH];
 _ATL_REGMAP_ENTRY g_regEntries[] = { {L"ModulePath", g_regModulePath}, {nullptr, nullptr} };
 
+HRESULT RegisterVoice(bool isOneCore, bool bInstall);
+
 static HRESULT GetRegModulePath()
 {
 	DWORD len = GetModuleFileNameW((HMODULE)&__ImageBase, g_regModulePath, MAX_PATH);
@@ -44,15 +46,57 @@ STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID
 	return _AtlModule.DllGetClassObject(rclsid, riid, ppv);
 }
 
+static bool IsRegistered()
+{
+	// Check if either SAPI or OneCore enumerator key exists
+	HKEY hKey;
+	auto stat1 = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+		LR"(SOFTWARE\Microsoft\Speech\Voices\TokenEnums\NaturalVoiceEnumerator)",
+		0, KEY_QUERY_VALUE, &hKey);
+	if (stat1 == ERROR_SUCCESS)
+		RegCloseKey(hKey);
+
+	auto stat2 = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+		LR"(SOFTWARE\Microsoft\Speech_OneCore\Voices\TokenEnums\NaturalVoiceEnumerator)",
+		0, KEY_QUERY_VALUE, &hKey);
+	if (stat2 == ERROR_SUCCESS)
+		RegCloseKey(hKey);
+
+	return stat1 == ERROR_SUCCESS || stat2 == ERROR_SUCCESS;
+}
+
+static HRESULT RegisterDll(bool isOneCore, bool bInstall)
+{
+	HRESULT hr = GetRegModulePath();
+	if (FAILED(hr))
+		return hr;
+	if (bInstall)
+	{
+		hr = _AtlModule.DllRegisterServer();
+		if (FAILED(hr))
+			return hr;
+		hr = RegisterVoice(isOneCore, true);
+	}
+	else
+	{
+		hr = RegisterVoice(isOneCore, false);
+		if (FAILED(hr))
+			return hr;
+		if (!IsRegistered())
+			hr = _AtlModule.DllUnregisterServer();
+	}
+	return hr;
+}
+
 // DllRegisterServer - 向系统注册表中添加项。
 _Use_decl_annotations_
 STDAPI DllRegisterServer(void)
 {
-	// 注册对象、类型库和类型库中的所有接口
-	HRESULT hr = GetRegModulePath();
+	// Register SAPI only
+	// To register OneCore, use DllInstall
+	HRESULT hr = RegisterDll(false, true);
 	if (FAILED(hr))
-		return hr;
-	hr = _AtlModule.DllRegisterServer();
+		RegisterDll(false, false);
 	return hr;
 }
 
@@ -60,38 +104,39 @@ STDAPI DllRegisterServer(void)
 _Use_decl_annotations_
 STDAPI DllUnregisterServer(void)
 {
-	HRESULT hr = GetRegModulePath();
-	if (FAILED(hr))
-		return hr;
-	hr = _AtlModule.DllUnregisterServer();
-	return hr;
+	// Unregister both SAPI and OneCore when unregistering manually
+	// To unregister only one of them, use DllInstall
+	HRESULT hr1 = RegisterDll(false, false);
+	HRESULT hr2 = RegisterDll(true, false);
+	// Succeeds if one of them succeeded
+	return SUCCEEDED(hr1) ? hr1 : SUCCEEDED(hr2) ? hr2 : hr1;
 }
 
 // DllInstall - 按用户和计算机在系统注册表中逐一添加/移除项。
 STDAPI DllInstall(BOOL bInstall, _In_opt_  LPCWSTR pszCmdLine)
 {
 	HRESULT hr = E_FAIL;
-	static const wchar_t szUserSwitch[] = L"user";
+	bool isOneCore = false;
 
 	if (pszCmdLine != nullptr)
 	{
-		if (_wcsnicmp(pszCmdLine, szUserSwitch, _countof(szUserSwitch)) == 0)
+		if (_wcsicmp(pszCmdLine, L"onecore") == 0)
 		{
-			ATL::AtlSetPerUserRegistration(true);
+			isOneCore = true;
 		}
 	}
 
 	if (bInstall)
 	{
-		hr = DllRegisterServer();
+		hr = RegisterDll(isOneCore, true);
 		if (FAILED(hr))
 		{
-			DllUnregisterServer();
+			RegisterDll(isOneCore, false);
 		}
 	}
 	else
 	{
-		hr = DllUnregisterServer();
+		hr = RegisterDll(isOneCore, false);
 	}
 
 	return hr;

@@ -183,6 +183,9 @@
     <ClCompile Include="WSConnectionPool.cpp">
       <Filter>Source Files\SpeechRestAPI</Filter>
     </ClCompile>
+    <ClCompile Include="Install.cpp">
+      <Filter>Source Files\Framework</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NaturalVoiceSAPIAdapter.rc">
@@ -221,5 +224,10 @@
     <Midl Include="NaturalVoiceSAPIAdapter.idl">
       <Filter>Source Files\Framework</Filter>
     </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="tokens.xml">
+      <Filter>Resource Files</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

@@ -433,6 +433,7 @@
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">false</CompileAsManaged>
     </ClCompile>
+    <ClCompile Include="Install.cpp" />
     <ClCompile Include="LangUtils.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Mp3Decoder.cpp" />
@@ -501,6 +502,9 @@
     <ProjectReference Include="..\ttsapplication\TtsApplication.vcxproj">
       <Project>{e8a8cac0-2445-4141-8cb6-a8fbd00483d6}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="tokens.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
