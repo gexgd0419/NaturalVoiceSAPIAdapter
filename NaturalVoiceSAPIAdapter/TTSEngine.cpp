@@ -956,10 +956,14 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
             case SPVA_ParseUnknownTag: // insert it into SSML as-is
             {
                 // The string should always start with '<' and end with '>',
+                // and may contain trailing spaces,
                 // but no further warranty is given, as SAPI does no further check.
                 // So the actual XML tag might be malformed.
 
                 std::wstring_view tag(pTextFrag->pTextStart, pTextFrag->ulTextLen);
+                // trim spaces
+                tag.remove_prefix(tag.find('<'));
+                tag.remove_suffix(tag.size() - tag.rfind(L'>') - 1);
 
                 if (IsXMLSelfClosingTag(tag))
                 {
