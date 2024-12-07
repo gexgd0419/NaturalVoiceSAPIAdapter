@@ -61,15 +61,6 @@
     <ClInclude Include="DataKey.h">
       <Filter>Header Files\SAPI Classes</Filter>
     </ClInclude>
-    <ClInclude Include="DataKeyAutomation.h">
-      <Filter>Header Files\SAPI Classes</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectToken.h">
-      <Filter>Header Files\SAPI Classes</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectTokenAutomation.h">
-      <Filter>Header Files\SAPI Classes</Filter>
-    </ClInclude>
     <ClInclude Include="VoiceToken.h">
       <Filter>Header Files\SAPI Classes</Filter>
     </ClInclude>

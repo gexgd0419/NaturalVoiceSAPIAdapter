@@ -1,5 +1,5 @@
 #pragma once
-#include "ObjectToken.h"
+#include "DataKey.h"
 #include "TTSEngine.h"
 
 struct VoiceTraits
@@ -14,8 +14,6 @@ struct VoiceTraits
 	}
 	static constexpr LPCWSTR SpCategory = SPCAT_VOICES;
 	static constexpr std::wstring_view SpIdRoot = SPCAT_VOICES L"\\TokenEnums\\NaturalVoiceEnumerator\\";
-	using ComClass = CTTSEngine;
 };
 
-typedef CDataKey<ISpDataKey, VoiceTraits> CVoiceKey;
-typedef CObjectToken<VoiceTraits> CVoiceToken;
+typedef CDataKey<VoiceTraits> CVoiceKey;

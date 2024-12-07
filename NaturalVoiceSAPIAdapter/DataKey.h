@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "resource.h"       // 主符号
 
-#include "DataKeyAutomation.h"
+#include "framework.h"
 #include "StrUtils.h"
 
 
@@ -30,10 +30,10 @@ IDataKeyInit : public IUnknown
 
 // CDataKey: An ISpDataKey implementation that stores virtualized keys in memory, but also supports storing changes in registry
 
-template <class Base, class Traits>
+template <class Traits>
 class ATL_NO_VTABLE CDataKey :
 	public CComObjectRootEx<CComMultiThreadModel>,
-	public Base,
+	public ISpDataKey,
 	public IDataKeyInit
 {
 public:
@@ -47,8 +47,6 @@ DECLARE_NOT_AGGREGATABLE(CDataKey)
 BEGIN_COM_MAP(CDataKey)
 	COM_INTERFACE_ENTRY(ISpDataKey)
 	COM_INTERFACE_ENTRY(IDataKeyInit)
-	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_IDispatch, m_pAutomation, CLSID_DataKeyAutomation)
-	COM_INTERFACE_ENTRY_AUTOAGGREGATE(IID_ISpeechDataKey, m_pAutomation, CLSID_DataKeyAutomation)
 END_COM_MAP()
 
 
@@ -57,7 +55,6 @@ END_COM_MAP()
 
 protected:
 	CComPtr<ISpDataKey> m_pKey;
-	CComPtr<IUnknown> m_pAutomation;
 
 	// Keeps a reference to the main data tree, but aliased to point to this key's specific node
 	std::shared_ptr<DataKeyData> m_pData;
@@ -304,18 +301,30 @@ public:
 		// Create a new ISpDataKey that points to the correponding data
 		CComPtr<ISpDataKey> pKey;
 
-		// Force to use ISpDataKey as the base class,
-		// because CObjectToken inherits from CDataKey<ISpObjectToken, Traits>.
-		// Use a pair of parentheses around the function name, to avoid the preprocessor
-		// breaking at the template argument list comma ("CDataKey<ISpDataKey" and "Traits>::_CreatorClass...")
-		RETONFAIL((CDataKey<ISpDataKey, Traits>::_CreatorClass::CreateInstance)
-			(nullptr, IID_ISpDataKey, reinterpret_cast<LPVOID*>(&pKey)));
+		RETONFAIL(CDataKey::_CreatorClass::CreateInstance(nullptr, IID_ISpDataKey, reinterpret_cast<LPVOID*>(&pKey)));
 
 		CComPtr<IDataKeyInit> pInit;
 		RETONFAIL(pKey->QueryInterface(&pInit));
 		// Pass a shared_ptr that references the same data tree, but aliased to point to the key's specific data
 		RETONFAIL(pInit->InitKey(pData));
 		*ppOut = pKey.Detach();
+		return S_OK;
+	}
+
+	static HRESULT CreateToken(const std::shared_ptr<DataKeyData>& pData, ISpObjectToken** ppOutToken) noexcept
+	{
+		CComPtr<ISpDataKey> pKey;
+		RETONFAIL(Create(pData, &pKey));
+
+		CComPtr<ISpObjectToken> pToken;
+		RETONFAIL(pToken.CoCreateInstance(CLSID_SpObjectToken));
+
+		CComPtr<ISpObjectTokenInit> pTokenInit;
+		RETONFAIL(pToken.QueryInterface(&pTokenInit));
+		CSpDynamicString id;
+		RETONFAIL(MergeIntoCoString(id, Traits::SpIdRoot, pData->path));
+		RETONFAIL(pTokenInit->InitFromDataKey(Traits::SpCategory, id, pKey));
+		*ppOutToken = pToken.Detach();
 		return S_OK;
 	}
 };

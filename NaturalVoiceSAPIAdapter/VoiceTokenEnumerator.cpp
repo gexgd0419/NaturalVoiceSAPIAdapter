@@ -57,7 +57,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             for (auto& token : s_cachedTokens)
             {
                 CComPtr<ISpObjectToken> pToken;
-                CheckSapiHr(CVoiceToken::Create(token, &pToken));
+                CheckSapiHr(CVoiceKey::CreateToken(token, &pToken));
                 CheckSapiHr(pEnumBuilder->AddTokens(1, &pToken.p));
             }
             CheckSapiHr(pEnumBuilder->QueryInterface(&m_pEnum));
@@ -163,7 +163,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         for (auto& token : s_cachedTokens)
         {
             CComPtr<ISpObjectToken> pToken;
-            CheckSapiHr(CVoiceToken::Create(token, &pToken));
+            CheckSapiHr(CVoiceKey::CreateToken(token, &pToken));
             CheckSapiHr(pEnumBuilder->AddTokens(1, &pToken.p));
         }
         CheckSapiHr(pEnumBuilder->QueryInterface(&m_pEnum));

@@ -414,9 +414,6 @@
     <ClInclude Include="TokenEnumerator.h" />
     <ClInclude Include="TTSEngine.h" />
     <ClInclude Include="DataKey.h" />
-    <ClInclude Include="DataKeyAutomation.h" />
-    <ClInclude Include="ObjectToken.h" />
-    <ClInclude Include="ObjectTokenAutomation.h" />
     <ClInclude Include="VoiceToken.h" />
     <ClInclude Include="VoiceTokenEnumerator.h" />
     <ClInclude Include="WSConnectionPool.h" />
