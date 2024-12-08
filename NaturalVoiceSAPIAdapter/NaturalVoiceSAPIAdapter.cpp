@@ -15,7 +15,8 @@ _ATL_REGMAP_ENTRY g_regEntries[] = { {L"ModulePath", g_regModulePath}, {nullptr,
 
 static HRESULT GetRegModulePath()
 {
-	DWORD len = GetModuleFileNameW((HMODULE)&__ImageBase, g_regModulePath, MAX_PATH);
+	WCHAR path[MAX_PATH];
+	DWORD len = GetModuleFileNameW((HMODULE)&__ImageBase, path, MAX_PATH);
 	if (len == 0)
 		return AtlHresultFromLastError();
 	else if (len == MAX_PATH)
@@ -27,6 +28,7 @@ static HRESULT GetRegModulePath()
 	if (!PathAppendW(g_regModulePath, L"Arm64XForwarder.dll"))
 		return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
 #endif
+	CAtlModule::EscapeSingleQuote(g_regModulePath, MAX_PATH, path);
 	return S_OK;
 }
 
