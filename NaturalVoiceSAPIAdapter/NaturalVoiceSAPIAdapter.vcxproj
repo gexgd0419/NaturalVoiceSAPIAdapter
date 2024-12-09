@@ -481,13 +481,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="AzureVoiceListCache.json" />
-    <None Include="DataKeyAutomation.rgs" />
     <None Include="EdgeVoiceListCache.json" />
     <None Include="NaturalVoiceSAPIAdapter.def" />
     <None Include="NaturalVoiceSAPIAdapter.rgs" />
     <None Include="packages.config" />
     <None Include="TTSEngine.rgs" />
-    <None Include="ObjectTokenAutomation.rgs" />
     <None Include="VoiceExtraAttrs.json" />
     <None Include="VoiceTokenEnumerator.rgs" />
   </ItemGroup>

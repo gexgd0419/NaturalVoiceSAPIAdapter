@@ -191,12 +191,6 @@
     <None Include="VoiceTokenEnumerator.rgs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DataKeyAutomation.rgs">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="ObjectTokenAutomation.rgs">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="AzureVoiceListCache.json">
       <Filter>Resource Files</Filter>
     </None>
