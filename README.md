@@ -4,7 +4,7 @@
 
 An [SAPI 5 text-to-speech (TTS) engine][1] that can utilize the [natural/neural voices][2] provided by the [Azure AI Speech Service][3], including:
 
-- Installable natural voices for Narrator on Windows 11
+- Natural voices for Narrator on Windows 11
 - Online natural voices from Microsoft Edge's Read Aloud feature
 - Online natural voices from the Azure AI Speech Service, if you have a proper subscription key
 
@@ -14,7 +14,7 @@ See the [wiki pages][4] for some more technical information.
 
 ## System Requirements
 
-Minimum tested platform: Windows XP SP3, and Windows XP Professional x64 Edition SP2.
+Minimum tested platform: Windows XP SP3, and Windows XP Professional x64 Edition SP2 (32-bit only).
 
 Minimum platform that supports local Narrator voices: Windows 7 RTM, x86 32/64-bit.
 
@@ -22,23 +22,22 @@ Minimum platform that supports installing Narrator voices via Microsoft Store: W
 
 ### How can I install Narrator natural voices on Windows 11?
 
-Go to System Settings > **Accessibility** > **Narrator**, scroll down to **Narrator's voice**, then click the **Add** button for **Add natural voices**.
+It's no longer recommended to install Narrator natural voices on Windows 11 if you want to use this program, because the latest version of those voices stopped working with this program. It's recommended to download and use [the last working version][5] of the voices instead.
 
-If your system isn't new enough to have this option, see the methods below.
+If Narrator stops working when this program is installed, try uninstalling all Narrator voice packs as a temporary workaround.
 
 ### I'm using Windows XP/Vista/7/8/10. Can I use the Narrator natural voices from Windows 11?
 
 **Windows XP/Vista**: Unfortunately local Narrator voices are not supported on those platforms. But online voices, including Edge and Azure voices, still work.
 
-**Windows 10 (build 17763 or above)**: You can choose and install Windows 11 Narrator voices using [these Microsoft Store links][5].
+**Windows 10 (build 17763 or above)**: You can choose and install Windows 11 Narrator voices using [these links][5].
 
-**Windows 7/8/10 (before build 17763)**, or if you can't use the Microsoft Store:
-1. Copy the Microsoft Store link of a Windows 11 Narrator voice from [here][5].
-2. Use [store.rg-adguard.net](https://store.rg-adguard.net/) to get a link to download the **MSIX file** of the voice.
-3. Prepare a folder to store the voice folders. Make sure its path contains no non-ASCII character.
-4. Unzip the MSIX file (as if it were a ZIP file) to its sub folder. You can have multiple voice sub folders in the same parent folder. Make sure the sub folder's name contains no non-ASCII character.
-5. Set the parent folder as "Local voice path" in the installer.
-6. Do not put things other than voice sub folders inside this parent folder, or voice loading may fail.
+**Windows 7/8/10 (before build 17763)**:
+1. Download the MSIX file of the voice from [here][5].
+2. Prepare a folder to store the voice folders. Make sure its path contains no non-ASCII character.
+3. Unzip the MSIX file (as if it were a ZIP file) to its sub folder. You can have multiple voice sub folders in the same parent folder. Make sure the sub folder's name contains no non-ASCII character.
+4. Set the parent folder as "Local voice path" in the installer.
+5. Do not put things other than voice sub folders inside this parent folder, or voice loading may fail.
 
 Windows 10's Narrator doesn't support natural voices directly, but it does support SAPI 5 voices. So you can make Windows 11 Narrator voices work on Windows 10 via this engine.
 
