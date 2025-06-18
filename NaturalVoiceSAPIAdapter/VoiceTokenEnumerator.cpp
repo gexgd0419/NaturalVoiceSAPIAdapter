@@ -149,8 +149,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 if (!narratorVoicePath.empty())
                     EnumLocalVoicesInFolder(tokens, narratorVoicePath.c_str(), errorMode);
 
-                EnumLocalVoices(tokens, errorMode);
-
                 for (auto& token : tokens)
                 {
                     s_cachedTokens.push_back(std::move(token.second));
