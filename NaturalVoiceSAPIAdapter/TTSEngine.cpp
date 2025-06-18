@@ -281,16 +281,6 @@ bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
 
     auto path = WStringToUTF8(pszPath.m_psz);
 
-    if (logger.should_log(spdlog::level::warn))
-    {
-        if (!std::all_of(path.begin(), path.end(),
-            [](unsigned char ch) { return ch < 128; }))
-        {
-            LogWarn("TTS init: Local voice path contains non-ASCII characters, may not work correctly: {}",
-                path);
-        }
-    }
-
     auto config = EmbeddedSpeechConfig::FromPath(path);
 
     config->SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat::Riff24Khz16BitMonoPcm);

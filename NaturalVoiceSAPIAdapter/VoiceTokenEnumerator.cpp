@@ -492,12 +492,6 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
         // slowing down the enumeration process as more voices are installed
 
-        // Because of a bug in the Azure Speech SDK:
-        // https://github.com/Azure-Samples/cognitive-services-speech-sdk/issues/2288
-        // Model paths containing non-ASCII characters cannot be loaded.
-        // Changing the current directory and using relative paths may get around this,
-        // but the current directory is a process-wide setting and changing it is not thread-safe
-
         auto paths = FindVoiceFolders(basepath);
         if (paths.empty())
             return;

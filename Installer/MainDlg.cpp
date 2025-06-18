@@ -245,11 +245,6 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                     if (SHGetPathFromIDListW(pidl.get(), path))
                     {
                         SetDlgItemTextW(hDlg, IDC_LOCAL_VOICE_PATH, path);
-                        std::wstring_view sv = path;
-                        if (!std::all_of(sv.begin(), sv.end(), [](wchar_t ch) { return ch < 128; }))
-                        {
-                            ShowMessageBox(IDS_LOCAL_VOICE_PATH_NONASCII, MB_ICONEXCLAMATION);
-                        }
                     }
                     SaveChanges(hDlg);
                 }
