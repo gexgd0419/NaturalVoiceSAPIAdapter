@@ -147,7 +147,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 TokenMap tokens;
 
                 if (!narratorVoicePath.empty())
-                    EnumLocalVoicesInFolder(tokens, (narratorVoicePath + L"\\*").c_str(), errorMode);
+                    EnumLocalVoicesInFolder(tokens, narratorVoicePath.c_str(), errorMode);
 
                 EnumLocalVoices(tokens, errorMode);
 
@@ -432,6 +432,49 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
     }
 }
 
+static std::vector<std::string> FindVoiceFolders(LPCWSTR rootFolder)
+{
+    std::deque<std::wstring> folders { rootFolder };
+    std::vector<std::string> voicePaths;
+
+    for (; !folders.empty(); folders.pop_front())
+    {
+        const auto& currentFolder = folders.front();
+        WIN32_FIND_DATAW fd;
+        HFindFile hFind = FindFirstFileW((currentFolder + L"\\*").c_str(), &fd);
+        if (hFind == INVALID_HANDLE_VALUE)
+            continue;
+
+        // If there's a file named "Tokens.xml" in this folder,
+        // treat this folder as a voice folder.
+        HANDLE hFile = CreateFileW((currentFolder + L"\\Tokens.xml").c_str(), 0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+        if (hFile != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(hFile);
+            voicePaths.push_back(WStringToUTF8(currentFolder));
+        }
+
+        // Add sub-folders to be checked later
+        do
+        {
+            // Ignore . and ..
+            if (fd.cFileName[0] == '.'
+                && (fd.cFileName[1] == '\0'
+                    || (fd.cFileName[1] == '.' && fd.cFileName[2] == '\0')))
+                continue;
+
+            // Only add non-hidden subfolders
+            if ((fd.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN)) != FILE_ATTRIBUTE_DIRECTORY)
+                continue;
+
+            folders.push_back(currentFolder + L'\\' + fd.cFileName);
+        } while (FindNextFileW(hFind, &fd));
+    }
+
+    return voicePaths;
+}
+
 void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR basepath, ErrorMode errorMode)
 {
     if (wcslen(basepath) >= MAX_PATH)
@@ -455,33 +498,7 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         // Changing the current directory and using relative paths may get around this,
         // but the current directory is a process-wide setting and changing it is not thread-safe
 
-        WIN32_FIND_DATAW fd;
-
-        HFindFile hFind = FindFirstFileW(basepath, &fd);
-        if (hFind == INVALID_HANDLE_VALUE)
-            return;
-
-        std::vector<std::string> paths;
-        do
-        {
-            // Ignore . and ..
-            if (fd.cFileName[0] == '.'
-                && (fd.cFileName[1] == '\0'
-                    || (fd.cFileName[1] == '.' && fd.cFileName[2] == '\0')))
-                continue;
-
-            // Only add non-hidden subfolders
-            if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                && !(fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN))
-            {
-                if (PathAppendW(path, fd.cFileName))
-                {
-                    paths.push_back(WStringToUTF8(path));
-                    PathRemoveFileSpecW(path);
-                }
-            }
-        } while (FindNextFileW(hFind, &fd));
-
+        auto paths = FindVoiceFolders(basepath);
         if (paths.empty())
             return;
 
