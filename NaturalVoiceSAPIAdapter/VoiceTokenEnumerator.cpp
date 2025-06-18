@@ -29,6 +29,44 @@ static bool s_isCacheTaskScheduled = false;
 extern TaskScheduler g_taskScheduler;
 
 
+static BOOL IsWindows10BuildOrGreater(DWORD dwBuild) noexcept
+{
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG        const dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL)
+        , VER_BUILDNUMBER, VER_GREATER_EQUAL);
+
+    osvi.dwMajorVersion = 10;
+    osvi.dwBuildNumber = dwBuild;
+
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_BUILDNUMBER, dwlConditionMask);
+}
+
+static bool IsRunningInWin11Narrator()
+{
+    // Narrator supporting natural voices will load its own version of Speech SDK.
+    // But if this enumerator is loaded first, a different version of the SDK will be loaded,
+    // and the Narrator's version of SDK will not be loaded due to the same DLL names.
+    // To avoid collision, we disable the enumerator when running inside the Narrator process.
+    // Narrator natural voices are supported since Windows 11 22H2, or build 22621.
+    if (!IsWindows10BuildOrGreater(22621))
+        return false;
+
+    WCHAR szExePath[MAX_PATH];
+    DWORD len = GetModuleFileNameW(nullptr, szExePath, MAX_PATH);
+    if (len == 0 || len == MAX_PATH)
+        return false;
+
+    std::wstring_view name = PathFindFileNameW(szExePath);
+    if (EqualsIgnoreCase(name, L"Narrator.exe") || EqualsIgnoreCase(name, L"SystemSettings.exe"))
+    {
+        logger.debug("Local natural voices disabled when running inside Narrator process");
+        return true;
+    }
+
+    return false;
+}
+
 HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 {
     // Exception handling in enumerator:
@@ -101,6 +139,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         if (!key.GetDword(L"Disable"))
         {
             if (!key.GetDword(L"NoNarratorVoices")
+                && !IsRunningInWin11Narrator()
                 && (IsWindows7OrGreater()  // this requires Win 7
                     || RegOpenConfigKey().GetDword(L"ForceEnableAzureSpeechSDK")))
             {
