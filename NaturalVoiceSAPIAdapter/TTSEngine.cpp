@@ -269,8 +269,14 @@ bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
         return false; // fallback
 
     CSpDynamicString pszPath, pszKey;
-    if (CheckHrNotFound(pConfigKey->GetStringValue(L"Path", &pszPath))
-        || CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"Path", &pszPath)))
+        return false;
+
+    // Newer Speech SDK requires a license instead of a key.
+    // If the voice is using a key, insert "Key:" before the key.
+    if (!CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
+        MergeIntoCoString(pszKey, L"Key:", pszKey.m_psz);
+    else if (CheckHrNotFound(pConfigKey->GetStringValue(L"License", &pszKey)))
         return false;
 
     auto path = WStringToUTF8(pszPath.m_psz);
