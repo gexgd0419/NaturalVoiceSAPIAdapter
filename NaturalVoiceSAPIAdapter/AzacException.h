@@ -80,7 +80,7 @@ private:
 		{ AZAC_ERR_MEDIA_ALREADY_STARTED, "Source has already been started." },
 		{ AZAC_ERR_MEDIA_DEVICE_CREATION_FAILED, "Media device creation failed." },
 		{ AZAC_ERR_MEDIA_NO_DEVICE_AVAILABLE, "No devices of the selected category are available." },
-		{ AZAC_ERR_VAD_CANNOT_BE_USED_WITH_KEYWORD_RECOGNIZER, "Enabled Voice Activity Detection while using keyword recognition is not allowed." },
+		{ AZAC_ERR_VAD_COULD_NOT_USE_WITH_KEYWORD_RECOGNIZER, "Enabled Voice Activity Detection while using keyword recognition is not allowed." },
 		{ AZAC_ERR_COULD_NOT_CREATE_ENGINE_ADAPTER, "The specified RecoEngineAdapter could not be created." },
 		{ AZAC_ERR_INPUT_FILE_SIZE_IS_ZERO_BYTES, "The input file has a size of 0 bytes." },
 		{ AZAC_ERR_FAILED_TO_OPEN_INPUT_FILE_FOR_READING, "Cannot open the input media file for reading. Does it exist?" },
@@ -91,7 +91,6 @@ private:
 		{ AZAC_ERR_INVALID_MODEL_VERSION_FORMAT, R"(The given model version string is not in the expected format. The format is specified by the regular expression `^(latest|\d{4}-\d{2}-\d{2})(-preview)?$`.)" },
 		{ AZAC_ERR_NETWORK_MALFORMED, "Malformed network message" },
 		{ AZAC_ERR_NETWORK_PROTOCOL_VIOLATION, "Unexpected message received" },
-		{ AZAC_ERR_MAS_LIBRARY_NOT_FOUND, "MAS extension library not found." },
 		{ AZAC_ERR_NOT_IMPL, "The function is not implemented." },
 	};
 
