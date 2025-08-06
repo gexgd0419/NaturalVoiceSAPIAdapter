@@ -177,7 +177,7 @@
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -217,7 +217,7 @@
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -258,7 +258,7 @@
       <RegisterOutput>true</RegisterOutput>
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -302,7 +302,7 @@
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -344,7 +344,7 @@
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -387,7 +387,7 @@
       <PerUserRedirection>false</PerUserRedirection>
       <DelayLoadDLLs>Microsoft.CognitiveServices.Speech.core.dll</DelayLoadDLLs>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto.lib;libssl.lib;crypt32.lib;RuntimeObject.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
