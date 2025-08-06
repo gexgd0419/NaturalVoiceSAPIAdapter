@@ -119,6 +119,7 @@ private: // Member variables
 	CComPtr<ISpPhoneConverter> m_phoneConverter;
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
 	std::unique_ptr<SpeechRestAPI> m_restApi;
+	std::future<void> m_lastCancellingFuture;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
 	bool m_isEdgeVoice = false;

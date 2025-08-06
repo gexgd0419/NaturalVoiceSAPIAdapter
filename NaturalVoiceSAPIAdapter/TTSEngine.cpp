@@ -85,6 +85,23 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             return SPERR_UNINITIALIZED;
         }
 
+        if (m_lastCancellingFuture.valid())
+        {
+            // The previous cancellation is still in progress. Wait for it.
+            while (m_lastCancellingFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
+            {
+                if (pOutputSite->GetActions() & SPVES_ABORT)
+                {
+                    // The current speech is cancelled.
+                    // We can return immediately, since nothing has been done yet.
+                    return S_OK;
+                }
+                Sleep(50);
+            }
+            // Cancellation completed. Clear the future.
+            m_lastCancellingFuture = {};
+        }
+
         ULONGLONG eventInterests = 0;
         pOutputSite->GetEventInterest(&eventInterests);
         if (m_synthesizer)
@@ -144,13 +161,22 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         {
             LogDebug("Speak: Requested stop");
             if (m_synthesizer)
-                m_synthesizer->StopSpeakingAsync().wait();
+            {
+                auto stop_future = m_synthesizer->StopSpeakingAsync();
+
+                // Cancellation might not finish, but we won't wait for it.
+                // Return immediately on requested stop.
+                // Create a new async future to wait for cancellation,
+                // and check it the next time Speak is called.
+                m_lastCancellingFuture = std::async(
+                    std::launch::async, [stop_future = std::move(stop_future), future = std::move(future)]()
+                {
+                    stop_future.wait();
+                    future.wait();
+                });
+            }
             else
                 m_restApi->Stop();
-
-            // Wait for the future, but don't get its exception.
-            // Stopping the voice can sometimes cause exceptions to be thrown. Ignore them.
-            future.wait();
 
             m_lastSpeakCompletedTicks = 0;
         }
