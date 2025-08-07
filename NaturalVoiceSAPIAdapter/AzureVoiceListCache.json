@@ -10,6 +10,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Well-Rounded",
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "147"
   },
   {
@@ -62,6 +73,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "110"
   },
   {
@@ -114,6 +136,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "110"
   },
   {
@@ -140,6 +173,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "103"
   },
   {
@@ -218,6 +262,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "121"
   },
   {
@@ -296,6 +351,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "121"
   },
   {
@@ -322,6 +388,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant"
+      ]
+    },
     "WordsPerMinute": "118"
   },
   {
@@ -374,6 +450,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "105"
   },
   {
@@ -400,6 +487,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant"
+      ]
+    },
     "WordsPerMinute": "122"
   },
   {
@@ -426,6 +523,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant"
+      ]
+    },
     "WordsPerMinute": "112"
   },
   {
@@ -541,6 +648,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Light-Hearted",
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "132"
   },
   {
@@ -658,6 +776,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "155"
   },
   {
@@ -762,6 +891,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Light-Hearted",
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "130"
   },
   {
@@ -801,6 +941,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Pleasant"
+      ]
+    },
     "WordsPerMinute": "121"
   },
   {
@@ -817,269 +967,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Engaging",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "128"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, AmalaNeural)",
-    "DisplayName": "Amala",
-    "LocalName": "Amala",
-    "ShortName": "de-DE-AmalaNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "115"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, BerndNeural)",
-    "DisplayName": "Bernd",
-    "LocalName": "Bernd",
-    "ShortName": "de-DE-BerndNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "123"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, ChristophNeural)",
-    "DisplayName": "Christoph",
-    "LocalName": "Christoph",
-    "ShortName": "de-DE-ChristophNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "128"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, ElkeNeural)",
-    "DisplayName": "Elke",
-    "LocalName": "Elke",
-    "ShortName": "de-DE-ElkeNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "114"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, FlorianMultilingualNeural)",
-    "DisplayName": "Florian Multilingual",
-    "LocalName": "Florian Mehrsprachig",
-    "ShortName": "de-DE-FlorianMultilingualNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SecondaryLocaleList": [
-      "af-ZA",
-      "am-ET",
-      "ar-EG",
-      "ar-SA",
-      "az-AZ",
-      "bg-BG",
-      "bn-BD",
-      "bn-IN",
-      "bs-BA",
-      "ca-ES",
-      "cs-CZ",
-      "cy-GB",
-      "da-DK",
-      "de-AT",
-      "de-CH",
-      "de-DE",
-      "el-GR",
-      "en-AU",
-      "en-CA",
-      "en-GB",
-      "en-IE",
-      "en-IN",
-      "en-US",
-      "es-ES",
-      "es-MX",
-      "et-EE",
-      "eu-ES",
-      "fa-IR",
-      "fi-FI",
-      "fil-PH",
-      "fr-BE",
-      "fr-CA",
-      "fr-CH",
-      "fr-FR",
-      "ga-IE",
-      "gl-ES",
-      "he-IL",
-      "hi-IN",
-      "hr-HR",
-      "hu-HU",
-      "hy-AM",
-      "id-ID",
-      "is-IS",
-      "it-IT",
-      "ja-JP",
-      "jv-ID",
-      "ka-GE",
-      "kk-KZ",
-      "km-KH",
-      "kn-IN",
-      "ko-KR",
-      "lo-LA",
-      "lt-LT",
-      "lv-LV",
-      "mk-MK",
-      "ml-IN",
-      "mn-MN",
-      "ms-MY",
-      "mt-MT",
-      "my-MM",
-      "nb-NO",
-      "ne-NP",
-      "nl-BE",
-      "nl-NL",
-      "pl-PL",
-      "ps-AF",
-      "pt-BR",
-      "pt-PT",
-      "ro-RO",
-      "ru-RU",
-      "si-LK",
-      "sk-SK",
-      "sl-SI",
-      "so-SO",
-      "sq-AL",
-      "sr-RS",
-      "su-ID",
-      "sv-SE",
-      "sw-KE",
-      "ta-IN",
-      "te-IN",
-      "th-TH",
-      "tr-TR",
-      "uk-UA",
-      "ur-PK",
-      "uz-UZ",
-      "vi-VN",
-      "zh-CN",
-      "zh-HK",
-      "zh-TW",
-      "zu-ZA"
-    ],
-    "SampleRateHertz": "24000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "190"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, GiselaNeural)",
-    "DisplayName": "Gisela",
-    "LocalName": "Gisela",
-    "ShortName": "de-DE-GiselaNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "110"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KasperNeural)",
-    "DisplayName": "Kasper",
-    "LocalName": "Kasper",
-    "ShortName": "de-DE-KasperNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "129"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KillianNeural)",
-    "DisplayName": "Killian",
-    "LocalName": "Killian",
-    "ShortName": "de-DE-KillianNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "126"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KlarissaNeural)",
-    "DisplayName": "Klarissa",
-    "LocalName": "Klarissa",
-    "ShortName": "de-DE-KlarissaNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "116"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KlausNeural)",
-    "DisplayName": "Klaus",
-    "LocalName": "Klaus",
-    "ShortName": "de-DE-KlausNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "106"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, LouisaNeural)",
-    "DisplayName": "Louisa",
-    "LocalName": "Louisa",
-    "ShortName": "de-DE-LouisaNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "114"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, MajaNeural)",
-    "DisplayName": "Maja",
-    "LocalName": "Maja",
-    "ShortName": "de-DE-MajaNeural",
-    "Gender": "Female",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "116"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, RalfNeural)",
-    "DisplayName": "Ralf",
-    "LocalName": "Ralf",
-    "ShortName": "de-DE-RalfNeural",
-    "Gender": "Male",
-    "Locale": "de-DE",
-    "LocaleName": "German (Germany)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "127"
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, SeraphinaMultilingualNeural)",
@@ -1185,7 +1083,311 @@
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Casual"
+      ]
+    },
     "WordsPerMinute": "190"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, FlorianMultilingualNeural)",
+    "DisplayName": "Florian Multilingual",
+    "LocalName": "Florian Mehrsprachig",
+    "ShortName": "de-DE-FlorianMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Warm"
+      ]
+    },
+    "WordsPerMinute": "190"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, AmalaNeural)",
+    "DisplayName": "Amala",
+    "LocalName": "Amala",
+    "ShortName": "de-DE-AmalaNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Well-Rounded",
+        "Animated",
+        "Bright"
+      ]
+    },
+    "WordsPerMinute": "115"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, BerndNeural)",
+    "DisplayName": "Bernd",
+    "LocalName": "Bernd",
+    "ShortName": "de-DE-BerndNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "123"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, ChristophNeural)",
+    "DisplayName": "Christoph",
+    "LocalName": "Christoph",
+    "ShortName": "de-DE-ChristophNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "128"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, ElkeNeural)",
+    "DisplayName": "Elke",
+    "LocalName": "Elke",
+    "ShortName": "de-DE-ElkeNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "114"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, GiselaNeural)",
+    "DisplayName": "Gisela",
+    "LocalName": "Gisela",
+    "ShortName": "de-DE-GiselaNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful",
+        "Bright"
+      ]
+    },
+    "WordsPerMinute": "110"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KasperNeural)",
+    "DisplayName": "Kasper",
+    "LocalName": "Kasper",
+    "ShortName": "de-DE-KasperNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "129"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KillianNeural)",
+    "DisplayName": "Killian",
+    "LocalName": "Killian",
+    "ShortName": "de-DE-KillianNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "126"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KlarissaNeural)",
+    "DisplayName": "Klarissa",
+    "LocalName": "Klarissa",
+    "ShortName": "de-DE-KlarissaNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "116"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, KlausNeural)",
+    "DisplayName": "Klaus",
+    "LocalName": "Klaus",
+    "ShortName": "de-DE-KlausNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "106"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, LouisaNeural)",
+    "DisplayName": "Louisa",
+    "LocalName": "Louisa",
+    "ShortName": "de-DE-LouisaNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "114"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, MajaNeural)",
+    "DisplayName": "Maja",
+    "LocalName": "Maja",
+    "ShortName": "de-DE-MajaNeural",
+    "Gender": "Female",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "116"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, RalfNeural)",
+    "DisplayName": "Ralf",
+    "LocalName": "Ralf",
+    "ShortName": "de-DE-RalfNeural",
+    "Gender": "Male",
+    "Locale": "de-DE",
+    "LocaleName": "German (Germany)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "127"
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (de-DE, TanjaNeural)",
@@ -1237,6 +1439,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "139"
   },
   {
@@ -1250,6 +1463,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Engaging",
+        "Strong"
+      ]
+    },
     "WordsPerMinute": "157"
   },
   {
@@ -1276,6 +1499,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "137"
   },
   {
@@ -1419,6 +1653,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "167"
   },
   {
@@ -1449,6 +1694,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Gentle",
+        "Soft"
+      ]
+    },
     "WordsPerMinute": "150"
   },
   {
@@ -1466,6 +1721,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "161"
   },
   {
@@ -1479,7 +1744,253 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "138"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, AdaMultilingualNeural)",
+    "DisplayName": "Ada Multilingual",
+    "LocalName": "Ada Multilingual",
+    "ShortName": "en-GB-AdaMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "en-GB",
+    "LocaleName": "English (United Kingdom)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Warm",
+        "Gentle",
+        "Friendly"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, OllieMultilingualNeural)",
+    "DisplayName": "Ollie Multilingual",
+    "LocalName": "Ollie Multilingual",
+    "ShortName": "en-GB-OllieMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "en-GB",
+    "LocaleName": "English (United Kingdom)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Cheerful",
+        "Casual",
+        "Friendly",
+        "Pleasant"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-GB, AbbiNeural)",
@@ -1570,6 +2081,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "141"
   },
   {
@@ -1686,6 +2208,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Light-Hearted",
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "146"
   },
   {
@@ -2049,7 +2582,18 @@
     ],
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Pleasant",
+        "Friendly",
+        "Caring"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, AndrewMultilingualNeural)",
@@ -2158,7 +2702,18 @@
     ],
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Advertisement"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Casual",
+        "Warm"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, EmmaMultilingualNeural)",
@@ -2263,7 +2818,18 @@
     ],
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "E-learning",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Light-Hearted",
+        "Casual"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, BrianMultilingualNeural)",
@@ -2368,7 +2934,18 @@
     ],
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Podcast",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Calm",
+        "Approachable"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, AvaNeural)",
@@ -2380,7 +2957,18 @@
     "LocaleName": "English (United States)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Documentary"
+      ],
+      "VoicePersonalities": [
+        "Pleasant",
+        "Caring",
+        "Friendly"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, AndrewNeural)",
@@ -2392,7 +2980,18 @@
     "LocaleName": "English (United States)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Advertisement"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Authentic",
+        "Warm"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, EmmaNeural)",
@@ -2404,7 +3003,18 @@
     "LocaleName": "English (United States)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "E-learning",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Light-Hearted",
+        "Casual"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, BrianNeural)",
@@ -2416,7 +3026,18 @@
     "LocaleName": "English (United States)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Podcast",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Calm",
+        "Approachable"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, JennyNeural)",
@@ -2445,6 +3066,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant",
+        "Approachable"
+      ]
+    },
     "WordsPerMinute": "152"
   },
   {
@@ -2471,6 +3103,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Light-Hearted",
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "215"
   },
   {
@@ -2502,6 +3145,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "150"
   },
   {
@@ -2528,6 +3182,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "meditation"
+      ],
+      "VoicePersonalities": [
+        "Soothing",
+        "Calm",
+        "Smooth"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -2553,6 +3218,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Meditation"
+      ],
+      "VoicePersonalities": [
+        "Serious",
+        "Approachable",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -2578,7 +3254,76 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Gentle",
+        "Shy",
+        "Polite"
+      ]
+    },
     "WordsPerMinute": "156"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-US, KaiNeural)",
+    "DisplayName": "Kai",
+    "LocalName": "Kai",
+    "ShortName": "en-US-KaiNeural",
+    "Gender": "Male",
+    "Locale": "en-US",
+    "LocaleName": "English (United States)",
+    "StyleList": [
+      "conversation"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant",
+        "Bright",
+        "Clear",
+        "Friendly",
+        "Warm"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-US, LunaNeural)",
+    "DisplayName": "Luna",
+    "LocalName": "Luna",
+    "ShortName": "en-US-LunaNeural",
+    "Gender": "Female",
+    "Locale": "en-US",
+    "LocaleName": "English (United States)",
+    "StyleList": [
+      "conversation"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant",
+        "Bright",
+        "Clear",
+        "Friendly",
+        "Warm"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, SaraNeural)",
@@ -2603,6 +3348,13 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "VoicePersonalities": [
+        "Sincere",
+        "Calm",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "157"
   },
   {
@@ -2628,6 +3380,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Gaming",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Thoughtful",
+        "Authentic",
+        "Sincere"
+      ]
+    },
     "WordsPerMinute": "156"
   },
   {
@@ -2653,7 +3416,365 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Serious",
+        "Mature"
+      ]
+    },
     "WordsPerMinute": "149"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-US, CoraMultilingualNeural)",
+    "DisplayName": "Cora Multilingual",
+    "LocalName": "Cora Multilingual",
+    "ShortName": "en-US-CoraMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "en-US",
+    "LocaleName": "English (United States)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "E-learning",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Empathetic",
+        "Formal",
+        "Sincere"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-US, ChristopherMultilingualNeural)",
+    "DisplayName": "Christopher Multilingual",
+    "LocalName": "Christopher Multilingual",
+    "ShortName": "en-US-ChristopherMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "en-US",
+    "LocaleName": "English (United States)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Meditation",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Warm"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (en-US, BrandonMultilingualNeural)",
+    "DisplayName": "Brandon Multilingual",
+    "LocalName": "Brandon Multilingual",
+    "ShortName": "en-US-BrandonMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "en-US",
+    "LocaleName": "English (United States)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "E-learning",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Engaging",
+        "Authentic"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, AmberNeural)",
@@ -2666,6 +3787,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Whimsical",
+        "Upbeat",
+        "Light-Hearted"
+      ]
+    },
     "WordsPerMinute": "152"
   },
   {
@@ -2679,6 +3811,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "135"
   },
   {
@@ -2692,6 +3835,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Gaming",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Approachable",
+        "Honest"
+      ]
+    },
     "WordsPerMinute": "149"
   },
   {
@@ -2705,6 +3859,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Gaming",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Engaging",
+        "Authentic"
+      ]
+    },
     "WordsPerMinute": "156"
   },
   {
@@ -2718,6 +3883,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Meditation",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Warm"
+      ]
+    },
     "WordsPerMinute": "149"
   },
   {
@@ -2731,6 +3906,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Meditation",
+        "Audiobook"
+      ],
+      "VoicePersonalities": [
+        "Empathetic",
+        "Formal",
+        "Sincere"
+      ]
+    },
     "WordsPerMinute": "146"
   },
   {
@@ -2744,6 +3930,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Authoritative",
+        "Formal",
+        "Serious"
+      ]
+    },
     "WordsPerMinute": "152"
   },
   {
@@ -2757,6 +3954,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Sincere",
+        "Warm"
+      ]
+    },
     "WordsPerMinute": "147"
   },
   {
@@ -2770,6 +3978,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Formal",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -2826,6 +4045,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Sincere",
+        "Pleasant",
+        "Approachable"
+      ]
+    },
     "WordsPerMinute": "190"
   },
   {
@@ -2839,6 +4069,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Podcast",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Authentic",
+        "Warm"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -2852,6 +4093,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Podcast",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Mature",
+        "Authentic",
+        "Warm"
+      ]
+    },
     "WordsPerMinute": "145"
   },
   {
@@ -2864,7 +4116,18 @@
     "LocaleName": "English (United States)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Serious",
+        "Formal",
+        "Confident"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (en-US, RyanMultilingualNeural)",
@@ -2920,6 +4183,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Professional",
+        "Authentic",
+        "Sincere"
+      ]
+    },
     "WordsPerMinute": "190"
   },
   {
@@ -2933,6 +4207,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Mature",
+        "Authentic",
+        "Warm"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -2972,6 +4257,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "150"
   },
   {
@@ -3180,6 +4475,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "148"
   },
   {
@@ -3193,7 +4498,484 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Animated"
+      ]
+    },
     "WordsPerMinute": "148"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (es-ES, ArabellaMultilingualNeural)",
+    "DisplayName": "Arabella Multilingual",
+    "LocalName": "Arabella Multilingual",
+    "ShortName": "es-ES-ArabellaMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "es-ES",
+    "LocaleName": "Spanish (Spain)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Friendly",
+        "Casual",
+        "Warm",
+        "Pleasant"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (es-ES, IsidoraMultilingualNeural)",
+    "DisplayName": "Isidora Multilingual",
+    "LocalName": "Isidora Multilingual",
+    "ShortName": "es-ES-IsidoraMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "es-ES",
+    "LocaleName": "Spanish (Spain)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Friendly",
+        "Warm",
+        "Casual"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (es-ES, TristanMultilingualNeural)",
+    "DisplayName": "Tristan Multilingual",
+    "LocalName": "Tristan Multilingual",
+    "ShortName": "es-ES-TristanMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "es-ES",
+    "LocaleName": "Spanish (Spain)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Formal",
+        "Clear",
+        "Trusthworthy"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (es-ES, XimenaMultilingualNeural)",
+    "DisplayName": "Ximena Multilingual",
+    "LocalName": "Ximena Multilingual",
+    "ShortName": "es-ES-XimenaMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "es-ES",
+    "LocaleName": "Spanish (Spain)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Formal",
+        "Serious",
+        "Upbeat"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (es-ES, AbrilNeural)",
@@ -3271,6 +5053,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "134"
   },
   {
@@ -3297,6 +5089,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "150"
   },
   {
@@ -3374,7 +5176,17 @@
     "LocaleName": "Spanish (Spain)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (es-GQ, TeresaNeural)",
@@ -3465,6 +5277,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "145"
   },
   {
@@ -3482,6 +5304,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Deep",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "143"
   },
   {
@@ -3599,6 +5432,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "136"
   },
   {
@@ -4002,6 +5845,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "96"
   },
   {
@@ -4105,7 +5958,17 @@
     "LocaleName": "French (Canada)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Engaging",
+        "Caring"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (fr-CH, ArianeNeural)",
@@ -4148,6 +6011,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "155"
   },
   {
@@ -4165,243 +6038,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Strong",
+        "Calm"
+      ]
+    },
     "WordsPerMinute": "165"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, AlainNeural)",
-    "DisplayName": "Alain",
-    "LocalName": "Alain",
-    "ShortName": "fr-FR-AlainNeural",
-    "Gender": "Male",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "165"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, BrigitteNeural)",
-    "DisplayName": "Brigitte",
-    "LocalName": "Brigitte",
-    "ShortName": "fr-FR-BrigitteNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "153"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, CelesteNeural)",
-    "DisplayName": "Celeste",
-    "LocalName": "Celeste",
-    "ShortName": "fr-FR-CelesteNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "155"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, ClaudeNeural)",
-    "DisplayName": "Claude",
-    "LocalName": "Claude",
-    "ShortName": "fr-FR-ClaudeNeural",
-    "Gender": "Male",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "155"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, CoralieNeural)",
-    "DisplayName": "Coralie",
-    "LocalName": "Coralie",
-    "ShortName": "fr-FR-CoralieNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "154"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, EloiseNeural)",
-    "DisplayName": "Eloise",
-    "LocalName": "Eloise",
-    "ShortName": "fr-FR-EloiseNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "150"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JacquelineNeural)",
-    "DisplayName": "Jacqueline",
-    "LocalName": "Jacqueline",
-    "ShortName": "fr-FR-JacquelineNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "154"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JeromeNeural)",
-    "DisplayName": "Jerome",
-    "LocalName": "Jerome",
-    "ShortName": "fr-FR-JeromeNeural",
-    "Gender": "Male",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "165"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JosephineNeural)",
-    "DisplayName": "Josephine",
-    "LocalName": "Josephine",
-    "ShortName": "fr-FR-JosephineNeural",
-    "Gender": "Female",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "155"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, MauriceNeural)",
-    "DisplayName": "Maurice",
-    "LocalName": "Maurice",
-    "ShortName": "fr-FR-MauriceNeural",
-    "Gender": "Male",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SampleRateHertz": "48000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "162"
-  },
-  {
-    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, RemyMultilingualNeural)",
-    "DisplayName": "Remy Multilingual",
-    "LocalName": "Rémy Multilingue",
-    "ShortName": "fr-FR-RemyMultilingualNeural",
-    "Gender": "Male",
-    "Locale": "fr-FR",
-    "LocaleName": "French (France)",
-    "SecondaryLocaleList": [
-      "af-ZA",
-      "am-ET",
-      "ar-EG",
-      "ar-SA",
-      "az-AZ",
-      "bg-BG",
-      "bn-BD",
-      "bn-IN",
-      "bs-BA",
-      "ca-ES",
-      "cs-CZ",
-      "cy-GB",
-      "da-DK",
-      "de-AT",
-      "de-CH",
-      "de-DE",
-      "el-GR",
-      "en-AU",
-      "en-CA",
-      "en-GB",
-      "en-IE",
-      "en-IN",
-      "en-US",
-      "es-ES",
-      "es-MX",
-      "et-EE",
-      "eu-ES",
-      "fa-IR",
-      "fi-FI",
-      "fil-PH",
-      "fr-BE",
-      "fr-CA",
-      "fr-CH",
-      "fr-FR",
-      "ga-IE",
-      "gl-ES",
-      "he-IL",
-      "hi-IN",
-      "hr-HR",
-      "hu-HU",
-      "hy-AM",
-      "id-ID",
-      "is-IS",
-      "it-IT",
-      "ja-JP",
-      "jv-ID",
-      "ka-GE",
-      "kk-KZ",
-      "km-KH",
-      "kn-IN",
-      "ko-KR",
-      "lo-LA",
-      "lt-LT",
-      "lv-LV",
-      "mk-MK",
-      "ml-IN",
-      "mn-MN",
-      "ms-MY",
-      "mt-MT",
-      "my-MM",
-      "nb-NO",
-      "ne-NP",
-      "nl-BE",
-      "nl-NL",
-      "pl-PL",
-      "ps-AF",
-      "pt-BR",
-      "pt-PT",
-      "ro-RO",
-      "ru-RU",
-      "si-LK",
-      "sk-SK",
-      "sl-SI",
-      "so-SO",
-      "sq-AL",
-      "sr-RS",
-      "su-ID",
-      "sv-SE",
-      "sw-KE",
-      "ta-IN",
-      "te-IN",
-      "th-TH",
-      "tr-TR",
-      "uk-UA",
-      "ur-PK",
-      "uz-UZ",
-      "vi-VN",
-      "zh-CN",
-      "zh-HK",
-      "zh-TW",
-      "zu-ZA"
-    ],
-    "SampleRateHertz": "24000",
-    "VoiceType": "Neural",
-    "Status": "GA",
-    "WordsPerMinute": "190"
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, VivienneMultilingualNeural)",
@@ -4507,7 +6154,389 @@
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Advertisement"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Casual"
+      ]
+    },
     "WordsPerMinute": "190"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, RemyMultilingualNeural)",
+    "DisplayName": "Remy Multilingual",
+    "LocalName": "Rémy Multilingue",
+    "ShortName": "fr-FR-RemyMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Cheerful"
+      ]
+    },
+    "WordsPerMinute": "190"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, LucienMultilingualNeural)",
+    "DisplayName": "Lucien Multilingual",
+    "LocalName": "Lucien Multilingual",
+    "ShortName": "fr-FR-LucienMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Advertisement"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Formal",
+        "Confident"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, AlainNeural)",
+    "DisplayName": "Alain",
+    "LocalName": "Alain",
+    "ShortName": "fr-FR-AlainNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "165"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, BrigitteNeural)",
+    "DisplayName": "Brigitte",
+    "LocalName": "Brigitte",
+    "ShortName": "fr-FR-BrigitteNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "153"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, CelesteNeural)",
+    "DisplayName": "Celeste",
+    "LocalName": "Celeste",
+    "ShortName": "fr-FR-CelesteNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "155"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, ClaudeNeural)",
+    "DisplayName": "Claude",
+    "LocalName": "Claude",
+    "ShortName": "fr-FR-ClaudeNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "155"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, CoralieNeural)",
+    "DisplayName": "Coralie",
+    "LocalName": "Coralie",
+    "ShortName": "fr-FR-CoralieNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "154"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, EloiseNeural)",
+    "DisplayName": "Eloise",
+    "LocalName": "Eloise",
+    "ShortName": "fr-FR-EloiseNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
+    "WordsPerMinute": "150"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JacquelineNeural)",
+    "DisplayName": "Jacqueline",
+    "LocalName": "Jacqueline",
+    "ShortName": "fr-FR-JacquelineNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "154"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JeromeNeural)",
+    "DisplayName": "Jerome",
+    "LocalName": "Jerome",
+    "ShortName": "fr-FR-JeromeNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "165"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, JosephineNeural)",
+    "DisplayName": "Josephine",
+    "LocalName": "Josephine",
+    "ShortName": "fr-FR-JosephineNeural",
+    "Gender": "Female",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "155"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, MauriceNeural)",
+    "DisplayName": "Maurice",
+    "LocalName": "Maurice",
+    "ShortName": "fr-FR-MauriceNeural",
+    "Gender": "Male",
+    "Locale": "fr-FR",
+    "LocaleName": "French (France)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "162"
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (fr-FR, YvesNeural)",
@@ -4533,6 +6562,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "156"
   },
   {
@@ -4753,6 +6792,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "133"
   },
   {
@@ -4779,6 +6828,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "124"
   },
   {
@@ -4870,6 +6929,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Crisp"
+      ]
+    },
     "WordsPerMinute": "148"
   },
   {
@@ -4887,6 +6956,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Upbeat",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "134"
   },
   {
@@ -4900,7 +6979,487 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "135"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, AlessioMultilingualNeural)",
+    "DisplayName": "Alessio Multilingual",
+    "LocalName": "Alessio Multilingual",
+    "ShortName": "it-IT-AlessioMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "it-IT",
+    "LocaleName": "Italian (Italy)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Warm",
+        "Gentle",
+        "Cheerful",
+        "Friendly"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, IsabellaMultilingualNeural)",
+    "DisplayName": "Isabella Multilingual",
+    "LocalName": "Isabella Multilingual",
+    "ShortName": "it-IT-IsabellaMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "it-IT",
+    "LocaleName": "Italian (Italy)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Cheerful",
+        "Casual",
+        "Friendly",
+        "Pleasant"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, GiuseppeMultilingualNeural)",
+    "DisplayName": "Giuseppe Multilingual",
+    "LocalName": "Giuseppe Multilingual",
+    "ShortName": "it-IT-GiuseppeMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "it-IT",
+    "LocaleName": "Italian (Italy)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Advertisement",
+        "Social Media"
+      ],
+      "VoicePersonalities": [
+        "Expressive",
+        "Upbeat",
+        "Youthful"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, MarcelloMultilingualNeural)",
+    "DisplayName": "Marcello Multilingual",
+    "LocalName": "Marcello Multilingual",
+    "ShortName": "it-IT-MarcelloMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "it-IT",
+    "LocaleName": "Italian (Italy)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Friendly",
+        "Casual",
+        "Warm",
+        "Pleasant"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, BenignoNeural)",
@@ -4990,7 +7549,17 @@
     "LocaleName": "Italian (Italy)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Warm"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (it-IT, ImeldaNeural)",
@@ -5042,6 +7611,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "139"
   },
   {
@@ -5055,6 +7634,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "134"
   },
   {
@@ -5069,6 +7658,58 @@
     "VoiceType": "Neural",
     "Status": "GA",
     "WordsPerMinute": "137"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (iu-Cans-CA, SiqiniqNeural)",
+    "DisplayName": "Siqiniq",
+    "LocalName": "ᓯᕿᓂᖅ",
+    "ShortName": "iu-Cans-CA-SiqiniqNeural",
+    "Gender": "Female",
+    "Locale": "iu-Cans-CA",
+    "LocaleName": "Inuktitut (Syllabics, Canada)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "160"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (iu-Cans-CA, TaqqiqNeural)",
+    "DisplayName": "Taqqiq",
+    "LocalName": "ᑕᖅᑭᖅ",
+    "ShortName": "iu-Cans-CA-TaqqiqNeural",
+    "Gender": "Male",
+    "Locale": "iu-Cans-CA",
+    "LocaleName": "Inuktitut (Syllabics, Canada)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "160"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (iu-Latn-CA, SiqiniqNeural)",
+    "DisplayName": "Siqiniq",
+    "LocalName": "ᓯᕿᓂᖅ",
+    "ShortName": "iu-Latn-CA-SiqiniqNeural",
+    "Gender": "Female",
+    "Locale": "iu-Latn-CA",
+    "LocaleName": "Inuktitut (Latin, Canada)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "160"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (iu-Latn-CA, TaqqiqNeural)",
+    "DisplayName": "Taqqiq",
+    "LocalName": "ᑕᖅᑭᖅ",
+    "ShortName": "iu-Latn-CA-TaqqiqNeural",
+    "Gender": "Male",
+    "Locale": "iu-Latn-CA",
+    "LocaleName": "Inuktitut (Latin, Canada)",
+    "SampleRateHertz": "48000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "WordsPerMinute": "160"
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (ja-JP, NanamiNeural)",
@@ -5086,6 +7727,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "305"
   },
   {
@@ -5099,6 +7750,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "337"
   },
   {
@@ -5112,6 +7773,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "270"
   },
   {
@@ -5138,6 +7809,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "302"
   },
   {
@@ -5307,6 +7988,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Formal"
+      ]
+    },
     "WordsPerMinute": "274"
   },
   {
@@ -5320,7 +8011,133 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "253"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, HyunsuMultilingualNeural)",
+    "DisplayName": "Hyunsu Multilingual",
+    "LocalName": "Hyunsu Multilingual",
+    "ShortName": "ko-KR-HyunsuMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "ko-KR",
+    "LocaleName": "Korean (Korea)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Formal",
+        "Clear",
+        "Confident"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, BongJinNeural)",
@@ -5358,7 +8175,17 @@
     "LocaleName": "Korean (Korea)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Casual"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (ko-KR, JiMinNeural)",
@@ -5384,6 +8211,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "258"
   },
   {
@@ -5397,6 +8234,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "271"
   },
   {
@@ -5618,6 +8465,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Gaming"
+      ],
+      "VoicePersonalities": [
+        "Whimsical",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "118"
   },
   {
@@ -5709,6 +8566,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "154"
   },
   {
@@ -5774,6 +8641,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "140"
   },
   {
@@ -5787,6 +8664,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Formal",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "151"
   },
   {
@@ -5800,6 +8687,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "132"
   },
   {
@@ -5887,6 +8784,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "127"
   },
   {
@@ -5929,6 +8836,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Crisp"
+      ]
+    },
     "WordsPerMinute": "134"
   },
   {
@@ -5942,7 +8859,251 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "138"
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, MacerioMultilingualNeural)",
+    "DisplayName": "Macerio Multilingual",
+    "LocalName": "Macerio Multilingual",
+    "ShortName": "pt-BR-MacerioMultilingualNeural",
+    "Gender": "Male",
+    "Locale": "pt-BR",
+    "LocaleName": "Portuguese (Brazil)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Advertisement",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Clear",
+        "Confident",
+        "Upbeat"
+      ]
+    }
+  },
+  {
+    "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, ThalitaMultilingualNeural)",
+    "DisplayName": "Thalita Multilingual",
+    "LocalName": "Thalita multilíngue",
+    "ShortName": "pt-BR-ThalitaMultilingualNeural",
+    "Gender": "Female",
+    "Locale": "pt-BR",
+    "LocaleName": "Portuguese (Brazil)",
+    "SecondaryLocaleList": [
+      "af-ZA",
+      "am-ET",
+      "ar-EG",
+      "ar-SA",
+      "az-AZ",
+      "bg-BG",
+      "bn-BD",
+      "bn-IN",
+      "bs-BA",
+      "ca-ES",
+      "cs-CZ",
+      "cy-GB",
+      "da-DK",
+      "de-AT",
+      "de-CH",
+      "de-DE",
+      "el-GR",
+      "en-AU",
+      "en-CA",
+      "en-GB",
+      "en-IE",
+      "en-IN",
+      "en-US",
+      "es-ES",
+      "es-MX",
+      "et-EE",
+      "eu-ES",
+      "fa-IR",
+      "fi-FI",
+      "fil-PH",
+      "fr-BE",
+      "fr-CA",
+      "fr-CH",
+      "fr-FR",
+      "ga-IE",
+      "gl-ES",
+      "he-IL",
+      "hi-IN",
+      "hr-HR",
+      "hu-HU",
+      "hy-AM",
+      "id-ID",
+      "is-IS",
+      "it-IT",
+      "ja-JP",
+      "jv-ID",
+      "ka-GE",
+      "kk-KZ",
+      "km-KH",
+      "kn-IN",
+      "ko-KR",
+      "lo-LA",
+      "lt-LT",
+      "lv-LV",
+      "mk-MK",
+      "ml-IN",
+      "mn-MN",
+      "ms-MY",
+      "mt-MT",
+      "my-MM",
+      "nb-NO",
+      "ne-NP",
+      "nl-BE",
+      "nl-NL",
+      "pl-PL",
+      "ps-AF",
+      "pt-BR",
+      "pt-PT",
+      "ro-RO",
+      "ru-RU",
+      "si-LK",
+      "sk-SK",
+      "sl-SI",
+      "so-SO",
+      "sq-AL",
+      "sr-RS",
+      "su-ID",
+      "sv-SE",
+      "sw-KE",
+      "ta-IN",
+      "te-IN",
+      "th-TH",
+      "tr-TR",
+      "uk-UA",
+      "ur-PK",
+      "uz-UZ",
+      "vi-VN",
+      "zh-CN",
+      "zh-HK",
+      "zh-TW",
+      "zu-ZA"
+    ],
+    "SampleRateHertz": "24000",
+    "VoiceType": "Neural",
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Formal",
+        "Warm",
+        "Cheerful",
+        "Casual"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, BrendaNeural)",
@@ -6059,6 +9220,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Curious",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "128"
   },
   {
@@ -6097,7 +9268,17 @@
     "LocaleName": "Portuguese (Brazil)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Formal"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (pt-BR, ValerioNeural)",
@@ -6123,6 +9304,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Well-Rounded",
+        "Animated",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "136"
   },
   {
@@ -6136,6 +9328,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "144"
   },
   {
@@ -6149,6 +9351,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Serious",
+        "Deep"
+      ]
+    },
     "WordsPerMinute": "182"
   },
   {
@@ -6162,6 +9374,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "166"
   },
   {
@@ -6227,6 +9450,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "113"
   },
   {
@@ -6472,6 +9706,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "147"
   },
   {
@@ -6693,6 +9938,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "51"
   },
   {
@@ -6706,6 +9962,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "111"
   },
   {
@@ -6862,6 +10129,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Friendly",
+        "Soothing"
+      ]
+    },
     "WordsPerMinute": "238"
   },
   {
@@ -6875,6 +10153,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Deep",
+        "Gentle"
+      ]
+    },
     "WordsPerMinute": "244"
   },
   {
@@ -6888,6 +10177,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Crisp",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "214"
   },
   {
@@ -6901,6 +10201,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Assistant"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Calm",
+        "Formal"
+      ]
+    },
     "WordsPerMinute": "221"
   },
   {
@@ -6936,6 +10247,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Well-Rounded",
+        "Animated"
+      ]
+    },
     "WordsPerMinute": "274"
   },
   {
@@ -6968,6 +10290,17 @@
       "YoungAdultMale",
       "Boy"
     ],
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobooks"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Animated",
+        "Cheerful"
+      ]
+    },
     "WordsPerMinute": "293"
   },
   {
@@ -6993,6 +10326,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Casual",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "279"
   },
   {
@@ -7017,6 +10361,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobook"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Emotional",
+        "Engaging"
+      ]
+    },
     "WordsPerMinute": "263"
   },
   {
@@ -7035,6 +10390,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Formal",
+        "Deep",
+        "Calm"
+      ]
+    },
     "WordsPerMinute": "293"
   },
   {
@@ -7051,6 +10417,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Friendly",
+        "Casual",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "283"
   },
   {
@@ -7156,7 +10533,18 @@
     ],
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Friendly",
+        "Casual",
+        "Upbeat"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, XiaohanNeural)",
@@ -7181,6 +10569,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Gentle",
+        "Warm",
+        "Emotional"
+      ]
+    },
     "WordsPerMinute": "259"
   },
   {
@@ -7197,6 +10596,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Gentle",
+        "Upbeat",
+        "Friendly"
+      ]
+    },
     "WordsPerMinute": "272"
   },
   {
@@ -7234,6 +10644,17 @@
       "Girl",
       "Boy"
     ],
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Casual",
+        "Calm"
+      ]
+    },
     "WordsPerMinute": "286"
   },
   {
@@ -7247,6 +10668,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Documentary"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Engaging",
+        "Soothing"
+      ]
+    },
     "WordsPerMinute": "232"
   },
   {
@@ -7259,7 +10691,18 @@
     "LocaleName": "Chinese (Mandarin, Simplified)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Engaging",
+        "Pleasant"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoruiNeural)",
@@ -7278,6 +10721,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Emotional",
+        "Hoarse"
+      ]
+    },
     "WordsPerMinute": "243"
   },
   {
@@ -7294,6 +10748,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobook"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "225"
   },
   {
@@ -7321,7 +10786,18 @@
     ],
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Animated",
+        "Bright"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoxiaoMultilingualNeural)",
@@ -7435,7 +10911,18 @@
     ],
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Animated",
+        "Bright"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, XiaoyanNeural)",
@@ -7448,6 +10935,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Assistant",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Gentle",
+        "Empathetic"
+      ]
+    },
     "WordsPerMinute": "279"
   },
   {
@@ -7461,6 +10959,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Cheerful",
+        "Bright"
+      ]
+    },
     "WordsPerMinute": "211"
   },
   {
@@ -7566,7 +11075,18 @@
     ],
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Confident",
+        "Casual"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, XiaozhenNeural)",
@@ -7587,6 +11107,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Audiobook"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Serious",
+        "Confident"
+      ]
+    },
     "WordsPerMinute": "273"
   },
   {
@@ -7609,6 +11140,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Animated",
+        "Emotional"
+      ]
+    },
     "WordsPerMinute": "320"
   },
   {
@@ -7625,6 +11167,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Advertisement",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Warm",
+        "Soft",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "315"
   },
   {
@@ -7637,7 +11190,18 @@
     "LocaleName": "Chinese (Mandarin, Simplified)",
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Confident",
+        "Warm"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, YunxiaNeural)",
@@ -7657,6 +11221,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Chat"
+      ],
+      "VoicePersonalities": [
+        "Cheerful",
+        "Friendly",
+        "Emotional"
+      ]
+    },
     "WordsPerMinute": "269"
   },
   {
@@ -7690,6 +11265,17 @@
       "Girl",
       "Boy"
     ],
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Audiobook",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Deep",
+        "Calm"
+      ]
+    },
     "WordsPerMinute": "278"
   },
   {
@@ -7795,7 +11381,18 @@
     ],
     "SampleRateHertz": "24000",
     "VoiceType": "Neural",
-    "Status": "GA"
+    "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Gentle",
+        "Casual",
+        "Friendly"
+      ]
+    }
   },
   {
     "Name": "Microsoft Server Speech Text to Speech Voice (zh-CN, YunzeNeural)",
@@ -7823,6 +11420,17 @@
       "OlderAdultMale",
       "SeniorMale"
     ],
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Documentary",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Deep",
+        "Confident",
+        "Formal"
+      ]
+    },
     "WordsPerMinute": "255"
   },
   {
@@ -7836,6 +11444,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Friendly",
+        "Animated"
+      ]
+    },
     "WordsPerMinute": "285"
   },
   {
@@ -7849,6 +11468,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Friendly",
+        "Casual",
+        "Gentle"
+      ]
+    },
     "WordsPerMinute": "229"
   },
   {
@@ -7862,6 +11492,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Confident",
+        "Engaging",
+        "Casual"
+      ]
+    },
     "WordsPerMinute": "263"
   },
   {
@@ -7875,6 +11516,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Animated",
+        "Strong"
+      ]
+    },
     "WordsPerMinute": "279"
   },
   {
@@ -7888,6 +11540,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Chat",
+        "Podcast"
+      ],
+      "VoicePersonalities": [
+        "Casual",
+        "Animated",
+        "Gentle"
+      ]
+    },
     "WordsPerMinute": "285"
   },
   {
@@ -7901,6 +11564,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Bright",
+        "Upbeat"
+      ]
+    },
     "WordsPerMinute": "244"
   },
   {
@@ -7914,6 +11587,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Calm",
+        "Formal"
+      ]
+    },
     "WordsPerMinute": "259"
   },
   {
@@ -7927,6 +11610,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "194"
   },
   {
@@ -7940,6 +11634,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "Narration",
+        "News"
+      ],
+      "VoicePersonalities": [
+        "Soft",
+        "Caring"
+      ]
+    },
     "WordsPerMinute": "272"
   },
   {
@@ -7953,6 +11657,16 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "Narration"
+      ],
+      "VoicePersonalities": [
+        "Engaging",
+        "Gentle"
+      ]
+    },
     "WordsPerMinute": "285"
   },
   {
@@ -7966,6 +11680,17 @@
     "SampleRateHertz": "48000",
     "VoiceType": "Neural",
     "Status": "GA",
+    "VoiceTag": {
+      "TailoredScenarios": [
+        "News",
+        "E-learning"
+      ],
+      "VoicePersonalities": [
+        "Crisp",
+        "Bright",
+        "Clear"
+      ]
+    },
     "WordsPerMinute": "223"
   },
   {
