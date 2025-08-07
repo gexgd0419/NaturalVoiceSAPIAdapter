@@ -240,7 +240,7 @@ static void LangDlgOnOK(HWND hDlg)
     {
         key.SetDword(L"EdgeVoiceAllLanguages", 1);
     }
-    else if (IsDlgButtonChecked(hDlg, IDC_LANG_ALL) == BST_CHECKED)
+    else if (IsDlgButtonChecked(hDlg, IDC_LANG_SYS) == BST_CHECKED)
     {
         key.SetDword(L"EdgeVoiceAllLanguages", 0);
         key.SetString(L"EdgeVoiceLanguages", L"\0", REG_MULTI_SZ);
