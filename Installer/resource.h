@@ -58,6 +58,7 @@
 #define IDC_AZURE_KEY                   1030
 #define IDC_AZURE_REGION                1031
 #define IDC_STATIC_INCLUDED_LANGUAGES   1032
+#define IDC_LANG_MULTILINGUAL           1033
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -67,7 +68,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        141
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1033
+#define _APS_NEXT_CONTROL_VALUE         1034
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

@@ -29,6 +29,13 @@ static bool s_isCacheTaskScheduled = false;
 extern TaskScheduler g_taskScheduler;
 
 
+enum LanguageFlags
+{
+    Lang_AllLanguages = 1,
+    Lang_AllMultilingual = 2
+};
+
+
 static BOOL IsWindows10BuildOrGreater(DWORD dwBuild) noexcept
 {
     OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
@@ -105,7 +112,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         // Failing to open the key will make all query methods return default values
         RegKey key = RegOpenEnumeratorConfigKey();
 
-        DWORD fAllLanguages = key.GetDword(L"EdgeVoiceAllLanguages");
+        DWORD langFlags = 0;
+
+        if (key.GetDword(L"EdgeVoiceAllLanguages"))
+            langFlags |= Lang_AllLanguages;
+        if (key.GetDword(L"EdgeVoiceAllMultilingual"))
+            langFlags |= Lang_AllMultilingual;
+
         std::vector<std::wstring> languages = key.GetMultiStringList(L"EdgeVoiceLanguages");
         std::wstring narratorVoicePath = key.GetString(L"NarratorVoicePath");
         if (narratorVoicePath.empty())
@@ -158,7 +171,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             TokenMap onlineTokens;
             if (!key.GetDword(L"NoEdgeVoices"))
             {
-                EnumEdgeVoices(onlineTokens, fAllLanguages, languages, errorMode);
+                EnumEdgeVoices(onlineTokens, langFlags, languages, errorMode);
 
                 // If Edge voices should override Azure voices, put them in the same map, first Edge, then Azure.
                 // If not, add the Edge voices and clear the map immediately before Azure voices, as follows.
@@ -178,7 +191,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                     // Put Azure voices in the map.
                     // Edge voices may or may not previously be put into the same map, depending on configuration.
                     // If Edge voices are in the map, Azure voices with the same IDs will not be added.
-                    EnumAzureVoices(onlineTokens, fAllLanguages, languages, azureKey, azureRegion, errorMode);
+                    EnumAzureVoices(onlineTokens, langFlags, languages, azureKey, azureRegion, errorMode);
                 }
             }
 
@@ -756,7 +769,7 @@ template <class TokenMaker>
     requires std::is_invocable_r_v<std::shared_ptr<DataKeyData>, TokenMaker, const nlohmann::json&>
 void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& tokens,
     LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders,
-    BOOL allLanguages, const std::vector<std::wstring>& languages,
+    DWORD langFlags, const std::vector<std::wstring>& languages,
     TokenMaker&& tokenMaker)
 {
     try
@@ -773,7 +786,7 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
             supportedLangs = GetSupportedLanguageIDs();
 
         std::set<LANGID> userLangs;
-        if (!allLanguages && languages.empty())
+        if (!(langFlags & Lang_AllLanguages) && languages.empty())
             userLangs = GetUserPreferredLanguageIDs(false);
 
         for (const auto& voice : json)
@@ -782,7 +795,12 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
             LANGID langid = LangIDFromLocaleName(locale.c_str());
             if (!universalSupported && !supportedLangs.contains(langid))
                 continue;
-            if (!allLanguages)
+            std::string shortName = voice.at("ShortName");
+            // If "AllLanguages" is set, or "AllMultilingual" is set and "Multilingual" is in the name,
+            // then no need to check the languages.
+            if (!(
+                (langFlags & Lang_AllLanguages) || ((langFlags & Lang_AllMultilingual) && shortName.contains("Multilingual"))
+                ))
             {
                 if (languages.empty())
                 {
@@ -798,7 +816,7 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
             }
             auto token = tokenMaker(voice);
             if (token)
-                tokens.try_emplace(voice.at("ShortName"), std::move(token));
+                tokens.try_emplace(std::move(shortName), std::move(token));
         }
     }
     catch (const std::bad_alloc&)
@@ -815,11 +833,11 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
     }
 }
 
-void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
+void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, DWORD langFlags, const std::vector<std::wstring>& languages,
     ErrorMode errorMode)
 {
     EnumOnlineVoices(tokens, L"EdgeVoiceListCache.json", EDGE_VOICE_LIST_URL, "",
-        allLanguages, languages,
+        langFlags, languages,
         [errorMode](const nlohmann::json& json)
         {
             return MakeEdgeVoiceToken(json, errorMode);
@@ -827,13 +845,13 @@ void CVoiceTokenEnumerator::EnumEdgeVoices(TokenMap& tokens, BOOL allLanguages, 
     );
 }
 
-void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, BOOL allLanguages, const std::vector<std::wstring>& languages,
+void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, DWORD langFlags, const std::vector<std::wstring>& languages,
     const std::wstring& key, const std::wstring& region, ErrorMode errorMode)
 {
     EnumOnlineVoices(tokens, L"AzureVoiceListCache.json",
         (std::string("https://") + WStringToUTF8(region) + AZURE_TTS_HOST_AFTER_REGION + AZURE_VOICE_LIST_PATH).c_str(),
         (std::string("Ocp-Apim-Subscription-Key: ") + WStringToUTF8(key) + "\r\n").c_str(),
-        allLanguages, languages,
+        langFlags, languages,
         [key, region, errorMode](const nlohmann::json& json)
         {
             return MakeAzureVoiceToken(json, key, region, errorMode);

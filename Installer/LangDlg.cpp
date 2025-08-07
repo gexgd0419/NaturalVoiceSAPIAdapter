@@ -225,6 +225,8 @@ static BOOL LangDlgInit(HWND hDlg)
         }
     }
 
+    CheckDlgButton(hDlg, IDC_LANG_MULTILINGUAL, key.GetDword(L"EdgeVoiceAllMultilingual") ? BST_CHECKED : BST_UNCHECKED);
+
     EnableWindow(GetDlgItem(hDlg, IDC_LANG_LIST), customEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_LANG_ADD), customEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_LANG_REMOVE), customEnabled);
@@ -268,6 +270,8 @@ static void LangDlgOnOK(HWND hDlg)
         }
         key.SetMultiStringList(L"EdgeVoiceLanguages", languages);
     }
+    key.SetDword(L"EdgeVoiceAllMultilingual",
+        IsDlgButtonChecked(hDlg, IDC_LANG_MULTILINGUAL) == BST_CHECKED ? 1 : 0);
     CheckPhonemeConverters();
 }
 
