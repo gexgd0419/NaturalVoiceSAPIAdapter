@@ -66,6 +66,8 @@ END_COM_MAP()
 
 	void FinalRelease()
 	{
+		if (m_lastCancellingFuture.valid())
+			m_lastCancellingFuture.wait();
 	}
 
 public: // Interface implementation
@@ -125,6 +127,7 @@ private: // Member variables
 	bool m_isEdgeVoice = false;
 	bool m_onlineDelayOptimization = false;
 	bool m_compensatedSilenceWritten = false;
+	std::atomic_bool m_synthesizerStarted = false;
 	ULONG m_lastSilentBytes = 0;
 	ULONG m_compensatedSilentBytes = 0;
 	DWORD m_lastSpeakCompletedTicks = 0;

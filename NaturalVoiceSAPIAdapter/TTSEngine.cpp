@@ -96,7 +96,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                     // We can return immediately, since nothing has been done yet.
                     return S_OK;
                 }
-                Sleep(50);
+                Sleep(0);  // Reduce cancellation latency
             }
             // Cancellation completed. Clear the future.
             m_lastCancellingFuture = {};
@@ -154,7 +154,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                 LogWarn("Speak: Skipping not supported, ignored");
                 pOutputSite->CompleteSkip(0);
             }
-            Sleep(50);
+            Sleep(10);
         }
 
         if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
@@ -162,16 +162,18 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             LogDebug("Speak: Requested stop");
             if (m_synthesizer)
             {
-                auto stop_future = m_synthesizer->StopSpeakingAsync();
-
                 // Cancellation might not finish, but we won't wait for it.
                 // Return immediately on requested stop.
                 // Create a new async future to wait for cancellation,
                 // and check it the next time Speak is called.
                 m_lastCancellingFuture = std::async(
-                    std::launch::async, [stop_future = std::move(stop_future), future = std::move(future)]()
+                    std::launch::async, [this, future = std::move(future)]()
                 {
-                    stop_future.wait();
+                    // Wait for SynthesisStarted event first.
+                    // Cancellation does nothing if SynthesisStarted hasn't been fired.
+                    while (!m_synthesizerStarted.load(std::memory_order_relaxed))
+                        Sleep(0);
+                    m_synthesizer->StopSpeakingAsync().wait();
                     future.wait();
                 });
             }
@@ -588,6 +590,12 @@ void CTTSEngine::OnViseme(uint64_t offsetTicks, uint32_t visemeId)
 void CTTSEngine::SetupSynthesizerEvents(ULONGLONG interests)
 {
     ClearSynthesizerEvents();
+    
+    m_synthesizer->SynthesisStarted += [this](const SpeechSynthesisEventArgs&)
+    {
+        m_synthesizerStarted.store(true, std::memory_order_relaxed);
+    };
+    m_synthesizerStarted.store(false, std::memory_order_relaxed);
 
     if (interests & SPEI_TTS_BOOKMARK)
         m_synthesizer->BookmarkReached += [this](const SpeechSynthesisBookmarkEventArgs& arg)
@@ -616,6 +624,7 @@ void CTTSEngine::ClearSynthesizerEvents()
     m_synthesizer->BookmarkReached.DisconnectAll();
     m_synthesizer->WordBoundary.DisconnectAll();
     m_synthesizer->VisemeReceived.DisconnectAll();
+    m_synthesizer->SynthesisStarted.DisconnectAll();
     m_synthesizer->SynthesisCompleted.DisconnectAll();
     m_synthesizer->SynthesisCanceled.DisconnectAll();
 }
