@@ -93,6 +93,7 @@ static void UpdateDisplay(HWND hDlg)
     key = RegOpenConfigKey();
 
     HWND hLogLevelCombo = GetDlgItem(hDlg, IDC_LOG_LEVEL);
+    SendMessageW(hLogLevelCombo, CB_RESETCONTENT, 0, 0);
     WCHAR logLevels[64];
     LoadStringW(nullptr, IDS_LOG_LEVELS, logLevels, 64);
     LPWSTR pContext = nullptr;
