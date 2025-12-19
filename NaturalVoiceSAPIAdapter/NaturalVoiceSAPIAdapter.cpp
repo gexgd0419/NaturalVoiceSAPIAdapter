@@ -24,8 +24,8 @@ static HRESULT GetRegModulePath()
 #ifdef _M_ARM64
 	// Replace the module path in the registry with Arm64XForwarder,
 	// only in the ARM64 version.
-	PathRemoveFileSpecW(g_regModulePath);
-	if (!PathAppendW(g_regModulePath, L"Arm64XForwarder.dll"))
+	PathRemoveFileSpecW(path);
+	if (!PathAppendW(path, L"Arm64XForwarder.dll"))
 		return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
 #endif
 	CAtlModule::EscapeSingleQuote(g_regModulePath, MAX_PATH, path);
