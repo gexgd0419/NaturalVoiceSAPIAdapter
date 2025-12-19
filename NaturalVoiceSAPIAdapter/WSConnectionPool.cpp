@@ -281,6 +281,8 @@ void WSConnectionPool::CreateConnection(
 
 	SetConnectionHandlers(info, wrapper.get());
 
+	conn->append_header("User-Agent", EDGE_USER_AGENT);
+
 	if (!key.empty())
 		conn->append_header("Ocp-Apim-Subscription-Key", key);
 

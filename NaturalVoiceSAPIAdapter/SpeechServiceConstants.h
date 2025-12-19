@@ -18,7 +18,7 @@ constexpr inline const char* EDGE_VOICE_LIST_URL = "https://speech.platform.bing
 
 constexpr inline const wchar_t* EDGE_WEBSOCKET_URL
 	= L"wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
-	  L"?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC={Sec-MS-GEC}&Sec-MS-GEC-Version=1-130.0.2849.80";
+	  L"?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC={Sec-MS-GEC}&Sec-MS-GEC-Version=1-142.0.3595.94";
 
 constexpr inline const char* AZURE_TTS_HOST_AFTER_REGION = ".tts.speech.microsoft.com";
 
@@ -26,6 +26,4 @@ constexpr inline const char* AZURE_VOICE_LIST_PATH = "/cognitiveservices/voices/
 
 constexpr inline const char* AZURE_WEBSOCKET_PATH = "/cognitiveservices/websocket/v1";
 
-constexpr inline const char* EDGE_HEADERS =
-	"Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold\0"
-	"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.66 Safari/537.36 Edg/103.0.1264.44\0";
+constexpr inline const char* EDGE_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0";
