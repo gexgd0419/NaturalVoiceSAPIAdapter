@@ -93,7 +93,7 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore NaturalVoiceSAPIAdapter -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out NaturalVoiceSAPIAdapter
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out . /t:NaturalVoiceSAPIAdapter
       
     - name: Upload artifact
       uses: actions/upload-artifact@v6
