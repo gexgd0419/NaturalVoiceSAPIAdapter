@@ -1,0 +1,138 @@
+name: MSBuild
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: ["v[0-9]**"]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build-utilities:
+    name: Build submodules
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        platform: [x86, x64, ARM64]
+
+    steps:
+    - name: Checkout submodules
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build AzureSpeechSDKShim
+      if: matrix.platform != 'ARM64'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore AzureSpeechSDKShim
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out AzureSpeechSDKShim
+
+    - name: Build TtsApplication
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out TtsApplication
+
+    - name: Build Arm64XForwarder (ARM64 only)
+      if: matrix.platform == 'ARM64'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore Arm64XForwarder
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out Arm64XForwarder
+
+    - name: Build Installer (x86 only)
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore Installer
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out Installer
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: utilities-${{matrix.platform}}
+        path: out
+
+  build-main:
+    name: Build NaturalVoiceSAPIAdapter
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        platform: [x86, x64, ARM64]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore NaturalVoiceSAPIAdapter
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out NaturalVoiceSAPIAdapter
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: main-${{matrix.platform}}
+        path: out
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-utilities, build-main]
+    if: github.ref_type == 'tag'
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v7
+      with:
+        path: ${{github.workspace}}/artifacts
+
+    - name: Create ZIP files
+      working-directory: ${{github.workspace}}/artifacts
+      run: |
+        ver="${{github.ref_name}}"
+        ver="${ver//\//_}"
+        cd x86
+        zip -mr ../AzureSpeechSDKShim_${ver}_x86.zip . -i "*.exe" "*.dll"
+        cd ../x64
+        zip -mr ../AzureSpeechSDKShim_${ver}_x64.zip . -i "*.exe" "*.dll"
+        cd ..
+        zip -mr debug_symbols.zip x86 x64 -i "*.pdb"
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        body_path: ${{github.workspace}}/release_notes.md
+        files: |
+          ${{github.workspace}}/artifacts/*.zip
+      
