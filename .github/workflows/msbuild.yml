@@ -49,20 +49,20 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out TtsApplication\TtsApplication.sln
 
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
       working-directory: ${{github.workspace}}
       run: |
-        nuget restore Arm64XForwarder
+        nuget restore Arm64XForwarder -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out Arm64XForwarder
 
     - name: Build Installer (x86 only)
       if: matrix.platform == 'x86'
       working-directory: ${{github.workspace}}
       run: |
-        nuget restore Installer
+        nuget restore Installer -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out Installer
 
     - name: Upload artifact
@@ -92,7 +92,7 @@ jobs:
     - name: Build
       working-directory: ${{github.workspace}}
       run: |
-        nuget restore NaturalVoiceSAPIAdapter
+        nuget restore NaturalVoiceSAPIAdapter -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out NaturalVoiceSAPIAdapter
       
     - name: Upload artifact
