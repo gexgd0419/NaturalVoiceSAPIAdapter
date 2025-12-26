@@ -112,7 +112,10 @@ jobs:
       working-directory: ${{github.workspace}}
       shell: pwsh
       run: |
-        $dlls = dumpbin /dependents NaturalVoiceSAPIAdapter.dll Microsoft.CognitiveServices.*.dll `
+        $vspath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
+        $msvcpath = (Get-ChildItem "$vspath\VC\Tools\MSVC" | Sort-Object Name -Descending | Select-Object -First 1).FullName
+        $dumpbinpath = "$msvcpath\bin\Hostx86\x86\dumpbin.exe"
+        $dlls = & $dumpbinpath /dependents NaturalVoiceSAPIAdapter.dll Microsoft.CognitiveServices.*.dll `
           | ? { $_ -like "    *.dll" } | % { $_.Trim() } | Select-Object -Unique
         $dlls += "NaturalVoiceSAPIAdapter.dll"
         Remove-Item out\*.dll -Exclude $dlls
