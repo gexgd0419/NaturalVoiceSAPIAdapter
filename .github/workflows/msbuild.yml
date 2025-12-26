@@ -108,11 +108,13 @@ jobs:
       
     - name: Remove MFC DLLs and Codec DLL
       # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
+      # However the codec DLL might not exist, so ignore the error code
       working-directory: ${{github.workspace}}
       shell: pwsh
       run: |
         Remove-Item out\mfc*.dll
-        Remove-Item out\Microsoft.CognitiveServices.Speech.extension.codec.dll
+        Remove-Item out\Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
+        exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
 
     - name: Copy ucrtbase.dll (x64)
       if: matrix.platform == 'x64'
