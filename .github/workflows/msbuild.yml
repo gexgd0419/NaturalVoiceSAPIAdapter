@@ -43,14 +43,14 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore AzureSpeechSDKShim
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out AzureSpeechSDKShim
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
 
     - name: Build TtsApplication (non Win32)
       if: matrix.platform != 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out TtsApplication\TtsApplication.sln
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build TtsApplication (Win32)
       # We have to use Win32 instead of x86 for this project.
@@ -58,21 +58,21 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out TtsApplication\TtsApplication.sln
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore Arm64XForwarder -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out Arm64XForwarder
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
 
     - name: Build Installer (x86 only)
       if: matrix.platform == 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore Installer -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out Installer
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ Installer
 
     - name: Upload artifact
       uses: actions/upload-artifact@v6
@@ -102,7 +102,12 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore NaturalVoiceSAPIAdapter -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out . /t:NaturalVoiceSAPIAdapter
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
+      
+    - name: Remove MFC DLLs
+      working-directory: ${{github.workspace}}
+      shell: pwsh
+      run: Remove-Item out\mfc*.dll
       
     - name: Upload artifact
       uses: actions/upload-artifact@v6
