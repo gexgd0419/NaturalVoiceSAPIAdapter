@@ -109,7 +109,7 @@ jobs:
     - name: Remove unnecessary DLLs
       # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
       # However the codec DLL might not exist, so ignore the error code
-      working-directory: ${{github.workspace}}
+      working-directory: ${{github.workspace}}\out
       shell: pwsh
       run: |
         $vspath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
@@ -118,8 +118,8 @@ jobs:
         $dlls = & $dumpbinpath /dependents NaturalVoiceSAPIAdapter.dll Microsoft.CognitiveServices.*.dll `
           | ? { $_ -like "    *.dll" } | % { $_.Trim() } | Select-Object -Unique
         $dlls += "NaturalVoiceSAPIAdapter.dll"
-        Remove-Item out\*.dll -Exclude $dlls
-        Remove-Item out\Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
+        Remove-Item * -Include *.dll -Exclude $dlls
+        Remove-Item Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
         exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
 
     - name: Copy ucrtbase.dll (x64)
