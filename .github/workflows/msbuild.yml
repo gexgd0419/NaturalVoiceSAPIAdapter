@@ -1,0 +1,184 @@
+name: MSBuild
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: ["v[0-9]**"]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+env:
+  # Path to the solution file relative to the root of the project.
+  SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build-utilities:
+    name: Build submodules
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        platform: [x86, x64, ARM64]
+
+    steps:
+    - name: Checkout submodules
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build AzureSpeechSDKShim
+      if: matrix.platform != 'ARM64'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore AzureSpeechSDKShim
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
+
+    - name: Build TtsApplication (non Win32)
+      if: matrix.platform != 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
+
+    - name: Build TtsApplication (Win32)
+      # We have to use Win32 instead of x86 for this project.
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
+
+    - name: Build Arm64XForwarder (ARM64 only)
+      if: matrix.platform == 'ARM64'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore Arm64XForwarder -SolutionDirectory .
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
+
+    - name: Build Installer (x86 only)
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore Installer -SolutionDirectory .
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ Installer
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: utilities-${{matrix.platform}}
+        path: out
+
+  build-main:
+    name: Build NaturalVoiceSAPIAdapter
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        platform: [x86, x64, ARM64]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      working-directory: ${{github.workspace}}
+      run: nuget restore NaturalVoiceSAPIAdapter -SolutionDirectory .
+
+    - name: Build
+      working-directory: ${{github.workspace}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
+      
+    - name: Remove unnecessary DLLs
+      # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
+      # However the codec DLL might not exist, so ignore the error code
+      working-directory: ${{github.workspace}}\out
+      shell: pwsh
+      run: |
+        $vspath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
+        $msvcpath = (Get-ChildItem "$vspath\VC\Tools\MSVC" | Sort-Object Name -Descending | Select-Object -First 1).FullName
+        $dumpbinpath = "$msvcpath\bin\Hostx86\x86\dumpbin.exe"
+        $dlls = & $dumpbinpath /dependents NaturalVoiceSAPIAdapter.dll Microsoft.CognitiveServices.*.dll `
+          | ? { $_ -like "    *.dll" } | % { $_.Trim() } | Select-Object -Unique
+        $dlls += "NaturalVoiceSAPIAdapter.dll", "Microsoft.CognitiveServices.*.dll"
+        Remove-Item * -Include *.dll -Exclude $dlls
+        Remove-Item Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
+        exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
+
+    - name: Copy ucrtbase.dll (x64)
+      if: matrix.platform == 'x64'
+      working-directory: ${{github.workspace}}
+      shell: pwsh
+      run: Copy-Item -Path "$env:SystemRoot\System32\ucrtbase.dll" -Destination out\
+
+    - name: Copy ucrtbase.dll (x86)
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      shell: pwsh
+      run: Copy-Item -Path "$env:SystemRoot\SysWOW64\ucrtbase.dll" -Destination out\
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: main-${{matrix.platform}}
+        path: out
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-utilities, build-main]
+    if: github.ref_type == 'tag'
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v7
+      with:
+        path: ${{github.workspace}}/artifacts
+
+    - name: Create ZIP files
+      working-directory: ${{github.workspace}}/artifacts
+      run: |
+        ver="${{github.ref_name}}"
+        ver="${ver//\//_}"
+        mkdir x86
+        mv utilities-x86/* x86/
+        mv main-x86/* x86/
+        mv x86/Installer.exe ./
+        mkdir x64
+        mv utilities-x64/* x64/
+        mv main-x64/* x64/
+        zip -r NaturalVoiceSAPIAdapter_${ver}_x86_x64.zip x86 x64 Installer.exe -i "*.exe" "*.dll"
+        mkdir ARM64
+        mv utilities-ARM64/* ARM64/
+        mv main-ARM64/* ARM64/
+        zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 Installer.exe -i "*.exe" "*.dll"
+        zip -r debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
+
+    - name: Create release
+      uses: softprops/action-gh-release@v2
+      with:
+        body_path: ${{github.workspace}}/release_notes.md
+        files: |
+          ${{github.workspace}}/artifacts/*.zip
+      
