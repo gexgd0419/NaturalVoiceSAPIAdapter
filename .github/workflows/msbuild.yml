@@ -106,10 +106,13 @@ jobs:
       working-directory: ${{github.workspace}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
       
-    - name: Remove MFC DLLs
+    - name: Remove MFC DLLs and Codec DLL
+      # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
       working-directory: ${{github.workspace}}
       shell: pwsh
-      run: Remove-Item out\mfc*.dll
+      run: |
+        Remove-Item out\mfc*.dll
+        Remove-Item out\Microsoft.CognitiveServices.Speech.extension.codec.dll
 
     - name: Copy ucrtbase.dll (x64)
       if: matrix.platform == 'x64'
