@@ -153,7 +153,7 @@ jobs:
         mkdir x86
         mv utilities-x86/* x86/
         mv main-x86/* x86/
-        mv utilities-x86/Installer.exe ./
+        mv x86/Installer.exe ./
         mkdir x64
         mv utilities-x64/* x64/
         mv main-x64/* x64/
