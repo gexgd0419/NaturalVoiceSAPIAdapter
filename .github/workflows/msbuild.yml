@@ -106,13 +106,16 @@ jobs:
       working-directory: ${{github.workspace}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
       
-    - name: Remove MFC DLLs and Codec DLL
+    - name: Remove unnecessary DLLs
       # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
       # However the codec DLL might not exist, so ignore the error code
       working-directory: ${{github.workspace}}
       shell: pwsh
       run: |
-        Remove-Item out\mfc*.dll
+        $dlls = dumpbin /dependents NaturalVoiceSAPIAdapter.dll Microsoft.CognitiveServices.*.dll `
+          | ? { $_ -like "    *.dll" } | % { $_.Trim() } | Select-Object -Unique
+        $dlls += "NaturalVoiceSAPIAdapter.dll"
+        Remove-Item out\*.dll -Exclude $dlls
         Remove-Item out\Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
         exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
 
