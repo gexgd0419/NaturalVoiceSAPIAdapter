@@ -492,11 +492,6 @@
   <ItemGroup>
     <Midl Include="NaturalVoiceSAPIAdapter.idl" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ttsapplication\TtsApplication.vcxproj">
-      <Project>{e8a8cac0-2445-4141-8cb6-a8fbd00483d6}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\YY-Thunks.1.1.2\build\native\YY-Thunks.targets" Condition="Exists('..\packages\YY-Thunks.1.1.2\build\native\YY-Thunks.targets')" />
