@@ -45,11 +45,20 @@ jobs:
         nuget restore AzureSpeechSDKShim
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out AzureSpeechSDKShim
 
-    - name: Build TtsApplication
+    - name: Build TtsApplication (non Win32)
+      if: matrix.platform != 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out TtsApplication\TtsApplication.sln
+
+    - name: Build TtsApplication (Win32)
+      # We have to use Win32 instead of x86 for this project.
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out TtsApplication\TtsApplication.sln
 
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
