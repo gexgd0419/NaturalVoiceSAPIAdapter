@@ -153,15 +153,16 @@ jobs:
         mkdir x86
         cp utilities-x86/* x86/
         cp main-x86/* x86/
+        mv utilities-x86/Installer.exe ./
         mkdir x64
         cp utilities-x64/* x64/
         cp main-x64/* x64/
-        zip -mr NaturalVoiceSAPIAdapter_${ver}_x86_x64.zip x86 x64 -i "*.exe" "*.dll"
+        zip -r NaturalVoiceSAPIAdapter_${ver}_x86_x64.zip x86 x64 Installer.exe -i "*.exe" "*.dll"
         mkdir ARM64
         cp utilities-ARM64/* ARM64/
         cp main-ARM64/* ARM64/
-        zip -mr NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 -i "*.exe" "*.dll"
-        zip -mr debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
+        zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 Installer.exe -i "*.exe" "*.dll"
+        zip -r debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
 
     - name: Create release
       uses: softprops/action-gh-release@v2
