@@ -151,16 +151,16 @@ jobs:
         ver="${{github.ref_name}}"
         ver="${ver//\//_}"
         mkdir x86
-        cp utilities-x86/* x86/
-        cp main-x86/* x86/
+        mv utilities-x86/* x86/
+        mv main-x86/* x86/
         mv utilities-x86/Installer.exe ./
         mkdir x64
-        cp utilities-x64/* x64/
-        cp main-x64/* x64/
+        mv utilities-x64/* x64/
+        mv main-x64/* x64/
         zip -r NaturalVoiceSAPIAdapter_${ver}_x86_x64.zip x86 x64 Installer.exe -i "*.exe" "*.dll"
         mkdir ARM64
-        cp utilities-ARM64/* ARM64/
-        cp main-ARM64/* ARM64/
+        mv utilities-ARM64/* ARM64/
+        mv main-ARM64/* ARM64/
         zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 Installer.exe -i "*.exe" "*.dll"
         zip -r debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
 
