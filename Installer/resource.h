@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ Éú³ÉµÄ°üº¬ÎÄ¼þ¡£
-// ¹© Installer.rc Ê¹ÓÃ
+// Microsoft Visual C++ ï¿½ï¿½ï¿½ÉµÄ°ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+// ï¿½ï¿½ Installer.rc Ê¹ï¿½ï¿½
 //
 #define IDC_MYICON                      2
 #define IDD_MAIN                        102
@@ -59,16 +59,30 @@
 #define IDC_AZURE_REGION                1031
 #define IDC_STATIC_INCLUDED_LANGUAGES   1032
 #define IDC_LANG_MULTILINGUAL           1033
+#define IDC_CHK_POLLY_VOICES            1034
+#define IDC_SET_POLLY_KEY               1035
+#define IDC_POLLY_LINK                  1036
+#define IDC_POLLY_ACCESS_KEY            1037
+#define IDC_POLLY_SECRET_KEY            1038
+#define IDC_POLLY_REGION                1039
+#define IDC_POLLY_ENGINE                1040
+#define IDD_POLLYKEY                    141
+#define IDD_ELEVENKEY                   142
+#define IDC_CHK_ELEVENLABS_VOICES       1041
+#define IDC_SET_ELEVENLABS_KEY          1042
+#define IDC_ELEVENLABS_LINK             1043
+#define IDC_ELEVENLABS_API_KEY          1044
+#define IDC_ELEVENLABS_MODEL            1045
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        141
+#define _APS_NEXT_RESOURCE_VALUE        143
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1034
+#define _APS_NEXT_CONTROL_VALUE         1046
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

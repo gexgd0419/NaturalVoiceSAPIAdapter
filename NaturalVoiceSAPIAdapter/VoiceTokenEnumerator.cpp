@@ -1,6 +1,8 @@
 ﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
 #include "pch.h"
 #include "VoiceTokenEnumerator.h"
+#include "AmazonPollyAPI.h"
+#include "ElevenLabsAPI.h"
 #include <VersionHelpers.h>
 #include "SpeechServiceConstants.h"
 #include "NetUtils.h"
@@ -197,6 +199,38 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
             for (auto& token : onlineTokens)
                 s_cachedTokens.push_back(std::move(token.second));
+
+            if (!key.GetDword(L"NoPollyVoices"))
+            {
+                std::wstring pollyAccessKey = key.GetString(L"PollyAccessKey");
+                std::wstring pollySecretKey = key.GetString(L"PollySecretKey");
+                std::wstring pollyRegion    = key.GetString(L"PollyRegion");
+                std::wstring pollyEngine    = key.GetString(L"PollyEngine");
+                if (pollyEngine.empty()) pollyEngine = L"neural";
+                if (!pollyAccessKey.empty() && !pollySecretKey.empty() && !pollyRegion.empty())
+                {
+                    TokenMap pollyTokens;
+                    EnumPollyVoices(pollyTokens, langFlags, languages,
+                        pollyAccessKey, pollySecretKey, pollyRegion, pollyEngine, errorMode);
+                    for (auto& token : pollyTokens)
+                        s_cachedTokens.push_back(std::move(token.second));
+                }
+            }
+
+            if (!key.GetDword(L"NoElevenLabsVoices"))
+            {
+                std::wstring elevenLabsApiKey = key.GetString(L"ElevenLabsApiKey");
+                std::wstring elevenLabsModel  = key.GetString(L"ElevenLabsModel");
+                if (elevenLabsModel.empty()) elevenLabsModel = L"eleven_multilingual_v2";
+                if (!elevenLabsApiKey.empty())
+                {
+                    TokenMap elTokens;
+                    EnumElevenLabsVoices(elTokens, langFlags, languages,
+                        elevenLabsApiKey, elevenLabsModel, errorMode);
+                    for (auto& token : elTokens)
+                        s_cachedTokens.push_back(std::move(token.second));
+                }
+            }
         }
 
         if (!s_isCacheTaskScheduled)
@@ -856,4 +890,365 @@ void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, DWORD langFlags, c
         {
             return MakeAzureVoiceToken(json, key, region, errorMode);
         });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Amazon Polly voice enumeration
+// Registry values under the enumerator config key:
+//   NoPollyVoices  (DWORD) – set to 1 to disable
+//   PollyAccessKey (string) – AWS access key ID
+//   PollySecretKey (string) – AWS secret access key
+//   PollyRegion    (string) – AWS region, e.g. "us-east-1"
+//   PollyEngine    (string) – "neural" (default) | "standard" | "long-form" | "generative"
+// ─────────────────────────────────────────────────────────────────────────────
+
+static std::shared_ptr<DataKeyData> MakePollyVoiceToken(
+    const nlohmann::json& json,
+    const std::wstring& accessKey,
+    const std::wstring& secretKey,
+    const std::wstring& region,
+    const std::wstring& engine,
+    ErrorMode errorMode = ErrorMode::ProbeForError
+)
+{
+    // Polly voice list entry fields: Id, Name, LanguageCode, LanguageName, Gender, SupportedEngines
+    std::wstring localeName  = UTF8ToWString(json.at("LanguageCode").get<std::string>());
+    std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
+    if (languageIds.empty())
+        return {};
+
+    std::wstring voiceId     = UTF8ToWString(json.at("Id").get<std::string>());
+    std::wstring voiceName   = UTF8ToWString(json.at("Name").get<std::string>());
+    std::wstring langName    = UTF8ToWString(json.at("LanguageName").get<std::string>());
+    std::wstring gender      = UTF8ToWString(json.at("Gender").get<std::string>());
+
+    std::wstring shortFriendlyName = L"Amazon " + voiceName;
+    std::wstring friendlyName      = shortFriendlyName + L" - " + langName;
+
+    // Registry key name: "Polly-Joanna-neural"
+    std::wstring regName = L"Polly-" + voiceId + L"-" + engine;
+
+    return std::shared_ptr<DataKeyData>(new DataKeyData {
+        .path = regName,
+        .values = {
+            { L"", std::move(friendlyName) },
+            { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
+        },
+        .subkeys = {
+            { L"Attributes", {
+                .path = regName + L"\\Attributes",
+                .values = {
+                    { L"Name",            std::move(shortFriendlyName) },
+                    { L"Gender",          std::move(gender) },
+                    { L"Age",             L"Adult" },
+                    { L"Language",        std::move(languageIds) },
+                    { L"Locale",          std::move(localeName) },
+                    { L"Vendor",          L"Amazon" },
+                    { L"NaturalVoiceType", L"Polly;Cloud" }
+                }
+            } },
+            { L"NaturalVoiceConfig", {
+                .path = regName + L"\\NaturalVoiceConfig",
+                .values = {
+                    { L"ErrorMode",   std::to_wstring(static_cast<UINT>(errorMode)) },
+                    { L"PollyVoiceId", voiceId },
+                    { L"AccessKey",   accessKey },
+                    { L"SecretKey",   secretKey },
+                    { L"Region",      region },
+                    { L"Engine",      engine }
+                }
+            } }
+        }
+    });
+}
+
+void CVoiceTokenEnumerator::EnumPollyVoices(
+    TokenMap& tokens,
+    DWORD langFlags,
+    const std::vector<std::wstring>& languages,
+    const std::wstring& accessKey,
+    const std::wstring& secretKey,
+    const std::wstring& region,
+    const std::wstring& engine,
+    ErrorMode errorMode)
+{
+    try
+    {
+        const auto voices = AmazonPollyAPI::GetVoiceList(
+            WStringToUTF8(accessKey), WStringToUTF8(secretKey),
+            WStringToUTF8(region),    WStringToUTF8(engine));
+
+        bool universalSupported = IsUniversalPhoneConverterSupported();
+        std::set<LANGID> supportedLangs;
+        if (!universalSupported)
+            supportedLangs = GetSupportedLanguageIDs();
+
+        std::set<LANGID> userLangs;
+        if (!(langFlags & Lang_AllLanguages) && languages.empty())
+            userLangs = GetUserPreferredLanguageIDs(false);
+
+        for (const auto& voice : voices)
+        {
+            std::wstring locale = UTF8ToWString(voice.at("LanguageCode").get<std::string>());
+            LANGID langid = LangIDFromLocaleName(locale.c_str());
+            if (!universalSupported && !supportedLangs.contains(langid))
+                continue;
+
+            if (!(langFlags & Lang_AllLanguages))
+            {
+                if (languages.empty())
+                {
+                    if (!userLangs.contains(langid))
+                        continue;
+                }
+                else
+                {
+                    if (!IsLanguageInList(locale, languages))
+                        continue;
+                }
+            }
+
+            std::string voiceId = voice.at("Id").get<std::string>();
+            auto token = MakePollyVoiceToken(voice, accessKey, secretKey, region, engine, errorMode);
+            if (token)
+                tokens.try_emplace("Polly-" + voiceId + "-" + WStringToUTF8(engine), std::move(token));
+        }
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (const std::system_error& ex)
+    {
+        LogWarn("Voice enum: Cannot get Polly voice list: {}", ex);
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Voice enum: Cannot get Polly voice list: {}", ex);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ElevenLabs voice enumeration
+// Registry values under the enumerator config key:
+//   NoElevenLabsVoices  (DWORD)  – set to 1 to disable
+//   ElevenLabsApiKey    (string) – xi-api-key
+//   ElevenLabsModel     (string) – model_id, default "eleven_multilingual_v2"
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Map ISO 639-1 code or language name (lowercase) to BCP-47 locale.
+// Falls back to "en-US" for unknown values.
+static std::wstring EL_LangToLocale(std::string lang)
+{
+    for (char& c : lang) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+    // ISO 639-1 codes first, then common English names
+    static const std::pair<const char*, const wchar_t*> s_map[] = {
+        {"en", L"en-US"}, {"english", L"en-US"},
+        {"de", L"de-DE"}, {"german", L"de-DE"},
+        {"es", L"es-ES"}, {"spanish", L"es-ES"},
+        {"fr", L"fr-FR"}, {"french", L"fr-FR"},
+        {"it", L"it-IT"}, {"italian", L"it-IT"},
+        {"pt", L"pt-BR"}, {"portuguese", L"pt-BR"},
+        {"pl", L"pl-PL"}, {"polish", L"pl-PL"},
+        {"nl", L"nl-NL"}, {"dutch", L"nl-NL"},
+        {"ar", L"ar-SA"}, {"arabic", L"ar-SA"},
+        {"zh", L"zh-CN"}, {"chinese", L"zh-CN"},
+        {"ja", L"ja-JP"}, {"japanese", L"ja-JP"},
+        {"ko", L"ko-KR"}, {"korean", L"ko-KR"},
+        {"ru", L"ru-RU"}, {"russian", L"ru-RU"},
+        {"hi", L"hi-IN"}, {"hindi", L"hi-IN"},
+        {"tr", L"tr-TR"}, {"turkish", L"tr-TR"},
+        {"sv", L"sv-SE"}, {"swedish", L"sv-SE"},
+        {"nb", L"nb-NO"}, {"no", L"nb-NO"}, {"norwegian", L"nb-NO"},
+        {"da", L"da-DK"}, {"danish", L"da-DK"},
+        {"fi", L"fi-FI"}, {"finnish", L"fi-FI"},
+        {"cs", L"cs-CZ"}, {"czech", L"cs-CZ"},
+        {"sk", L"sk-SK"}, {"slovak", L"sk-SK"},
+        {"ro", L"ro-RO"}, {"romanian", L"ro-RO"},
+        {"hu", L"hu-HU"}, {"hungarian", L"hu-HU"},
+        {"el", L"el-GR"}, {"greek", L"el-GR"},
+        {"he", L"he-IL"}, {"hebrew", L"he-IL"},
+        {"id", L"id-ID"}, {"indonesian", L"id-ID"},
+        {"ms", L"ms-MY"}, {"malay", L"ms-MY"},
+        {"th", L"th-TH"}, {"thai", L"th-TH"},
+        {"vi", L"vi-VN"}, {"vietnamese", L"vi-VN"},
+        {"uk", L"uk-UA"}, {"ukrainian", L"uk-UA"},
+        {"bg", L"bg-BG"}, {"bulgarian", L"bg-BG"},
+        {"hr", L"hr-HR"}, {"croatian", L"hr-HR"},
+        {"ca", L"ca-ES"}, {"catalan", L"ca-ES"},
+    };
+    for (auto& [code, locale] : s_map)
+        if (lang == code) return locale;
+
+    return L"en-US"; // default
+}
+
+// Determine a SAPI-compatible BCP-47 locale for an ElevenLabs voice JSON object.
+//   1. verified_languages[0].locale  (most reliable – BCP-47 directly)
+//   2. labels["language"]            (ISO 639-1 code or English name)
+//   3. "en-US"                       (fallback)
+static std::wstring EL_GetVoiceLocale(const nlohmann::json& voice)
+{
+    // 1. verified_languages
+    if (voice.contains("verified_languages") && voice["verified_languages"].is_array())
+    {
+        const auto& vl = voice["verified_languages"];
+        if (!vl.empty())
+        {
+            const auto& first = vl[0];
+            if (first.contains("locale") && first["locale"].is_string())
+            {
+                std::string locale = first["locale"].get<std::string>();
+                if (!locale.empty())
+                    return UTF8ToWString(locale);
+            }
+        }
+    }
+
+    // 2. labels["language"]
+    if (voice.contains("labels") && voice["labels"].is_object())
+    {
+        const auto& labels = voice["labels"];
+        auto it = labels.find("language");
+        if (it != labels.end() && it->is_string())
+        {
+            std::string lang = it->get<std::string>();
+            if (!lang.empty())
+                return EL_LangToLocale(lang);
+        }
+    }
+
+    // 3. Default
+    return L"en-US";
+}
+
+static std::shared_ptr<DataKeyData> MakeElevenLabsVoiceToken(
+    const nlohmann::json& json,
+    const std::wstring&   apiKey,
+    const std::wstring&   model,
+    ErrorMode             errorMode = ErrorMode::ProbeForError)
+{
+    std::wstring voiceId = UTF8ToWString(json.at("voice_id").get<std::string>());
+    std::wstring name    = UTF8ToWString(json.value("name", "Unknown"));
+
+    std::wstring localeName  = EL_GetVoiceLocale(json);
+    std::wstring languageIds = LanguageIDsFromLocaleName(localeName);
+    if (languageIds.empty())
+        return {};
+
+    // Gender from labels["gender"], if present
+    std::wstring gender;
+    if (json.contains("labels") && json["labels"].is_object())
+    {
+        auto& labels = json["labels"];
+        auto it = labels.find("gender");
+        if (it != labels.end() && it->is_string())
+            gender = UTF8ToWString(it->get<std::string>());
+    }
+    // Capitalise first letter to match SAPI convention (Female / Male)
+    if (!gender.empty())
+        gender[0] = static_cast<wchar_t>(std::towupper(gender[0]));
+
+    std::wstring shortFriendlyName = L"ElevenLabs " + name;
+    std::wstring friendlyName      = shortFriendlyName + L" - " + localeName;
+
+    // Registry key: "ElevenLabs-{voice_id}"
+    std::wstring regName = L"ElevenLabs-" + voiceId;
+
+    return std::shared_ptr<DataKeyData>(new DataKeyData {
+        .path = regName,
+        .values = {
+            { L"", std::move(friendlyName) },
+            { L"CLSID", L"{013AB33B-AD1A-401C-8BEE-F6E2B046A94E}" }
+        },
+        .subkeys = {
+            { L"Attributes", {
+                .path = regName + L"\\Attributes",
+                .values = {
+                    { L"Name",             std::move(shortFriendlyName) },
+                    { L"Gender",           std::move(gender) },
+                    { L"Age",              L"Adult" },
+                    { L"Language",         std::move(languageIds) },
+                    { L"Locale",           std::move(localeName) },
+                    { L"Vendor",           L"ElevenLabs" },
+                    { L"NaturalVoiceType", L"ElevenLabs;Cloud" }
+                }
+            } },
+            { L"NaturalVoiceConfig", {
+                .path = regName + L"\\NaturalVoiceConfig",
+                .values = {
+                    { L"ErrorMode",          std::to_wstring(static_cast<UINT>(errorMode)) },
+                    { L"ElevenLabsVoiceId",  voiceId },
+                    { L"ApiKey",             apiKey },
+                    { L"Model",              model }
+                }
+            } }
+        }
+    });
+}
+
+void CVoiceTokenEnumerator::EnumElevenLabsVoices(
+    TokenMap& tokens,
+    DWORD langFlags,
+    const std::vector<std::wstring>& languages,
+    const std::wstring& apiKey,
+    const std::wstring& model,
+    ErrorMode errorMode)
+{
+    try
+    {
+        const auto voices = ElevenLabsAPI::GetVoiceList(WStringToUTF8(apiKey));
+
+        bool universalSupported = IsUniversalPhoneConverterSupported();
+        std::set<LANGID> supportedLangs;
+        if (!universalSupported)
+            supportedLangs = GetSupportedLanguageIDs();
+
+        std::set<LANGID> userLangs;
+        if (!(langFlags & Lang_AllLanguages) && languages.empty())
+            userLangs = GetUserPreferredLanguageIDs(false);
+
+        for (const auto& voice : voices)
+        {
+            if (!voice.contains("voice_id") || !voice["voice_id"].is_string())
+                continue;
+
+            std::wstring locale = EL_GetVoiceLocale(voice);
+            LANGID langid = LangIDFromLocaleName(locale.c_str());
+            if (!universalSupported && !supportedLangs.contains(langid))
+                continue;
+
+            if (!(langFlags & Lang_AllLanguages))
+            {
+                if (languages.empty())
+                {
+                    if (!userLangs.contains(langid))
+                        continue;
+                }
+                else
+                {
+                    if (!IsLanguageInList(locale, languages))
+                        continue;
+                }
+            }
+
+            const std::string voiceId = voice["voice_id"].get<std::string>();
+            auto token = MakeElevenLabsVoiceToken(voice, apiKey, model, errorMode);
+            if (token)
+                tokens.try_emplace("ElevenLabs-" + voiceId, std::move(token));
+        }
+    }
+    catch (const std::bad_alloc&)
+    {
+        throw;
+    }
+    catch (const std::system_error& ex)
+    {
+        LogWarn("Voice enum: Cannot get ElevenLabs voice list: {}", ex);
+    }
+    catch (const std::exception& ex)
+    {
+        LogWarn("Voice enum: Cannot get ElevenLabs voice list: {}", ex);
+    }
 }

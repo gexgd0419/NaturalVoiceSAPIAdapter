@@ -49,6 +49,12 @@
     <ClInclude Include="NaturalVoiceSAPIAdapter_i.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="AmazonPollyAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ElevenLabsAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="AzacException.h">
       <Filter>Header Files\Exceptions</Filter>
     </ClInclude>
@@ -173,6 +179,12 @@
     </ClCompile>
     <ClCompile Include="WSConnectionPool.cpp">
       <Filter>Source Files\SpeechRestAPI</Filter>
+    </ClCompile>
+    <ClCompile Include="AmazonPollyAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ElevenLabsAPI.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -53,6 +53,12 @@ private:
 		ErrorMode errorMode);
 	static void EnumAzureVoices(TokenMap& tokens, DWORD langFlags, const std::vector<std::wstring>& languages,
 		const std::wstring& key, const std::wstring& region, ErrorMode errorMode);
+	static void EnumPollyVoices(TokenMap& tokens, DWORD langFlags, const std::vector<std::wstring>& languages,
+		const std::wstring& accessKey, const std::wstring& secretKey,
+		const std::wstring& region, const std::wstring& engine, ErrorMode errorMode);
+	static void EnumElevenLabsVoices(TokenMap& tokens, DWORD langFlags,
+		const std::vector<std::wstring>& languages,
+		const std::wstring& apiKey, const std::wstring& model, ErrorMode errorMode);
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(VoiceTokenEnumerator), CVoiceTokenEnumerator)

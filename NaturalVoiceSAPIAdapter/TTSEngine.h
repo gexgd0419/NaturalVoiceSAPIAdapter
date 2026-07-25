@@ -6,6 +6,8 @@
 #include "pch.h"
 #include <speechapi_cxx.h>
 #include "SpeechRestAPI.h"
+#include "AmazonPollyAPI.h"
+#include "ElevenLabsAPI.h"
 #include "Logger.h"
 #include "SapiException.h"
 #include "Mp3Decoder.h"
@@ -121,6 +123,11 @@ private: // Member variables
 	CComPtr<ISpPhoneConverter> m_phoneConverter;
 	std::shared_ptr<SpeechSynthesizer> m_synthesizer;
 	std::unique_ptr<SpeechRestAPI> m_restApi;
+	std::unique_ptr<AmazonPollyAPI> m_pollyApi;
+	std::string m_pollyVoiceId;
+	std::string m_pollyEngine;
+	std::unique_ptr<ElevenLabsAPI> m_elevenLabsApi;
+	std::string m_elevenLabsVoiceId;
 	std::future<void> m_lastCancellingFuture;
 
 	ErrorMode m_errorMode = ErrorMode::ProbeForError;
@@ -164,9 +171,13 @@ private: // Private methods
 	bool InitLocalVoice(ISpDataKey* pConfigKey);
 	bool InitCloudVoiceSynthesizer(ISpDataKey* pConfigKey);
 	bool InitCloudVoiceRestAPI(ISpDataKey* pConfigKey);
+	bool InitPollyVoice(ISpDataKey* pConfigKey);
+	bool InitElevenLabsVoice(ISpDataKey* pConfigKey);
 	void SetupSynthesizerEvents(ULONGLONG interests);
 	void ClearSynthesizerEvents();
 	void SetupRestAPIEvents(ULONGLONG interests);
+	void SetupPollyEvents(ULONGLONG interests);
+	void SetupElevenLabsEvents(ULONGLONG interests);
 
 	void AppendTextFragToSsml(const SPVTEXTFRAG* pTextFrag);
 	void AppendPhonemesToSsml(const SPPHONEID* pPhoneIds);

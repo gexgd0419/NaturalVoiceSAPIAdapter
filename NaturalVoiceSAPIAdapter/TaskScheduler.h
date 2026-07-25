@@ -13,20 +13,23 @@
 // before this DLL is unloaded.
 class TaskScheduler
 {
+public:
+	using TaskHandle = HANDLE;
+
 private:
 	// Timer queues CANNOT be created in DllMain, otherwise deadlocks would happen on Windows XP
 	// So we create the timer queue on first use
 	HANDLE hTimerQueue = nullptr;
+	std::once_flag initFlag;
 
 public:
 	void Initialize()
 	{
-		if (!hTimerQueue)
-		{
+		std::call_once(initFlag, [this]() {
 			hTimerQueue = CreateTimerQueue();
 			if (!hTimerQueue)
 				throw std::system_error(GetLastError(), std::system_category());
-		}
+		});
 	}
 
 	~TaskScheduler()
@@ -44,10 +47,11 @@ public:
 
 		// delete tuples that haven't been deleted by callback functions
 		std::lock_guard lock(deleterMutex);
-		for (auto& [pTuple, pFunc] : deleters)
+		for (auto& [hTask, data] : tasks)
 		{
-			pFunc(pTuple);
+			data.second(data.first);
 		}
+		tasks.clear();
 	}
 
 private:
@@ -66,7 +70,7 @@ private:
 	};
 
 	typedef void (*DataDeleterFunc)(PVOID);
-	std::unordered_map<PVOID, DataDeleterFunc> deleters;
+	std::unordered_map<TaskHandle, std::pair<PVOID, DataDeleterFunc>> tasks;
 	std::mutex deleterMutex;
 
 	template <class DataType, size_t... Indices>
@@ -83,7 +87,14 @@ private:
 				// so remove it from the deleter list
 				TaskScheduler& scheduler = *pData->pScheduler;
 				std::lock_guard lock(scheduler.deleterMutex);
-				scheduler.deleters.erase(param);
+				for (auto it = scheduler.tasks.begin(); it != scheduler.tasks.end(); ++it)
+				{
+					if (it->second.first == param)
+					{
+						scheduler.tasks.erase(it);
+						break;
+					}
+				}
 			}
 
 			auto& tup = pData->tuple;
@@ -109,8 +120,6 @@ private:
 	}
 
 public:
-	using TaskHandle = HANDLE;
-
 	template <class Func, class... Args> requires std::invocable<Func, Args...>
 	TaskHandle StartNewTask(DWORD delayMs, DWORD periodMs, Func&& func, Args&&... args)
 	{
@@ -123,6 +132,7 @@ public:
 			std::forward<Func>(func), std::forward<Args>(args)...
 		);
 
+		std::lock_guard lock(deleterMutex);
 		HANDLE hTimer;
 		if (!CreateTimerQueueTimer(&hTimer, hTimerQueue,
 			GetTimerQueueProc<DataType>(std::make_index_sequence<1 + sizeof...(Args)>()),
@@ -134,8 +144,7 @@ public:
 			throw std::system_error(GetLastError(), std::system_category());
 		}
 
-		std::lock_guard lock(deleterMutex);
-		deleters.emplace(pData.get(), &DataDeleter<DataType>);
+		tasks.emplace(hTimer, std::make_pair(pData.get(), &DataDeleter<DataType>));
 		pData.release();
 
 		return hTimer;
@@ -156,5 +165,14 @@ public:
 	void CancelTask(TaskHandle hTask, bool waitForTask)
 	{
 		(void)DeleteTimerQueueTimer(hTimerQueue, hTask, waitForTask ? INVALID_HANDLE_VALUE : nullptr);
+		if (waitForTask)
+		{
+			std::lock_guard lock(deleterMutex);
+			if (auto it = tasks.find(hTask); it != tasks.end())
+			{
+				it->second.second(it->second.first);
+				tasks.erase(it);
+			}
+		}
 	}
 };
