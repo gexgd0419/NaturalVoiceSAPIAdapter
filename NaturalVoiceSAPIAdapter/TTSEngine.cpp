@@ -157,19 +157,41 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
             future = m_elevenLabsApi->SpeakAsync(m_ssml, m_elevenLabsVoiceId);
         }
 
-        while (!(pOutputSite->GetActions() & SPVES_ABORT)
-            && future.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
+        bool stopRequested = false;
+        while (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
         {
-            if (pOutputSite->GetActions() & SPVES_SKIP)
+            const DWORD actions = pOutputSite->GetActions();
+            if (actions & SPVES_ABORT)
             {
-                // Skipping is not supported
-                LogWarn("Speak: Skipping not supported, ignored");
+                stopRequested = true;
+                break;
+            }
+            if (actions & SPVES_SKIP)
+            {
+                // SAPI's skip request must not leave a network synthesis running.
+                // Treat it as cancellation; the engine will submit the next line.
+                LogDebug("Speak: Skip requested, cancelling current synthesis");
                 pOutputSite->CompleteSkip(0);
+                stopRequested = true;
+                break;
             }
             Sleep(10);
         }
 
-        if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
+        if (!stopRequested)
+        {
+            const DWORD actions = pOutputSite->GetActions();
+            if (actions & SPVES_ABORT)
+                stopRequested = true;
+            else if (actions & SPVES_SKIP)
+            {
+                LogDebug("Speak: Skip requested, cancelling current synthesis");
+                pOutputSite->CompleteSkip(0);
+                stopRequested = true;
+            }
+        }
+
+        if (stopRequested) // requested stop
         {
             LogDebug("Speak: Requested stop");
             if (m_synthesizer)
@@ -195,6 +217,15 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                 m_pollyApi->Stop();
             else if (m_elevenLabsApi)
                 m_elevenLabsApi->Stop();
+
+            if (!m_synthesizer)
+            {
+                // The provider has received its cancellation request, but its
+                // asynchronous operation can still be unwinding. Retain its
+                // future so destroying the local future does not block this
+                // Speak call.
+                m_lastCancellingFuture = std::move(future);
+            }
 
             m_lastSpeakCompletedTicks = 0;
         }
@@ -459,13 +490,12 @@ bool CTTSEngine::InitPollyVoice(ISpDataKey* pConfigKey)
     if (CheckHrNotFound(pConfigKey->GetStringValue(L"PollyVoiceId", &pszVoiceId))
         || CheckHrNotFound(pConfigKey->GetStringValue(L"AccessKey",   &pszAccessKey))
         || CheckHrNotFound(pConfigKey->GetStringValue(L"SecretKey",   &pszSecretKey))
-        || CheckHrNotFound(pConfigKey->GetStringValue(L"Region",      &pszRegion)))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Region",      &pszRegion))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Engine",      &pszEngine)))
         return false;
 
     m_pollyVoiceId = WStringToUTF8(pszVoiceId.m_psz);
-    m_pollyEngine  = "neural"; // default if not specified
-    if (!CheckHrNotFound(pConfigKey->GetStringValue(L"Engine", &pszEngine)))
-        m_pollyEngine = WStringToUTF8(pszEngine.m_psz);
+    m_pollyEngine  = WStringToUTF8(pszEngine.m_psz);
 
     m_pollyApi = std::make_unique<AmazonPollyAPI>();
     m_pollyApi->SetCredentials(
@@ -482,7 +512,7 @@ bool CTTSEngine::InitPollyVoice(ISpDataKey* pConfigKey)
 
 void CTTSEngine::SetupPollyEvents(ULONGLONG /*interests*/)
 {
-    // Polly returns raw MP3 audio only – no word/sentence/bookmark events.
+    // Polly returns MP3 audio decoded to PCM – no word/sentence/bookmark events.
     m_pollyApi->AudioReceivedCallback     = std::bind_front(&CTTSEngine::OnAudioData, this);
     m_pollyApi->WordBoundaryCallback     = nullptr;
     m_pollyApi->SentenceBoundaryCallback = nullptr;
@@ -494,19 +524,16 @@ bool CTTSEngine::InitElevenLabsVoice(ISpDataKey* pConfigKey)
 {
     CSpDynamicString pszVoiceId, pszApiKey, pszModel;
     if (CheckHrNotFound(pConfigKey->GetStringValue(L"ElevenLabsVoiceId", &pszVoiceId))
-        || CheckHrNotFound(pConfigKey->GetStringValue(L"ApiKey", &pszApiKey)))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"ApiKey", &pszApiKey))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Model", &pszModel)))
         return false;
-
-    std::string model = "eleven_multilingual_v2"; // default
-    if (!CheckHrNotFound(pConfigKey->GetStringValue(L"Model", &pszModel)))
-        model = WStringToUTF8(pszModel.m_psz);
 
     m_elevenLabsVoiceId = WStringToUTF8(pszVoiceId.m_psz);
 
     m_elevenLabsApi = std::make_unique<ElevenLabsAPI>();
     m_elevenLabsApi->SetCredentials(
         WStringToUTF8(pszApiKey.m_psz),
-        std::move(model));
+        WStringToUTF8(pszModel.m_psz));
 
     // No lightweight probe for ElevenLabs – errors will surface on first SpeakAsync.
 

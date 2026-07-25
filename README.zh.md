@@ -7,10 +7,36 @@
 - Windows 11 中的讲述人自然语音
 - Microsoft Edge 中“大声朗读”功能的在线自然语音
 - 来自 Azure AI 语音服务的在线自然语音，只要你有对应的 key
+- 来自 Amazon Polly 的在线语音，需要 AWS 凭据
+- 来自 ElevenLabs 的在线语音，需要 API key
 
 任何支持 SAPI 5 语音的程序都可以借助此引擎使用上述的自然语音。
 
 更多技术相关的信息可以参阅 [wiki 页面][4]。
+
+本仓库的发行包是 fork 覆盖包：保留原有服务商，并新增 Amazon Polly 和 ElevenLabs 支持。安装时请遵循[安装本 fork 的发行版](#安装本-fork-的发行版)。
+
+在线服务会将待朗读文本发送给相应服务商。它们需要网络连接和对应服务商的账户，并可能产生服务商费用。
+
+## 在线服务配置
+
+### Amazon Polly
+
+1. 在 `Installer.exe` 中启用 **Amazon Polly online voices**，并点击 **Set Polly keys...**。
+2. 填写 AWS access key、secret key 和 region，并根据 [Amazon Polly SynthesizeSpeech API 文档](https://docs.aws.amazon.com/polly/latest/APIReference/API_SynthesizeSpeech.html)填写当前 engine 名称。四项均为必填，未预先选择 engine。
+3. 关闭 Installer 保存设置后，在目标程序中重新打开语音列表。
+
+engine 实际可用性取决于 AWS 区域、账户和语音。Polly 仅返回音频，因此不提供词、句和书签事件。
+
+### ElevenLabs
+
+1. 在 `Installer.exe` 中启用 **ElevenLabs online voices**，并点击 **Set ElevenLabs key...**。
+2. 填写 API key 和 [ElevenLabs 模型文档](https://elevenlabs.io/docs/overview/models)中的当前 Model ID。两项均为必填，未预先选择模型。
+3. 关闭 Installer 保存设置后，在目标程序中重新打开语音列表。
+
+该适配器中的 ElevenLabs 合成为纯文本模式，不会保留 SAPI SSML 标记、书签和词/句事件。
+
+请妥善保管 API key 和 AWS secret。它们保存在当前用户的适配器设置中；设置导出时请勿泄露，也不要在文本或凭据敏感时开启 trace logging。
 
 ## 系统要求
 
@@ -49,24 +75,36 @@ Windows 10 系统的讲述人并不支持自然语音，但是支持 SAPI 5 语�
 
 ## 安装
 
-1. 从 [Releases][6] 栏下载 zip 文件。
-2. 解压至一个文件夹。安装完成后，不要再移动、重命名或删除这些文件。若需要移动或删除文件，应先卸载。
-3. 运行 `Installer.exe`。
-4. 界面会在“安装状态”分区显示 32 位和 64 位版本是否已经安装。
+### 安装本 fork 的发行版
+
+本 fork 的发行包是**覆盖包**，不是独立发行版。它只包含本 fork 编译或修改的文件；请保留原项目发行包中的其他文件。
+
+1. 查看本 fork 的发行说明，并下载其中标明的、版本匹配的[原项目发行版][9]。
+2. 将原项目发行包解压到最终的本地文件夹，不要使用网络位置。
+3. 将本 fork 的发行包解压到**同一**文件夹，并允许覆盖现有文件。不要删除原项目发行包中留下的文件。
+4. 从合并后的文件夹运行 `Installer.exe`。
+
+更新已安装版本时，将覆盖包文件复制到现有安装文件夹，然后再次运行 `Installer.exe`。安装后不要移动、重命名或删除该文件夹；如需移动或删除，应先卸载。
+
+### 安装并配置
+
+5. 界面会在“安装状态”分区显示 32 位和 64 位版本是否已经安装。
     - 32 位版本用于 32 位程序，64 位版本用于 64 位程序。
     - 64 位系统中，若希望所有程序（包括 32 位和 64 位程序）都能使用语音，则两个版本都要安装。
     - 32 位系统中，“64 位”一行不会显示。
-5. 单击安装/卸载。需要管理员权限。
-6. 可以选择需要使用的语音类型。默认情况下，本地讲述人语音（若支持）以及 Microsoft Edge 大声朗读功能的在线语音处于启用状态。
-    - 在线语音要求互联网连接，且可能更慢、更不稳定。如果只需要使用本地的讲述人语音，可以取消勾选“启用 Microsoft Edge 在线语音”和“启用 Azure 在线语音”。
+6. 单击安装/卸载。需要管理员权限。
+7. 可以选择需要使用的语音类型。默认情况下，本地讲述人语音（若支持）以及 Microsoft Edge 大声朗读功能的在线语音处于启用状态。
+    - 在线语音要求互联网连接，且可能更慢、更不稳定。如果只需要使用本地讲述人语音，可以取消勾选不需要的在线服务。
     - 由于在线语音数量众多，默认只包含符合你的偏好语言的语音和英语(美国)的语音，以免语音列表出现过多项目。单击“更改...”按钮以更改包含的语言。
     - Azure 语音要求提供订阅密钥 (API key) 及其区域。可以访问 [Azure 门户](https://portal.azure.com/)，转到你的语音服务资源，之后转到 **资源管理** > **密钥和终结点**，复制粘贴密钥和区域。
-7. 关闭安装程序窗口以应用更改。若之后想更改设置，可以再次打开安装程序。更改设置无需重新安装，无需管理员权限。
+    - Amazon Polly 需要 AWS access key、secret key、region 和当前 engine 名称。点击“Set Polly keys...”填写全部四项。
+    - ElevenLabs 需要 API key 和当前 Model ID。点击“Set ElevenLabs key...”填写两项。
+8. 关闭安装程序窗口以应用更改。若之后想更改设置，可以再次打开安装程序。更改设置无需重新安装，无需管理员权限。
 
 ![中文安装程序界面](https://github.com/user-attachments/assets/22fe9b09-555f-4878-8a80-7ad3ae92fb60)
 
 
-也可以用 `regsvr32` 手动注册 DLL 文件。
+也可以用与 DLL 架构一致的 `regsvr32` 手动注册 DLL 文件。
 
 对于高级用户，这里有本程序的[可配置的注册表值][8]的列表。
 
@@ -77,6 +115,10 @@ Windows 10 系统的讲述人并不支持自然语音，但是支持 SAPI 5 语�
 这个程序修改自 [Windows-classic-samples 中的 TtsApplication][7]，添加了中文翻译和更详细的语素口型事件信息。
 
 或者，可以转到 控制面板 > 语音 (Windows XP)，或 控制面板 > 语音识别 > 文本到语音转换 (Windows Vista 及以后)。
+
+## 编译本 fork
+
+使用安装了 **Desktop development with C++** 工作负载、v143 工具集和 Windows SDK 的 Visual Studio 2022。还原 NuGet 包后，分别以 `Release|x64` 和 `Release|x86` 编译 `NaturalVoiceSAPIAdapter.sln`；后者还会生成安装程序。GitHub Actions 工作流是生成发行包的参考流程。
 
 ## 使用的库
 - Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS
@@ -95,3 +137,4 @@ Windows 10 系统的讲述人并不支持自然语音，但是支持 SAPI 5 语�
 [6]: ../../releases
 [7]: https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/speech/ttsapplication
 [8]: ../../wiki/Configurable-registry-values
+[9]: https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/releases

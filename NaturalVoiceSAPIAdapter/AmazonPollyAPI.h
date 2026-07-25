@@ -4,7 +4,6 @@
 #include <functional>
 #include <stop_token>
 #include <cstdint>
-#include "Mp3Decoder.h"
 #include <nlohmann/json.hpp>
 
 // Amazon Polly TTS REST API client.
@@ -23,7 +22,7 @@ public:
 
     // ssml     – SSML built by BuildSSML(); must remain valid until the future is done
     // voiceId  – Polly voice ID, e.g. "Joanna"
-    // engine   – "neural" | "standard" | "long-form" | "generative"
+    // engine   – engine name accepted by Amazon Polly for the configured region and voice
     std::future<void> SpeakAsync(const std::wstring& ssml,
                                   const std::string&  voiceId,
                                   const std::string&  engine);
@@ -36,7 +35,7 @@ public:
     static nlohmann::json GetVoiceList(const std::string& accessKeyId,
                                         const std::string& secretKey,
                                         const std::string& region,
-                                        const std::string& engine = "neural");
+                                        const std::string& engine);
 
 private:
     std::string m_accessKeyId;

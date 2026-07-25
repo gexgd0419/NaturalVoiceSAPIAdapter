@@ -206,8 +206,8 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 std::wstring pollySecretKey = key.GetString(L"PollySecretKey");
                 std::wstring pollyRegion    = key.GetString(L"PollyRegion");
                 std::wstring pollyEngine    = key.GetString(L"PollyEngine");
-                if (pollyEngine.empty()) pollyEngine = L"neural";
-                if (!pollyAccessKey.empty() && !pollySecretKey.empty() && !pollyRegion.empty())
+                if (!pollyAccessKey.empty() && !pollySecretKey.empty()
+                    && !pollyRegion.empty() && !pollyEngine.empty())
                 {
                     TokenMap pollyTokens;
                     EnumPollyVoices(pollyTokens, langFlags, languages,
@@ -221,8 +221,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             {
                 std::wstring elevenLabsApiKey = key.GetString(L"ElevenLabsApiKey");
                 std::wstring elevenLabsModel  = key.GetString(L"ElevenLabsModel");
-                if (elevenLabsModel.empty()) elevenLabsModel = L"eleven_multilingual_v2";
-                if (!elevenLabsApiKey.empty())
+                if (!elevenLabsApiKey.empty() && !elevenLabsModel.empty())
                 {
                     TokenMap elTokens;
                     EnumElevenLabsVoices(elTokens, langFlags, languages,
@@ -899,7 +898,7 @@ void CVoiceTokenEnumerator::EnumAzureVoices(TokenMap& tokens, DWORD langFlags, c
 //   PollyAccessKey (string) – AWS access key ID
 //   PollySecretKey (string) – AWS secret access key
 //   PollyRegion    (string) – AWS region, e.g. "us-east-1"
-//   PollyEngine    (string) – "neural" (default) | "standard" | "long-form" | "generative"
+//   PollyEngine    (string) – engine name required by Amazon Polly
 // ─────────────────────────────────────────────────────────────────────────────
 
 static std::shared_ptr<DataKeyData> MakePollyVoiceToken(
@@ -1033,7 +1032,7 @@ void CVoiceTokenEnumerator::EnumPollyVoices(
 // Registry values under the enumerator config key:
 //   NoElevenLabsVoices  (DWORD)  – set to 1 to disable
 //   ElevenLabsApiKey    (string) – xi-api-key
-//   ElevenLabsModel     (string) – model_id, default "eleven_multilingual_v2"
+//   ElevenLabsModel     (string) – model_id required by ElevenLabs
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Map ISO 639-1 code or language name (lowercase) to BCP-47 locale.

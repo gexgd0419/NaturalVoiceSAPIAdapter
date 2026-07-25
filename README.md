@@ -7,10 +7,36 @@ An [SAPI 5 text-to-speech (TTS) engine][1] that can utilize the [natural/neural 
 - Natural voices for Narrator on Windows 11
 - Online natural voices from Microsoft Edge's Read Aloud feature
 - Online natural voices from the Azure AI Speech Service, if you have a proper subscription key
+- Online voices from Amazon Polly, if you provide AWS credentials
+- Online voices from ElevenLabs, if you provide an API key
 
 Any program that supports SAPI 5 voices can use those natural voices via this TTS engine.
 
 See the [wiki pages][4] for some more technical information.
+
+This repository's releases are fork overlays: they keep the original providers and add Amazon Polly and ElevenLabs support. See [Installing a release from this fork](#installing-a-release-from-this-fork) for the required installation procedure.
+
+Online providers send the text being spoken to their respective services. They require an Internet connection and an account with the selected provider, and may incur provider charges.
+
+## Online provider setup
+
+### Amazon Polly
+
+1. In `Installer.exe`, enable **Amazon Polly online voices** and select **Set Polly keys...**.
+2. Enter an AWS access key, secret key and region, then enter the current engine name from the [Amazon Polly SynthesizeSpeech API documentation](https://docs.aws.amazon.com/polly/latest/APIReference/API_SynthesizeSpeech.html). All four values are required; no engine is preselected.
+3. Close the Installer to save the settings, then reopen the voice list in the target application.
+
+Engine availability varies by AWS region, account and voice. Polly returns audio only, so word, sentence and bookmark events are not available.
+
+### ElevenLabs
+
+1. In `Installer.exe`, enable **ElevenLabs online voices** and select **Set ElevenLabs key...**.
+2. Enter the API key and the current Model ID from the [ElevenLabs models documentation](https://elevenlabs.io/docs/overview/models). Both values are required; no model is preselected.
+3. Close the Installer to save the settings, then reopen the voice list in the target application.
+
+ElevenLabs synthesis is plain-text based in this adapter. SAPI SSML markup, bookmarks, and word/sentence events are not preserved for this provider.
+
+Keep API keys and AWS secrets private. They are stored in the current user's adapter settings; do not share exported settings or enable trace logging when the text or credentials are sensitive.
 
 ## System Requirements
 
@@ -49,24 +75,36 @@ As for now, Microsoft hasn't yet allowed third-party apps to use the Narrator/Ed
 
 ## Installation
 
-1. Download the zip file from the [Releases][6] section.
-2. Extract the files in a folder. Make sure not to move, rename or delete the files after installation. If you want to move/delete the files, you should uninstall it first.
-3. Run `Installer.exe`.
-4. It will tell you if the 32-bit version and the 64-bit version have been installed, in the "Installation Status" section.
+### Installing a release from this fork
+
+Fork releases are **overlay packages**, not standalone distributions. They contain only files built or changed in this fork; retain the other files from the original release archive.
+
+1. Check the fork release notes and download the matching release of the [original project][9] named there.
+2. Extract the original release to its final local folder. Do not use a network location.
+3. Extract this fork's release into the **same** folder and allow it to replace existing files. Do not delete the files left from the original release.
+4. Run `Installer.exe` from the merged folder.
+
+To update an existing installation, copy the overlay files into that existing release folder and run `Installer.exe` again. Do not move, rename or delete the folder after installation; if it must be moved or deleted, uninstall first.
+
+### Install and configure
+
+5. It will tell you if the 32-bit version and the 64-bit version have been installed, in the "Installation Status" section.
     - The 32-bit version works with 32-bit programs, and the 64-bit version works with 64-bit programs.
     - On 64-bit systems, to make this work with every program (32-bit and 64-bit), you need to install both of them.
     - On 32-bit systems, the "64-bit" row will not be shown.
-5. Click Install/Uninstall. Administrator's permission is required.
-6. Choose what kinds of voices you want to use. By default, local Narrator voices (if supported) and Microsoft Edge Read Aloud online voices are enabled.
-    - Online voices require Internet access, and they can be slower and less stable. If you only want to use the local Narrator voices, you can uncheck "Enable Microsoft Edge online voices" and "Enable Azure online voices".
+6. Click Install/Uninstall. Administrator's permission is required.
+7. Choose what kinds of voices you want to use. By default, local Narrator voices (if supported) and Microsoft Edge Read Aloud online voices are enabled.
+    - Online voices require Internet access, and they can be slower and less stable. If you only want to use the local Narrator voices, uncheck the online providers you do not need.
     - As there are many online voices, by default, only those in your preferred languages and in English (US) are included, to avoid cluttering the voice selection list. Click "Change..." to change what languages are included.
     - Azure voices require a subscription key (API key) and its region. Click "Set Azure key" to enter your key. You can visit [Azure Portal](https://portal.azure.com/), go to your speech service resource, then go to **Resource Management** > **Keys and Endpoint** to copy & paste the key and the region.
-  7. Close the Installer window to apply the changes. You can open the Installer again when you want to change something, and changing the settings doesn't require reinstallation or administrator's permission.
+    - Amazon Polly requires an AWS access key, secret key, region and current engine name. Click "Set Polly keys..." to enter all four values.
+    - ElevenLabs requires an API key and current Model ID. Click "Set ElevenLabs key..." to enter both values.
+8. Close the Installer window to apply the changes. You can open the Installer again when you want to change something, and changing the settings doesn't require reinstallation or administrator's permission.
 
 ![Installer UI in English](https://github.com/user-attachments/assets/422264b8-a2ef-4ab7-96e9-4017dd88ca13)
 
 
-Or, you can use `regsvr32` to register the DLL files manually.
+Or, you can use an architecture-matching `regsvr32` to register the DLL files manually.
 
 For advanced users, here's a list of this program's [configurable registry values][8].
 
@@ -77,6 +115,10 @@ You can use the `TtsApplication.exe` in folders `x86` and `x64` to test the engi
 It's a modified version of the [TtsApplication in Windows-classic-samples][7], which added Chinese translation, and more detailed information for phoneme/viseme events.
 
 Or, you can go to Control Panel > Speech (Windows XP), or Control Panel > Speech Recognition > Text to Speech (Windows Vista and later).
+
+## Building this fork
+
+Use Visual Studio 2022 with the **Desktop development with C++** workload, the v143 toolset and a Windows SDK. Restore the NuGet packages, then build `NaturalVoiceSAPIAdapter.sln` in both `Release|x64` and `Release|x86`; the latter also builds the installer. The GitHub Actions workflow is the reference for producing release archives.
 
 ## Libraries used
 - Microsoft.CognitiveServices.Speech.Extension.Embedded.TTS
@@ -95,3 +137,4 @@ Or, you can go to Control Panel > Speech (Windows XP), or Control Panel > Speech
 [6]: ../../releases
 [7]: https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/speech/ttsapplication
 [8]: ../../wiki/Configurable-registry-values
+[9]: https://github.com/gexgd0419/NaturalVoiceSAPIAdapter/releases

@@ -66,9 +66,10 @@ WSConnectionPool::WSConnectionPool()
 
 	auto key = RegOpenNetworkConfigKey();
 
-	m_minCount = key.GetDword(L"ConnectionPoolMinCount", 1);
+	const DWORD minCount = key.GetDword(L"ConnectionPoolMinCount", 1);
+	m_minCount = minCount;
 	m_maxCount = key.GetDword(L"ConnectionPoolMaxCount",
-		std::max<size_t>(10, m_minCount));
+		std::max<DWORD>(10, minCount));
 
 	m_keepAliveInterval = seconds(
 		key.GetDword(L"ConnectionKeepAliveInterval",

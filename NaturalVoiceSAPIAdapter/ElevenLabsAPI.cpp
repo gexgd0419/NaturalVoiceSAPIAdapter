@@ -5,7 +5,9 @@
 #include "ElevenLabsAPI.h"
 #include "StrUtils.h"
 #include "Logger.h"
+#include <array>
 #include <format>
+#include <limits>
 
 static constexpr const char* ELEVENLABS_HOST = "api.elevenlabs.io";
 
@@ -134,6 +136,272 @@ static std::string EL_HttpsRequest(const std::string& method,
                 asio::detail::throw_error(ec);
             }
             return response;
+        });
+}
+
+struct EL_HttpResponseHeader
+{
+    int  statusCode = 0;
+    bool chunked    = false;
+};
+
+static std::string EL_ExtractErrorMessage(const std::string& body);
+
+static EL_HttpResponseHeader EL_ParseHttpResponseHeader(std::string_view header)
+{
+    EL_HttpResponseHeader result;
+
+    const size_t statusLineEnd = header.find("\r\n");
+    if (statusLineEnd == std::string_view::npos || header.size() < 12)
+        throw std::runtime_error("ElevenLabs: invalid HTTP response status line");
+
+    result.statusCode = std::stoi(std::string(header.substr(9, 3)));
+
+    size_t pos = statusLineEnd + 2;
+    while (pos < header.size())
+    {
+        const size_t lineEnd = header.find("\r\n", pos);
+        if (lineEnd == std::string_view::npos || lineEnd == pos)
+            break;
+
+        const std::string_view line = header.substr(pos, lineEnd - pos);
+        const size_t colon = line.find(':');
+        if (colon != std::string_view::npos)
+        {
+            std::string name(line.substr(0, colon));
+            std::string value(line.substr(colon + 1));
+            for (char& c : name)
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            for (char& c : value)
+                c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+            if (name == "transfer-encoding" && value.find("chunked") != std::string::npos)
+                result.chunked = true;
+        }
+        pos = lineEnd + 2;
+    }
+
+    return result;
+}
+
+// Sends a request to an endpoint that returns audio as HTTP chunks.  Audio is
+// forwarded as it arrives instead of waiting for the server to close the
+// connection, which keeps cancellation responsive during long utterances.
+template <class AudioCallback>
+static bool EL_HttpsRequestStream(const std::string& method,
+                                  const std::string& host,
+                                  const std::string& pathAndQuery,
+                                  const std::string& body,
+                                  const std::string& apiKey,
+                                  std::stop_token    stopToken,
+                                  AudioCallback&&    onAudio)
+{
+    return EL_WithSslStream(host, stopToken,
+        [&](asio::ssl::stream<asio::ip::tcp::socket>& stream) -> bool
+        {
+            std::string req =
+                method + " " + pathAndQuery + " HTTP/1.1\r\n"
+                "Host: " + host + "\r\n"
+                "xi-api-key: " + apiKey + "\r\n"
+                "Content-Type: application/json\r\n"
+                "Connection: close\r\n";
+            if (!body.empty())
+                req += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+            req += "\r\n";
+            req += body;
+
+            asio::write(stream, asio::buffer(req));
+
+            std::string pending;
+            asio::error_code ec;
+            asio::read_until(stream, asio::dynamic_string_buffer(pending), "\r\n\r\n", ec);
+            if (ec)
+            {
+                if (stopToken.stop_requested()) return false;
+                asio::detail::throw_error(ec);
+            }
+
+            const size_t headerEnd = pending.find("\r\n\r\n");
+            if (headerEnd == std::string::npos)
+                throw std::runtime_error("ElevenLabs: invalid HTTP response (no header delimiter)");
+
+            const std::string header = pending.substr(0, headerEnd + 4);
+            pending.erase(0, headerEnd + 4);
+            const EL_HttpResponseHeader responseHeader = EL_ParseHttpResponseHeader(header);
+
+            if (responseHeader.statusCode != 200)
+            {
+                asio::read(stream, asio::dynamic_string_buffer(pending), ec);
+                if (ec != asio::error::eof &&
+                    ec != asio::ssl::error::stream_truncated &&
+                    ec)
+                {
+                    if (stopToken.stop_requested()) return false;
+                    asio::detail::throw_error(ec);
+                }
+
+                const auto response = EL_ParseHttpResponse(header + pending);
+                LogTrace("ElevenLabs: Error response body: {}", response.body.substr(0, 500));
+                throw std::runtime_error(
+                    "ElevenLabs API error " + std::to_string(response.statusCode) +
+                    ": " + EL_ExtractErrorMessage(response.body));
+            }
+
+            std::array<char, 4096> pcmBuffer;
+            size_t pcmSize = 0;
+            auto appendAudio = [&](const char* data, size_t size) -> bool
+            {
+                while (size != 0)
+                {
+                    const size_t copied = std::min(size, pcmBuffer.size() - pcmSize);
+                    memcpy(pcmBuffer.data() + pcmSize, data, copied);
+                    pcmSize += copied;
+                    data += copied;
+                    size -= copied;
+
+                    if (pcmSize == pcmBuffer.size())
+                    {
+                        if (stopToken.stop_requested() ||
+                            !onAudio(reinterpret_cast<const uint8_t*>(pcmBuffer.data()),
+                                     static_cast<uint32_t>(pcmSize)))
+                            return false;
+                        pcmSize = 0;
+                    }
+                }
+                return true;
+            };
+
+            auto flushAudio = [&]() -> bool
+            {
+                if (pcmSize == 0) return true;
+                if (pcmSize % 2 != 0)
+                    throw std::runtime_error("ElevenLabs: streamed PCM response has an incomplete sample");
+                if (stopToken.stop_requested() ||
+                    !onAudio(reinterpret_cast<const uint8_t*>(pcmBuffer.data()),
+                             static_cast<uint32_t>(pcmSize)))
+                    return false;
+                pcmSize = 0;
+                return true;
+            };
+
+            auto readMore = [&]() -> bool
+            {
+                std::array<char, 4096> buffer;
+                const size_t read = stream.read_some(asio::buffer(buffer), ec);
+                if (read != 0)
+                    pending.append(buffer.data(), read);
+
+                if (ec)
+                {
+                    if (stopToken.stop_requested()) return false;
+                    if (ec == asio::error::eof || ec == asio::ssl::error::stream_truncated)
+                        return false;
+                    asio::detail::throw_error(ec);
+                }
+                return read != 0;
+            };
+
+            auto readLine = [&]() -> std::optional<std::string>
+            {
+                for (;;)
+                {
+                    const size_t lineEnd = pending.find("\r\n");
+                    if (lineEnd != std::string::npos)
+                    {
+                        std::string line = pending.substr(0, lineEnd);
+                        pending.erase(0, lineEnd + 2);
+                        return line;
+                    }
+                    if (!readMore())
+                    {
+                        if (stopToken.stop_requested()) return std::nullopt;
+                        throw std::runtime_error("ElevenLabs: incomplete HTTP chunk header");
+                    }
+                }
+            };
+
+            auto readChunkData = [&](size_t size) -> bool
+            {
+                while (size != 0)
+                {
+                    if (pending.empty())
+                    {
+                        if (!readMore())
+                        {
+                            if (stopToken.stop_requested()) return false;
+                            throw std::runtime_error("ElevenLabs: incomplete HTTP chunk data");
+                        }
+                    }
+
+                    const size_t consumed = std::min(size, pending.size());
+                    if (!appendAudio(pending.data(), consumed)) return false;
+                    pending.erase(0, consumed);
+                    size -= consumed;
+                }
+                return true;
+            };
+
+            if (!responseHeader.chunked)
+            {
+                for (;;)
+                {
+                    if (!pending.empty())
+                    {
+                        if (!appendAudio(pending.data(), pending.size())) return false;
+                        pending.clear();
+                        continue;
+                    }
+                    if (!readMore()) break;
+                }
+                return stopToken.stop_requested() ? false : flushAudio();
+            }
+
+            for (;;)
+            {
+                const auto line = readLine();
+                if (!line) return false;
+
+                const size_t extensionStart = line->find(';');
+                const std::string chunkSizeText = line->substr(0, extensionStart);
+                size_t parsed = 0;
+                const unsigned long long chunkSize = std::stoull(chunkSizeText, &parsed, 16);
+                if (parsed != chunkSizeText.size() ||
+                    chunkSize > static_cast<unsigned long long>(std::numeric_limits<size_t>::max()))
+                    throw std::runtime_error("ElevenLabs: invalid HTTP chunk size");
+
+                if (chunkSize == 0)
+                {
+                    // Discard optional trailer headers.
+                    for (;;)
+                    {
+                        const auto trailer = readLine();
+                        if (!trailer) return false;
+                        if (trailer->empty())
+                            return stopToken.stop_requested() ? false : flushAudio();
+                    }
+                }
+
+                if (!readChunkData(static_cast<size_t>(chunkSize))) return false;
+
+                std::array<char, 2> chunkTerminator;
+                for (size_t offset = 0; offset < chunkTerminator.size();)
+                {
+                    if (pending.empty())
+                    {
+                        if (!readMore())
+                        {
+                            if (stopToken.stop_requested()) return false;
+                            throw std::runtime_error("ElevenLabs: incomplete HTTP chunk terminator");
+                        }
+                    }
+                    const size_t copied = std::min(chunkTerminator.size() - offset, pending.size());
+                    memcpy(chunkTerminator.data() + offset, pending.data(), copied);
+                    pending.erase(0, copied);
+                    offset += copied;
+                }
+                if (chunkTerminator[0] != '\r' || chunkTerminator[1] != '\n')
+                    throw std::runtime_error("ElevenLabs: invalid HTTP chunk terminator");
+            }
         });
 }
 
@@ -370,7 +638,7 @@ void ElevenLabsAPI::Stop()
 void ElevenLabsAPI::DoSpeakAsync()
 {
     const std::string path =
-        "/v1/text-to-speech/" + m_voiceId + "?output_format=pcm_24000";
+        "/v1/text-to-speech/" + m_voiceId + "/stream?output_format=pcm_24000";
 
     const std::string text = SsmlToPlainText(m_ssml);
     if (text.empty())
@@ -387,32 +655,23 @@ void ElevenLabsAPI::DoSpeakAsync()
 
     if (m_stopSource.stop_requested()) return;
 
-    const std::string rawResponse = EL_HttpsRequest(
+    const bool completed = EL_HttpsRequestStream(
         "POST", ELEVENLABS_HOST, path, body, m_apiKey,
-        m_stopSource.get_token());
+        m_stopSource.get_token(),
+        [this](const uint8_t* data, uint32_t size)
+        {
+            if (m_stopSource.stop_requested() || !AudioReceivedCallback)
+                return false;
 
-    if (m_stopSource.stop_requested() || rawResponse.empty()) return;
+            const int written = AudioReceivedCallback(const_cast<uint8_t*>(data), size);
+            if (written > 0)
+                m_waveBytesWritten += static_cast<uint32_t>(written);
+            return !m_stopSource.stop_requested();
+        });
 
-    const auto resp = EL_ParseHttpResponse(rawResponse);
+    if (m_stopSource.stop_requested() || !completed) return;
 
-    if (resp.statusCode != 200)
-    {
-        LogTrace("ElevenLabs: Error response body: {}", resp.body.substr(0, 500));
-        throw std::runtime_error(
-            "ElevenLabs API error " + std::to_string(resp.statusCode) +
-            ": " + EL_ExtractErrorMessage(resp.body));
-    }
-
-    LogDebug("ElevenLabs: Response received, {} bytes of PCM", resp.body.size());
-
-    // PCM 24kHz 16-bit mono – deliver directly without decoding
-    if (!AudioReceivedCallback || resp.body.empty()) return;
-
-    const auto* data = reinterpret_cast<const uint8_t*>(resp.body.data());
-    const auto  size = static_cast<uint32_t>(resp.body.size());
-
-    const int written = AudioReceivedCallback(const_cast<uint8_t*>(data), size);
-    m_waveBytesWritten += static_cast<uint32_t>(written);
+    LogDebug("ElevenLabs: Streaming response completed, {} bytes of PCM", m_waveBytesWritten);
 
     if (SessionEndCallback)
         SessionEndCallback(m_waveBytesWritten);

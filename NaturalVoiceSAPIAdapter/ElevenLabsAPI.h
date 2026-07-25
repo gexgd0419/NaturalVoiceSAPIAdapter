@@ -17,7 +17,7 @@ public:
     std::function<int(uint8_t*, uint32_t)> AudioReceivedCallback;
 
     // Called when synthesis finishes, with total PCM bytes written.
-    std::function<void(uint32_t)> SessionEndCallback;
+    std::function<void(uint64_t)> SessionEndCallback;
 
     void SetCredentials(std::string apiKey, std::string model);
 

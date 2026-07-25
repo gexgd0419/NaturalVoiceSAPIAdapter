@@ -80,10 +80,12 @@ static void UpdateDisplay(HWND hDlg)
         || key.GetString(L"PollyAccessKey").empty()
         || key.GetString(L"PollySecretKey").empty()
         || key.GetString(L"PollyRegion").empty()
+        || key.GetString(L"PollyEngine").empty()
         ? BST_UNCHECKED : BST_CHECKED);
     CheckDlgButton(hDlg, IDC_CHK_ELEVENLABS_VOICES,
         key.GetDword(L"NoElevenLabsVoices")
         || key.GetString(L"ElevenLabsApiKey").empty()
+        || key.GetString(L"ElevenLabsModel").empty()
         ? BST_UNCHECKED : BST_CHECKED);
     SetDlgItemTextW(hDlg, IDC_LOCAL_VOICE_PATH, key.GetString(L"NarratorVoicePath").c_str());
 
