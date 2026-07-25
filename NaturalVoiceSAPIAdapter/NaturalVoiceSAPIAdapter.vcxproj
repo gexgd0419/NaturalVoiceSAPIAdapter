@@ -392,6 +392,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AzacException.h" />
+    <ClInclude Include="AmazonPollyAPI.h" />
+    <ClInclude Include="ElevenLabsAPI.h" />
     <ClInclude Include="BlockingQueue.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="framework.h" />
@@ -421,6 +423,8 @@
     <ClInclude Include="wrappers.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AmazonPollyAPI.cpp" />
+    <ClCompile Include="ElevenLabsAPI.cpp" />
     <ClCompile Include="delaydll.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>

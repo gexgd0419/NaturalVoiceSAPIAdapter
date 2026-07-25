@@ -80,7 +80,7 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         {
             return E_INVALIDARG;
         }
-        if (!m_synthesizer && !m_restApi)
+        if (!m_synthesizer && !m_restApi && !m_pollyApi && !m_elevenLabsApi)
         {
             return SPERR_UNINITIALIZED;
         }
@@ -106,8 +106,12 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         pOutputSite->GetEventInterest(&eventInterests);
         if (m_synthesizer)
             SetupSynthesizerEvents(eventInterests);
-        else
+        else if (m_restApi)
             SetupRestAPIEvents(eventInterests);
+        else if (m_pollyApi)
+            SetupPollyEvents(eventInterests);
+        else
+            SetupElevenLabsEvents(eventInterests);
 
         // Clear m_pOutputSite automatically when Speak is completed
         ScopeGuard siteDeleter([this]()
@@ -140,24 +144,54 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
         {
             future = std::async(std::launch::async, [this]() { CheckSynthesisResult(m_synthesizer->SpeakSsml(m_ssml)); });
         }
-        else
+        else if (m_restApi)
         {
             future = m_restApi->SpeakAsync(m_ssml);
         }
-
-        while (!(pOutputSite->GetActions() & SPVES_ABORT)
-            && future.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
+        else if (m_pollyApi)
         {
-            if (pOutputSite->GetActions() & SPVES_SKIP)
+            future = m_pollyApi->SpeakAsync(m_ssml, m_pollyVoiceId, m_pollyEngine);
+        }
+        else
+        {
+            future = m_elevenLabsApi->SpeakAsync(m_ssml, m_elevenLabsVoiceId);
+        }
+
+        bool stopRequested = false;
+        while (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout)
+        {
+            const DWORD actions = pOutputSite->GetActions();
+            if (actions & SPVES_ABORT)
             {
-                // Skipping is not supported
-                LogWarn("Speak: Skipping not supported, ignored");
+                stopRequested = true;
+                break;
+            }
+            if (actions & SPVES_SKIP)
+            {
+                // SAPI's skip request must not leave a network synthesis running.
+                // Treat it as cancellation; the engine will submit the next line.
+                LogDebug("Speak: Skip requested, cancelling current synthesis");
                 pOutputSite->CompleteSkip(0);
+                stopRequested = true;
+                break;
             }
             Sleep(10);
         }
 
-        if (pOutputSite->GetActions() & SPVES_ABORT) // requested stop
+        if (!stopRequested)
+        {
+            const DWORD actions = pOutputSite->GetActions();
+            if (actions & SPVES_ABORT)
+                stopRequested = true;
+            else if (actions & SPVES_SKIP)
+            {
+                LogDebug("Speak: Skip requested, cancelling current synthesis");
+                pOutputSite->CompleteSkip(0);
+                stopRequested = true;
+            }
+        }
+
+        if (stopRequested) // requested stop
         {
             LogDebug("Speak: Requested stop");
             if (m_synthesizer)
@@ -177,8 +211,21 @@ STDMETHODIMP CTTSEngine::Speak(DWORD /*dwSpeakFlags*/,
                     future.wait();
                 });
             }
-            else
+            else if (m_restApi)
                 m_restApi->Stop();
+            else if (m_pollyApi)
+                m_pollyApi->Stop();
+            else if (m_elevenLabsApi)
+                m_elevenLabsApi->Stop();
+
+            if (!m_synthesizer)
+            {
+                // The provider has received its cancellation request, but its
+                // asynchronous operation can still be unwinding. Retain its
+                // future so destroying the local future does not block this
+                // Speak call.
+                m_lastCancellingFuture = std::move(future);
+            }
 
             m_lastSpeakCompletedTicks = 0;
         }
@@ -274,9 +321,13 @@ void CTTSEngine::InitVoice()
             && InitCloudVoiceSynthesizer(pConfigKey))
             return;
     }
+    if (InitPollyVoice(pConfigKey))
+        return;
+    if (InitElevenLabsVoice(pConfigKey))
+        return;
     if (InitCloudVoiceRestAPI(pConfigKey))
         return;
-    
+
     throw std::invalid_argument("Invalid NaturalVoiceConfig configuration.");
 }
 
@@ -433,6 +484,70 @@ bool CTTSEngine::InitCloudVoiceRestAPI(ISpDataKey* pConfigKey)
     return true;
 }
 
+bool CTTSEngine::InitPollyVoice(ISpDataKey* pConfigKey)
+{
+    CSpDynamicString pszVoiceId, pszAccessKey, pszSecretKey, pszRegion, pszEngine;
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"PollyVoiceId", &pszVoiceId))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"AccessKey",   &pszAccessKey))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"SecretKey",   &pszSecretKey))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Region",      &pszRegion))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Engine",      &pszEngine)))
+        return false;
+
+    m_pollyVoiceId = WStringToUTF8(pszVoiceId.m_psz);
+    m_pollyEngine  = WStringToUTF8(pszEngine.m_psz);
+
+    m_pollyApi = std::make_unique<AmazonPollyAPI>();
+    m_pollyApi->SetCredentials(
+        WStringToUTF8(pszAccessKey.m_psz),
+        WStringToUTF8(pszSecretKey.m_psz),
+        WStringToUTF8(pszRegion.m_psz));
+
+    // ErrorMode::ProbeForError: Polly has no lightweight probe; skip it.
+    // A real error will surface on the first SpeakAsync call.
+
+    LogInfo("Polly voice created: {} ({})", m_pollyVoiceId, m_pollyEngine);
+    return true;
+}
+
+void CTTSEngine::SetupPollyEvents(ULONGLONG /*interests*/)
+{
+    // Polly returns MP3 audio decoded to PCM – no word/sentence/bookmark events.
+    m_pollyApi->AudioReceivedCallback     = std::bind_front(&CTTSEngine::OnAudioData, this);
+    m_pollyApi->WordBoundaryCallback     = nullptr;
+    m_pollyApi->SentenceBoundaryCallback = nullptr;
+    m_pollyApi->BookmarkCallback         = nullptr;
+    m_pollyApi->SessionEndCallback       = nullptr;
+}
+
+bool CTTSEngine::InitElevenLabsVoice(ISpDataKey* pConfigKey)
+{
+    CSpDynamicString pszVoiceId, pszApiKey, pszModel;
+    if (CheckHrNotFound(pConfigKey->GetStringValue(L"ElevenLabsVoiceId", &pszVoiceId))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"ApiKey", &pszApiKey))
+        || CheckHrNotFound(pConfigKey->GetStringValue(L"Model", &pszModel)))
+        return false;
+
+    m_elevenLabsVoiceId = WStringToUTF8(pszVoiceId.m_psz);
+
+    m_elevenLabsApi = std::make_unique<ElevenLabsAPI>();
+    m_elevenLabsApi->SetCredentials(
+        WStringToUTF8(pszApiKey.m_psz),
+        WStringToUTF8(pszModel.m_psz));
+
+    // No lightweight probe for ElevenLabs – errors will surface on first SpeakAsync.
+
+    LogInfo("ElevenLabs voice created: {}", m_elevenLabsVoiceId);
+    return true;
+}
+
+void CTTSEngine::SetupElevenLabsEvents(ULONGLONG /*interests*/)
+{
+    // ElevenLabs HTTP endpoint returns raw PCM – no word/sentence/bookmark events.
+    m_elevenLabsApi->AudioReceivedCallback = std::bind_front(&CTTSEngine::OnAudioData, this);
+    m_elevenLabsApi->SessionEndCallback    = nullptr;
+}
+
 // Returns the trailing silence (zero) wave data length, in bytes
 template <typename SampleType>
 static size_t GetTrailingSilenceLengthMono(BYTE* waveData, size_t length)
@@ -459,7 +574,12 @@ static size_t GetTrailingSilenceLengthMono(BYTE* waveData, size_t length)
 
 int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
 {
-    std::lock_guard lock(m_outputSiteMutex);
+    DWORD lockWaitStartTicks = _GetTickCount();
+    std::unique_lock lock(m_outputSiteMutex);
+    DWORD lockWaitMs = _GetTickCount() - lockWaitStartTicks;
+    if (lockWaitMs > 50)
+        LogDebug("Speak: Audio output lock wait took {}ms", lockWaitMs);
+
     if (!m_pOutputSite)
     {
         LogWarn("Speak: Audio write with invalid OutputSite, ignored");
@@ -467,6 +587,17 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
     }
 
     ULONG written = 0;
+    auto writeWithTiming = [this](const void* buffer, ULONG bytes, ULONG* written, const char* label)
+    {
+        DWORD writeStartTicks = _GetTickCount();
+        HRESULT hr = m_pOutputSite->Write(buffer, bytes, written);
+        DWORD writeMs = _GetTickCount() - writeStartTicks;
+        if (writeMs > 200)
+            LogDebug("Speak: OutputSite write '{}' took {}ms for {} bytes", label, writeMs, bytes);
+        else if (writeMs > 50)
+            LogTrace("Speak: OutputSite write '{}': {} bytes in {}ms", label, bytes, writeMs);
+        return hr;
+    };
 
     if (m_onlineDelayOptimization)
     {
@@ -489,7 +620,7 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
                     LogDebug("Speak: Compensate for the previous trailing {}ms silence", silenceMs - passedMs);
                     // Write the compensated silence
                     auto mem = std::make_unique<BYTE[]>(m_compensatedSilentBytes);  // zeroed mem
-                    m_pOutputSite->Write(mem.get(), m_compensatedSilentBytes, &written);
+                    writeWithTiming(mem.get(), m_compensatedSilentBytes, &written, "compensated silence");
                 }
             }
             m_lastSilentBytes = 0;
@@ -515,13 +646,13 @@ int CTTSEngine::OnAudioData(uint8_t* data, uint32_t len)
             if (m_lastSilentBytes != 0)
             {
                 auto mem = std::make_unique<BYTE[]>(m_lastSilentBytes);  // zeroed mem
-                m_pOutputSite->Write(mem.get(), m_lastSilentBytes, &written);
+                writeWithTiming(mem.get(), m_lastSilentBytes, &written, "held silence");
             }
             m_lastSilentBytes = silentBytes;
         }
     }
 
-    HRESULT hr = m_pOutputSite->Write(data, len - m_lastSilentBytes, &written);
+    HRESULT hr = writeWithTiming(data, len - m_lastSilentBytes, &written, "audio");
     // Assumes that the data can be either entirely written or not written at all
     // because some implementations do not set the written bytes correctly
     if (SUCCEEDED(hr))
@@ -1042,6 +1173,16 @@ bool CTTSEngine::BuildSSML(const SPVTEXTFRAG* pTextFragList)
                 }
                 else if (pTextFrag->ulTextLen >= 3) // opening tag
                 {
+                    // Skip <speak> tags to prevent nesting inside the root <speak>.
+                    // Some callers (e.g. .NET System.Speech) wrap their SSML in a <speak> root;
+                    // SAPI may forward it as SPVA_ParseUnknownTag when it doesn't recognise the
+                    // namespace/version attributes, which would produce invalid SSML sent to Azure.
+                    auto nameBegin = std::find_if_not(tag.begin() + 1, tag.end() - 1, iswspace);
+                    auto nameEnd = std::find_if(nameBegin, tag.end() - 1,
+                        [](wchar_t c) { return iswspace(c) || c == L'>' || c == L'/'; });
+                    if (EqualsIgnoreCase(std::wstring_view(nameBegin, nameEnd), L"speak"))
+                        break;
+
                     m_ssml.append(pTextFrag->pTextStart, pTextFrag->ulTextLen);
                     customTags.emplace_back(pTextFrag->pTextStart, pTextFrag->ulTextLen);  // add to tag list
                 }

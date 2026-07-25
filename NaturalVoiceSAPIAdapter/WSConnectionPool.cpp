@@ -66,9 +66,10 @@ WSConnectionPool::WSConnectionPool()
 
 	auto key = RegOpenNetworkConfigKey();
 
-	m_minCount = key.GetDword(L"ConnectionPoolMinCount", 1);
+	const DWORD minCount = key.GetDword(L"ConnectionPoolMinCount", 1);
+	m_minCount = minCount;
 	m_maxCount = key.GetDword(L"ConnectionPoolMaxCount",
-		std::max<size_t>(10, m_minCount));
+		std::max<DWORD>(10, minCount));
 
 	m_keepAliveInterval = seconds(
 		key.GetDword(L"ConnectionKeepAliveInterval",
@@ -337,8 +338,8 @@ void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapp
 			info.lastException = nullptr;
 			LogDebug("Connection pool: Connection {} closed, removed from pool ({}/{})",
 				hdl, info.connections.size(), info.count);
-			RemoveConnection(info, wrapper);
 			info.connectionChanged.notify_all();
+			RemoveConnection(info, wrapper);
 		});
 
 	conn->set_fail_handler([&info, wrapper](websocketpp::connection_hdl hdl)
@@ -360,8 +361,8 @@ void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapp
 				if (llResponse != 0)
 					s_responseTimeDelta.store(llResponse - llNow, std::memory_order_relaxed);
 			}
-			RemoveConnection(info, wrapper);
 			info.connectionChanged.notify_all();
+			RemoveConnection(info, wrapper);
 		});
 }
 

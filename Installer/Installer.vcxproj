@@ -164,6 +164,8 @@
   <ItemGroup>
     <ClCompile Include="AboutDlg.cpp" />
     <ClCompile Include="AzureKeyDlg.cpp" />
+    <ClCompile Include="ElevenLabsKeyDlg.cpp" />
+    <ClCompile Include="PollyKeyDlg.cpp" />
     <ClCompile Include="Install.cpp" />
     <ClCompile Include="LangDlg.cpp" />
     <ClCompile Include="MainDlg.cpp" />

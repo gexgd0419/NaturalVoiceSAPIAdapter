@@ -128,7 +128,7 @@ void Mp3Decoder::Init(const BYTE* pMp3Chunk, DWORD cbChunkSize)
 	MMRESULT mmr = acmStreamOpen(&m_hAcm, nullptr, &mp3fmt.wfx, &m_wavefmt, nullptr, 0, 0, 0);
 	if (mmr) throw std::system_error(mmr, mci_category());
 
-	m_cbMp3Buf = cbChunkSize;
+	m_cbMp3Buf = std::max<DWORD>(cbChunkSize, 16384);
 	m_pMp3Buf = std::make_unique_for_overwrite<BYTE[]>(m_cbMp3Buf);
 
 	mmr = acmStreamSize(m_hAcm, m_cbMp3Buf, &m_cbWavBuf, ACM_STREAMSIZEF_SOURCE);

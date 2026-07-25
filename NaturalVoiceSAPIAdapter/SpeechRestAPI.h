@@ -70,6 +70,8 @@ private: // threading
 	// then use another thread for sending the data to SAPI.
 	bool m_firstDataReceived = false;
 	bool m_allDataReceived = false;
+	DWORD m_lastBinaryMessageTicks = 0;
+	DWORD m_lastMp3ProcessTicks = 0;
 
 	void DoSpeakAsync();
 	void Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_token token);

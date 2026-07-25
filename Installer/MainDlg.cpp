@@ -8,6 +8,8 @@
 INT_PTR CALLBACK AboutDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK LangDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK AzureKeyDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK PollyKeyDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK ElevenLabsKeyDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 void Register(bool is64Bit);
 void Unregister(bool is64Bit);
 
@@ -47,8 +49,12 @@ static void UpdateEnableStates(HWND hDlg)
     EnableWindow(GetDlgItem(hDlg, IDC_BROWSE_LOCAL_VOICE), localEnabled);
     BOOL edgeEnabled = IsDlgButtonChecked(hDlg, IDC_CHK_EDGE_VOICES) == BST_CHECKED;
     BOOL azureEnabled = IsDlgButtonChecked(hDlg, IDC_CHK_AZURE_VOICES) == BST_CHECKED;
+    BOOL pollyEnabled = IsDlgButtonChecked(hDlg, IDC_CHK_POLLY_VOICES) == BST_CHECKED;
+    BOOL elevenLabsEnabled = IsDlgButtonChecked(hDlg, IDC_CHK_ELEVENLABS_VOICES) == BST_CHECKED;
     EnableWindow(GetDlgItem(hDlg, IDC_SET_AZURE_KEY), azureEnabled);
-    BOOL onlineEnabled = edgeEnabled || azureEnabled;
+    EnableWindow(GetDlgItem(hDlg, IDC_SET_POLLY_KEY), pollyEnabled);
+    EnableWindow(GetDlgItem(hDlg, IDC_SET_ELEVENLABS_KEY), elevenLabsEnabled);
+    BOOL onlineEnabled = edgeEnabled || azureEnabled || pollyEnabled || elevenLabsEnabled;
     EnableWindow(GetDlgItem(hDlg, IDC_STATIC_INCLUDED_LANGUAGES), onlineEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_INCLUDED_LANGUAGES), onlineEnabled);
     EnableWindow(GetDlgItem(hDlg, IDC_CHANGE_LANGUAGES), onlineEnabled);
@@ -66,7 +72,20 @@ static void UpdateDisplay(HWND hDlg)
         key.GetDword(L"NoEdgeVoices") ? BST_UNCHECKED : BST_CHECKED);
     CheckDlgButton(hDlg, IDC_CHK_AZURE_VOICES,
         key.GetDword(L"NoAzureVoices")
-        || (key.GetString(L"AzureVoiceKey").empty() && key.GetString(L"AzureVoiceRegion").empty())
+        || key.GetString(L"AzureVoiceKey").empty()
+        || key.GetString(L"AzureVoiceRegion").empty()
+        ? BST_UNCHECKED : BST_CHECKED);
+    CheckDlgButton(hDlg, IDC_CHK_POLLY_VOICES,
+        key.GetDword(L"NoPollyVoices")
+        || key.GetString(L"PollyAccessKey").empty()
+        || key.GetString(L"PollySecretKey").empty()
+        || key.GetString(L"PollyRegion").empty()
+        || key.GetString(L"PollyEngine").empty()
+        ? BST_UNCHECKED : BST_CHECKED);
+    CheckDlgButton(hDlg, IDC_CHK_ELEVENLABS_VOICES,
+        key.GetDword(L"NoElevenLabsVoices")
+        || key.GetString(L"ElevenLabsApiKey").empty()
+        || key.GetString(L"ElevenLabsModel").empty()
         ? BST_UNCHECKED : BST_CHECKED);
     SetDlgItemTextW(hDlg, IDC_LOCAL_VOICE_PATH, key.GetString(L"NarratorVoicePath").c_str());
 
@@ -157,6 +176,8 @@ static void SaveChanges(HWND hDlg)
     key.SetDword(L"NoNarratorVoices", IsDlgButtonChecked(hDlg, IDC_CHK_NARRATOR_VOICES) == BST_UNCHECKED);
     key.SetDword(L"NoEdgeVoices", IsDlgButtonChecked(hDlg, IDC_CHK_EDGE_VOICES) == BST_UNCHECKED);
     key.SetDword(L"NoAzureVoices", IsDlgButtonChecked(hDlg, IDC_CHK_AZURE_VOICES) == BST_UNCHECKED);
+    key.SetDword(L"NoPollyVoices", IsDlgButtonChecked(hDlg, IDC_CHK_POLLY_VOICES) == BST_UNCHECKED);
+    key.SetDword(L"NoElevenLabsVoices", IsDlgButtonChecked(hDlg, IDC_CHK_ELEVENLABS_VOICES) == BST_UNCHECKED);
     WCHAR path[MAX_PATH];
     GetDlgItemTextW(hDlg, IDC_LOCAL_VOICE_PATH, path, MAX_PATH);
     key.SetString(L"NarratorVoicePath", path);
@@ -212,6 +233,8 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             case IDC_CHK_NARRATOR_VOICES:
             case IDC_CHK_EDGE_VOICES:
             case IDC_CHK_AZURE_VOICES:
+            case IDC_CHK_POLLY_VOICES:
+            case IDC_CHK_ELEVENLABS_VOICES:
                 UpdateEnableStates(hDlg);
                 SaveChanges(hDlg);
                 break;
@@ -223,6 +246,14 @@ INT_PTR CALLBACK MainDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
             case IDC_SET_AZURE_KEY:
                 DialogBoxParamW(nullptr, MAKEINTRESOURCEW(IDD_AZUREKEY), hDlg, AzureKeyDlg, 0);
+                break;
+            case IDC_SET_POLLY_KEY:
+                DialogBoxParamW(nullptr, MAKEINTRESOURCEW(IDD_POLLYKEY), hDlg, PollyKeyDlg, 0);
+                UpdateDisplay(hDlg);
+                break;
+            case IDC_SET_ELEVENLABS_KEY:
+                DialogBoxParamW(nullptr, MAKEINTRESOURCEW(IDD_ELEVENKEY), hDlg, ElevenLabsKeyDlg, 0);
+                UpdateDisplay(hDlg);
                 break;
             case IDC_CHANGE_LANGUAGES:
                 DialogBoxParamW(nullptr, MAKEINTRESOURCEW(IDD_LANG), hDlg, LangDlg, 0);

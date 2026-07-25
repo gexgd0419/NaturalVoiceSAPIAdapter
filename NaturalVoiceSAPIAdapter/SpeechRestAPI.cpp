@@ -9,6 +9,13 @@
 std::unique_ptr<WSConnectionPool> g_pConnectionPool;
 static std::once_flag s_initOnce;
 
+static inline DWORD _GetTickCount()
+{
+#pragma warning (disable: 28159)
+	return GetTickCount();
+#pragma warning (default: 28159)
+}
+
 static std::string MakeRandomUuid()
 {
 	GUID guid;
@@ -50,6 +57,8 @@ std::future<void> SpeechRestAPI::SpeakAsync(const std::wstring& ssml)
 	m_stopSource = {};
 	m_firstDataReceived = false;
 	m_allDataReceived = false;
+	m_lastBinaryMessageTicks = 0;
+	m_lastMp3ProcessTicks = 0;
 
 	auto fut = std::async(std::launch::async, std::bind(&SpeechRestAPI::DoSpeakAsync, this));
 
@@ -191,6 +200,15 @@ void SpeechRestAPI::Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_
 		if (!msg.has_value())
 			return;
 
+		DWORD now = _GetTickCount();
+		if (m_lastMp3ProcessTicks != 0)
+		{
+			DWORD gapMs = now - m_lastMp3ProcessTicks;
+			if (gapMs > 500)
+				LogDebug("Rest API: MP3 processing gap: {}ms", gapMs);
+		}
+		m_lastMp3ProcessTicks = now;
+
 		// msg is the whole message (including header) from server
 		// after "Path:audio\r\n" are audio binary data
 		// Note that the first 2 bytes are not part of the header string
@@ -207,8 +225,12 @@ void SpeechRestAPI::Mp3ProcessLoop(BlockingQueue<std::string>& queue, std::stop_
 		}
 
 		// Sending audio data to SAPI can block, so do this without lock
+		DWORD convertStartTicks = _GetTickCount();
 		mp3Decoder.Convert(reinterpret_cast<const BYTE*>(mp3data.data()), mp3data.size(),
 			std::bind_front(&SpeechRestAPI::ProcessWaveData, this, std::ref(mp3Decoder.GetWaveFormat())));
+		DWORD convertMs = _GetTickCount() - convertStartTicks;
+		if (convertMs > 200)
+			LogDebug("Rest API: MP3 chunk processing took {}ms for {} bytes", convertMs, mp3data.size());
 	}
 }
 
@@ -279,7 +301,16 @@ void SpeechRestAPI::OnMessage(BlockingQueue<std::string>& queue, WSConnectionPtr
 		if (msg->get_opcode() == websocketpp::frame::opcode::binary)
 		{
 			// If the message is binary, place this message in the queue to let the MP3 thread process it
-			queue.push(std::move(msg->get_raw_payload()));
+			auto payload = msg->get_raw_payload();
+			DWORD now = _GetTickCount();
+			if (m_lastBinaryMessageTicks != 0)
+			{
+				DWORD gapMs = now - m_lastBinaryMessageTicks;
+				if (gapMs > 500)
+					LogDebug("Rest API: Binary audio message gap: {}ms, payload {} bytes", gapMs, payload.size());
+			}
+			m_lastBinaryMessageTicks = now;
+			queue.push(std::move(payload));
 		}
 		else
 		{
