@@ -41,7 +41,11 @@ private:
 		{ AZAC_ERR_MIC_ERROR, "An error in the audio-capturing system." },
 		{ AZAC_ERR_NO_AUDIO_INPUT, "The requested operation cannot be performed; there is no audio input." },
 		{ AZAC_ERR_UNEXPECTED_USP_SITE_FAILURE, "An unexpected error was encountered when trying to access the USP site." },
+		
+#ifdef AZAC_ERR_UNEXPECTED_LU_SITE_FAILURE
 		{ AZAC_ERR_UNEXPECTED_LU_SITE_FAILURE, "An unexpected error was encountered when trying to access the LU site." },
+#endif
+		
 		{ AZAC_ERR_BUFFER_TOO_SMALL, "The buffer is too small." },
 		{ AZAC_ERR_OUT_OF_MEMORY, "A method failed to allocate memory." },
 		{ AZAC_ERR_RUNTIME_ERROR, "An unexpected runtime error occurred." },
@@ -80,7 +84,11 @@ private:
 		{ AZAC_ERR_MEDIA_ALREADY_STARTED, "Source has already been started." },
 		{ AZAC_ERR_MEDIA_DEVICE_CREATION_FAILED, "Media device creation failed." },
 		{ AZAC_ERR_MEDIA_NO_DEVICE_AVAILABLE, "No devices of the selected category are available." },
+		
+#ifdef AZAC_ERR_VAD_COULD_NOT_USE_WITH_KEYWORD_RECOGNIZER
 		{ AZAC_ERR_VAD_COULD_NOT_USE_WITH_KEYWORD_RECOGNIZER, "Enabled Voice Activity Detection while using keyword recognition is not allowed." },
+#endif
+		
 		{ AZAC_ERR_COULD_NOT_CREATE_ENGINE_ADAPTER, "The specified RecoEngineAdapter could not be created." },
 		{ AZAC_ERR_INPUT_FILE_SIZE_IS_ZERO_BYTES, "The input file has a size of 0 bytes." },
 		{ AZAC_ERR_FAILED_TO_OPEN_INPUT_FILE_FOR_READING, "Cannot open the input media file for reading. Does it exist?" },
