@@ -9,13 +9,19 @@ on:
   workflow_dispatch:
 
 env:
+  # Path to the solution file relative to the root of the project.
   SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
+  # You can convert this to a build matrix if you need coverage of multiple configuration types.
+  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
   BUILD_CONFIGURATION: Release
 
 jobs:
   build-utilities:
     name: Build submodules
-    runs-on: windows-latest
+    # 使用 windows-2022 以确保包含完整的 VS 2022 (v143) 工具集
+    runs-on: windows-2022
 
     permissions:
       contents: read
@@ -33,7 +39,7 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    # 👇 新增步骤：安装缺失的 ATL 组件 (解决 atlbase.h 缺失问题)
+    # 动态安装缺失的 ATL/MFC 组件，解决 atlbase.h 缺失报错
     - name: Install missing Visual Studio ATL components
       shell: pwsh
       run: |
@@ -46,7 +52,7 @@ jobs:
         ) | ForEach-Object {"--add $_"}
         $ArgumentList = ('modify', '--installPath', "`"$VsInstallPath`"", $ComponentsToAdd, '--quiet', '--norestart', '--nocache')
         Write-Host "vs_installer.exe $($ArgumentList -join ' ')"
-        # 在 GitHub Actions 运行器中，连续运行两次安装程序是确保组件成功挂载的已知有效方案
+        # 运行两次以确保组件在 CI 环境中被正确注册
         Start-Process -FilePath .\vs_installer.exe -ArgumentList $ArgumentList -Wait -PassThru -WindowStyle Hidden
         Start-Process -FilePath .\vs_installer.exe -ArgumentList $ArgumentList -Wait -PassThru -WindowStyle Hidden
 
@@ -94,7 +100,8 @@ jobs:
 
   build-main:
     name: Build NaturalVoiceSAPIAdapter
-    runs-on: windows-latest
+    # 使用 windows-2022 以确保包含完整的 VS 2022 (v143) 工具集
+    runs-on: windows-2022
 
     permissions:
       contents: read
@@ -110,7 +117,7 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    # 👇 新增步骤：安装缺失的 ATL 组件 (解决 atlbase.h 缺失问题)
+    # 动态安装缺失的 ATL/MFC 组件，解决 atlbase.h 缺失报错
     - name: Install missing Visual Studio ATL components
       shell: pwsh
       run: |
@@ -135,6 +142,8 @@ jobs:
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
       
     - name: Remove unnecessary DLLs
+      # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
+      # However the codec DLL might not exist, so ignore the error code
       working-directory: ${{github.workspace}}\out
       shell: pwsh
       run: |
@@ -146,7 +155,7 @@ jobs:
         $dlls += "NaturalVoiceSAPIAdapter.dll", "Microsoft.CognitiveServices.*.dll"
         Remove-Item * -Include *.dll -Exclude $dlls
         Remove-Item Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
-        exit 0
+        exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
 
     - name: Copy ucrtbase.dll (x64)
       if: matrix.platform == 'x64'
