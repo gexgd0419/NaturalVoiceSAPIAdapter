@@ -9,10 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Path to the solution file relative to the root of the project.
   SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -35,6 +32,12 @@ jobs:
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
+
+    - name: Install ATL for Visual Studio
+      shell: pwsh
+      run: |
+        $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+        & $vsInstaller modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
 
     - name: Build AzureSpeechSDKShim
       if: matrix.platform != 'ARM64'
@@ -94,6 +97,12 @@ jobs:
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
+
+    - name: Install ATL for Visual Studio
+      shell: pwsh
+      run: |
+        $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+        & $vsInstaller modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
 
     - name: Restore NuGet packages
       working-directory: ${{github.workspace}}
