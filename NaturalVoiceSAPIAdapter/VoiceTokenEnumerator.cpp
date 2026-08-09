@@ -1,4 +1,4 @@
-﻿// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
+// VoiceTokenEnumerator.cpp: CVoiceTokenEnumerator 的实现
 #include "pch.h"
 #include "VoiceTokenEnumerator.h"
 #include <VersionHelpers.h>
@@ -12,10 +12,10 @@
 #include "RegKey.h"
 #include "SapiException.h"
 #include "Logger.h"
-
+#include <fstream>   // 新增：用于读取 license/key 文件
+#include <iterator>  // 新增：用于 std::istreambuf_iterator
 
 // CVoiceTokenEnumerator
-
 inline static void CheckHr(HRESULT hr)
 {
     if (FAILED(hr))
@@ -23,11 +23,9 @@ inline static void CheckHr(HRESULT hr)
 }
 
 static std::vector<std::shared_ptr<DataKeyData>> s_cachedTokens;
-
 static std::mutex s_cacheMutex;
 static bool s_isCacheTaskScheduled = false;
 extern TaskScheduler g_taskScheduler;
-
 
 enum LanguageFlags
 {
@@ -35,17 +33,14 @@ enum LanguageFlags
     Lang_AllMultilingual = 2
 };
 
-
 static BOOL IsWindows10BuildOrGreater(DWORD dwBuild) noexcept
 {
     OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
-    DWORDLONG        const dwlConditionMask = VerSetConditionMask(
-        VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL)
-        , VER_BUILDNUMBER, VER_GREATER_EQUAL);
-
+    DWORDLONG const dwlConditionMask = VerSetConditionMask(
+        VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL),
+        VER_BUILDNUMBER, VER_GREATER_EQUAL);
     osvi.dwMajorVersion = 10;
     osvi.dwBuildNumber = dwBuild;
-
     return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_BUILDNUMBER, dwlConditionMask);
 }
 
@@ -70,7 +65,6 @@ static bool IsRunningInWin11Narrator()
         logger.debug("Local natural voices disabled when running inside Narrator process");
         return true;
     }
-
     return false;
 }
 
@@ -83,16 +77,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
     //   To prevent this, if an enumeration function fails, it should silently return without throwing.
     //   Only critical situations such as no memory or failing to create an enumerator object at all can be reported,
     //   others should be silently ignored and return S_OK.
-
     ScopeTracer tracer("Voice enum: Constructor begin", "Voice enum: Constructor end");
     try
     {
         // Some programs assume that creating an enumerator is a low-cost operation,
         // and re-create enumerators frequently during eumeration.
         // Here we try to cache the created tokens for a short period (10 seconds) to improve performance
-
         std::lock_guard lock(s_cacheMutex);
-
         CComPtr<ISpObjectTokenEnumBuilder> pEnumBuilder;
         CheckSapiHr(pEnumBuilder.CoCreateInstance(CLSID_SpObjectTokenEnum));
         CheckSapiHr(pEnumBuilder->SetAttribs(nullptr, nullptr));
@@ -111,15 +102,13 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
 
         // Failing to open the key will make all query methods return default values
         RegKey key = RegOpenEnumeratorConfigKey();
-
         DWORD langFlags = 0;
-
         if (key.GetDword(L"EdgeVoiceAllLanguages"))
             langFlags |= Lang_AllLanguages;
         if (key.GetDword(L"EdgeVoiceAllMultilingual"))
             langFlags |= Lang_AllMultilingual;
-
         std::vector<std::wstring> languages = key.GetMultiStringList(L"EdgeVoiceLanguages");
+
         std::wstring narratorVoicePath = key.GetString(L"NarratorVoicePath");
         if (narratorVoicePath.empty())
         {
@@ -147,6 +136,7 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
                 }
             }
         }
+
         ErrorMode errorMode = static_cast<ErrorMode>(std::clamp(key.GetDword(L"DefaultErrorMode", 0UL), 0UL, 2UL));
 
         if (!key.GetDword(L"Disable"))
@@ -158,10 +148,8 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             {
                 // Use the same map, so that local voices with the same ID won't appear twice
                 TokenMap tokens;
-
                 if (!narratorVoicePath.empty())
                     EnumLocalVoicesInFolder(tokens, narratorVoicePath.c_str(), errorMode);
-
                 for (auto& token : tokens)
                 {
                     s_cachedTokens.push_back(std::move(token.second));
@@ -172,7 +160,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
             if (!key.GetDword(L"NoEdgeVoices"))
             {
                 EnumEdgeVoices(onlineTokens, langFlags, languages, errorMode);
-
                 // If Edge voices should override Azure voices, put them in the same map, first Edge, then Azure.
                 // If not, add the Edge voices and clear the map immediately before Azure voices, as follows.
                 if (!key.GetDword(L"EdgeVoicesOverrideAzureVoices"))
@@ -222,7 +209,6 @@ HRESULT CVoiceTokenEnumerator::FinalConstruct() noexcept
         {
             LogInfo("Voice enum: Enumerated {} voice(s)", s_cachedTokens.size());
         }
-
         return S_OK;
     }
     // All exceptions caught here are critical. They will prevent other voices from being enumerated.
@@ -258,15 +244,12 @@ static std::wstring LanguageIDsFromLocaleName(const std::wstring& locale)
             LogDebug("Voice enum: locale '{}' cannot be converted to LCID, ignored", locale);
         return fallbackstr;
     }
-
     std::wstring ret = LangIDToHexLang(lang);
-
     for (LANGID fallback : GetLangIDFallbacks(lang))
     {
         ret += L';';
         ret += LangIDToHexLang(fallback);
     }
-
     return ret;
 }
 
@@ -305,6 +288,27 @@ static std::wstring GetVoiceAge(const std::string& shortName)
     return UTF8ToWString(age->get<std::string>());
 }
 
+// 读取凭证文件并去除末尾的空白字符
+static std::wstring ReadCredentialFile(const std::wstring& path)
+{
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return {};
+    std::string s{ std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>() };
+    while (!s.empty() && (s.back() == '\r' || s.back() == '\n' || s.back() == ' ' || s.back() == '\t'))
+        s.pop_back();
+    return s.empty() ? std::wstring{} : UTF8ToWString(s);
+}
+
+// 解析语音凭证：优先读取 SynthModel.license，其次读取 SynthModel.key，最后回退到内置的 MS_TTS_KEY
+static std::pair<std::wstring, std::wstring> ResolveVoiceCredential(const std::wstring& voiceFolder)
+{
+    if (auto lic = ReadCredentialFile(voiceFolder + L"\\SynthModel.license"); !lic.empty())
+        return { L"License", std::move(lic) };
+    if (auto key = ReadCredentialFile(voiceFolder + L"\\SynthModel.key"); !key.empty())
+        return { L"Key", std::move(key) };
+    return { L"Key", MS_TTS_KEY };
+}
+
 static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
     const VoiceInfo& voiceInfo,
     ErrorMode errorMode = ErrorMode::ProbeForError,
@@ -318,17 +322,23 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
 
     // Path format: C:\Program Files\WindowsApps\MicrosoftWindows.Voice.en-US.Aria.1_1.0.8.0_x64__cw5n1h2txyewy/
     std::wstring path = UTF8ToWString(voiceInfo.VoicePath);
-    if (path.back() == '/' || path.back() == '\\')
+    if (!path.empty() && (path.back() == '/' || path.back() == '\\'))
         path.erase(path.size() - 1); // Remove the trailing slash
+
+    // 在 path 被 std::move 之前，解析该语音专属的凭证
+    auto [credName, credValue] = ResolveVoiceCredential(path);
+
     // from the last backslash '\' to the first underscore '_'
     size_t name_start = path.rfind('\\');
     if (name_start == path.npos)
         name_start = 0;
     else
         name_start++;
+
     size_t name_end = path.find('_', name_start);
     if (name_end == path.npos)
         name_end = path.size();
+
     std::wstring name = namePrefix + path.substr(name_start, name_end - name_start);
 
     std::wstring friendlyName = UTF8ToWString(voiceInfo.Name);
@@ -369,7 +379,8 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
                 .values = {
                     { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
                     { L"Path", std::move(path) },
-                    { L"Key", MS_TTS_KEY }
+                    // 使用动态解析出的凭证名称和值 (License 或 Key)
+                    { std::move(credName), std::move(credValue) }
                 }
             } }
         }
@@ -381,7 +392,6 @@ LSTATUS TryLoadAzureSpeechSDK();
 // Exception handling in token enumeration functions:
 //   Fail immediately on std::bad_alloc, which is often critical;
 //   Log and ignore on other exceptions, because we don't want to break SAPI and prevent enumerating other SAPI voices.
-
 void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMode)
 {
     try
@@ -392,7 +402,6 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
         // Get all package paths, and then load all voices in one call
         // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
         // slowing down the enumeration process as more voices are installed
-
         auto packages = winrt::Windows::Management::Deployment::PackageManager().FindPackagesForUser(L"");
         std::vector<std::string> paths;
         for (auto package : packages)
@@ -402,6 +411,7 @@ void CVoiceTokenEnumerator::EnumLocalVoices(TokenMap& tokens, ErrorMode errorMod
         }
         if (paths.empty())
             return;
+
         auto config = EmbeddedSpeechConfig::FromPaths(paths);
         auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
         auto result = synthesizer->GetVoicesAsync().get();
@@ -447,12 +457,11 @@ static std::vector<std::string> FindVoiceFolders(LPCWSTR rootFolder)
 {
     std::deque<std::wstring> folders { rootFolder };
     std::vector<std::string> voicePaths;
-
     for (; !folders.empty(); folders.pop_front())
     {
         const auto& currentFolder = folders.front();
         WIN32_FIND_DATAW fd;
-        HFindFile hFind = FindFirstFileW((currentFolder + L"\\*").c_str(), &fd);
+        HANDLE hFind = FindFirstFileW((currentFolder + L"\\*").c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE)
             continue;
 
@@ -474,15 +483,14 @@ static std::vector<std::string> FindVoiceFolders(LPCWSTR rootFolder)
                 && (fd.cFileName[1] == '\0'
                     || (fd.cFileName[1] == '.' && fd.cFileName[2] == '\0')))
                 continue;
-
             // Only add non-hidden subfolders
             if ((fd.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN)) != FILE_ATTRIBUTE_DIRECTORY)
                 continue;
-
             folders.push_back(currentFolder + L'\\' + fd.cFileName);
         } while (FindNextFileW(hFind, &fd));
+        
+        FindClose(hFind);
     }
-
     return voicePaths;
 }
 
@@ -490,6 +498,7 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
 {
     if (wcslen(basepath) >= MAX_PATH)
         return;
+
     WCHAR path[MAX_PATH];
     wcscpy_s(path, basepath);
     PathRemoveFileSpecW(path);
@@ -502,13 +511,11 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         // Get all package paths, and then load all voices in one call
         // Because each EmbeddedSpeechConfig::FromPath() can reload some DLLs in some situations,
         // slowing down the enumeration process as more voices are installed
-
         // Because of a bug in the Azure Speech SDK:
         // https://github.com/Azure-Samples/cognitive-services-speech-sdk/issues/2288
         // Model paths containing non-ASCII characters cannot be loaded.
         // Changing the current directory and using relative paths may get around this,
         // but the current directory is a process-wide setting and changing it is not thread-safe
-
         auto paths = FindVoiceFolders(basepath);
         if (paths.empty())
             return;
@@ -516,6 +523,7 @@ void CVoiceTokenEnumerator::EnumLocalVoicesInFolder(TokenMap& tokens, LPCWSTR ba
         auto config = EmbeddedSpeechConfig::FromPaths(paths);
         auto synthesizer = SpeechSynthesizer::FromConfig(config, nullptr);
         auto result = synthesizer->GetVoicesAsync().get();
+
         const std::wstring prefix = L"Local-";
         if (result->Reason == ResultReason::VoicesListRetrieved)
         {
@@ -556,7 +564,6 @@ static std::shared_ptr<DataKeyData> MakeEdgeVoiceToken(
         return {};
 
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
-
     std::wstring friendlyName = UTF8ToWString(json.at("FriendlyName"));
     std::wstring shortFriendlyName = friendlyName;
     TrimVoiceName(shortFriendlyName);
@@ -608,7 +615,6 @@ static std::shared_ptr<DataKeyData> MakeAzureVoiceToken(
         return {};
 
     std::wstring shortName = UTF8ToWString(json.at("ShortName"));
-
     // Make Azure voice names begin with "Azure"
     std::wstring shortFriendlyName = L"Azure " + UTF8ToWString(json.at("DisplayName"));
     std::wstring localeDisplayName = UTF8ToWString(json.at("LocaleName"));
@@ -683,11 +689,9 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
 {
     std::set<LANGID> langids;
     ULONG numLangs = 0, cchBuffer = 0;
-    
     static const auto pfnGetUserPreferredUILanguages
         = reinterpret_cast<decltype(GetUserPreferredUILanguages)*>
         (GetProcAddress(GetModuleHandleW(L"kernel32"), "GetUserPreferredUILanguages"));
-
     if (!pfnGetUserPreferredUILanguages)
     {
         LANGID langid = GetUserDefaultLangID();
@@ -715,7 +719,6 @@ static std::set<LANGID> GetUserPreferredLanguageIDs(bool includeFallbacks)
     static const auto pfnResolveLocaleName
         = reinterpret_cast<decltype(ResolveLocaleName)*>
         (GetProcAddress(GetModuleHandleW(L"kernel32"), "ResolveLocaleName"));
-
     if (pfnResolveLocaleName)
     {
         try
@@ -753,9 +756,11 @@ static bool IsLanguageInList(const std::wstring& language, const std::vector<std
             continue;
         if (language.size() == langInList.size() && EqualsIgnoreCase(language, langInList))
             return true;
+
         wchar_t prefixEndChar = *(language.data() + langInList.size());
         if (prefixEndChar != '-' && prefixEndChar != '\0')
             continue;
+
         std::wstring_view langPrefix(language.data(), langInList.size());
         if (EqualsIgnoreCase(langPrefix, langInList))
             return true;
@@ -765,8 +770,8 @@ static bool IsLanguageInList(const std::wstring& language, const std::vector<std
 
 nlohmann::json GetCachedJson(LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders);
 
-template <class TokenMaker>
-    requires std::is_invocable_r_v<std::shared_ptr<DataKeyData>, TokenMaker, const nlohmann::json&>
+template<class TokenMaker>
+requires std::is_invocable_r_v<std::shared_ptr<DataKeyData>, TokenMaker, const nlohmann::json&>
 void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& tokens,
     LPCWSTR cacheName, LPCSTR downloadUrl, LPCSTR downloadHeaders,
     DWORD langFlags, const std::vector<std::wstring>& languages,
@@ -795,6 +800,7 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
             LANGID langid = LangIDFromLocaleName(locale.c_str());
             if (!universalSupported && !supportedLangs.contains(langid))
                 continue;
+
             std::string shortName = voice.at("ShortName");
             // If "AllLanguages" is set, or "AllMultilingual" is set and "Multilingual" is in the name,
             // then no need to check the languages.
@@ -814,6 +820,7 @@ void EnumOnlineVoices(std::map<std::string, std::shared_ptr<DataKeyData>>& token
                         continue;
                 }
             }
+
             auto token = tokenMaker(voice);
             if (token)
                 tokens.try_emplace(std::move(shortName), std::move(token));
