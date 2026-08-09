@@ -16,97 +16,52 @@ jobs:
   build-utilities:
     name: Build submodules
     runs-on: windows-latest
-
     permissions:
       contents: read
-
     strategy:
       matrix:
         platform: [x86, x64, ARM64]
-
     steps:
     - name: Checkout submodules
       uses: actions/checkout@v6
       with:
         submodules: recursive
-
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
-
     - name: Install ATL for Visual Studio
       shell: pwsh
       run: |
-        # 杀掉所有 Visual Studio 安装器进程（如果有残留）
-        Get-Process -Name "vs_installer" -ErrorAction SilentlyContinue | Stop-Process -Force
-        Get-Process -Name "setup" -ErrorAction SilentlyContinue | Stop-Process -Force
-        Start-Sleep -Seconds 2
-
-        # 获取 Visual Studio 2022 安装路径
         $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
-        Write-Host "Visual Studio path: $vsPath"
-
-        # 使用 vs_installer 安装 ATL
-        $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        Write-Host "Installing ATL via vs_installer..."
-        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --norestart --quiet
-
-        # 验证 ATL 头文件
-        $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($atlHeader) {
-          Write-Host "✅ ATL installed successfully. Found: $($atlHeader.FullName)"
-        } else {
-          Write-Host "⚠️ vs_installer failed. Trying with choco..."
-          # 再次杀掉进程以防冲突
-          Get-Process -Name "vs_installer" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Get-Process -Name "setup" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Start-Sleep -Seconds 2
-          # 使用 choco 安装（包含 ATL）
-          choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.ATL --wait --quiet"
-          # 再次验证
-          $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($atlHeader) {
-            Write-Host "✅ ATL installed via choco. Found: $($atlHeader.FullName)"
-          } else {
-            Write-Host "::error::ATL installation failed. Please check logs."
-            exit 1
-          }
+        & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --quiet
+        if (-not (Get-ChildItem "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue)) {
+          Write-Error "ATL installation failed"
+          exit 1
         }
-
     - name: Build AzureSpeechSDKShim
       if: matrix.platform != 'ARM64'
-      working-directory: ${{github.workspace}}
       run: |
         nuget restore AzureSpeechSDKShim
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
-
     - name: Build TtsApplication (non Win32)
       if: matrix.platform != 'x86'
-      working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
-
     - name: Build TtsApplication (Win32)
       if: matrix.platform == 'x86'
-      working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
-
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
-      working-directory: ${{github.workspace}}
       run: |
         nuget restore Arm64XForwarder -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
-
     - name: Build Installer (x86 only)
       if: matrix.platform == 'x86'
-      working-directory: ${{github.workspace}}
       run: |
         nuget restore Installer -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ Installer
-
     - name: Upload artifact
       uses: actions/upload-artifact@v6
       with:
@@ -116,61 +71,29 @@ jobs:
   build-main:
     name: Build NaturalVoiceSAPIAdapter
     runs-on: windows-latest
-
     permissions:
       contents: read
-
     strategy:
       matrix:
         platform: [x86, x64, ARM64]
-
     steps:
     - name: Checkout
       uses: actions/checkout@v6
-
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
-
     - name: Install ATL for Visual Studio
       shell: pwsh
       run: |
-        Get-Process -Name "vs_installer" -ErrorAction SilentlyContinue | Stop-Process -Force
-        Get-Process -Name "setup" -ErrorAction SilentlyContinue | Stop-Process -Force
-        Start-Sleep -Seconds 2
-
         $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
-        Write-Host "Visual Studio path: $vsPath"
-
-        $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        Write-Host "Installing ATL via vs_installer..."
-        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --norestart --quiet
-
-        $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($atlHeader) {
-          Write-Host "✅ ATL installed successfully. Found: $($atlHeader.FullName)"
-        } else {
-          Write-Host "⚠️ vs_installer failed. Trying with choco..."
-          Get-Process -Name "vs_installer" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Get-Process -Name "setup" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Start-Sleep -Seconds 2
-          choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.ATL --wait --quiet"
-          $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($atlHeader) {
-            Write-Host "✅ ATL installed via choco. Found: $($atlHeader.FullName)"
-          } else {
-            Write-Host "::error::ATL installation failed."
-            exit 1
-          }
+        & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --quiet
+        if (-not (Get-ChildItem "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue)) {
+          Write-Error "ATL installation failed"
+          exit 1
         }
-
     - name: Restore NuGet packages
-      working-directory: ${{github.workspace}}
       run: nuget restore NaturalVoiceSAPIAdapter -SolutionDirectory .
-
     - name: Build
-      working-directory: ${{github.workspace}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
-      
     - name: Remove unnecessary DLLs
       working-directory: ${{github.workspace}}\out
       shell: pwsh
@@ -184,19 +107,14 @@ jobs:
         Remove-Item * -Include *.dll -Exclude $dlls
         Remove-Item Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
         exit 0
-
     - name: Copy ucrtbase.dll (x64)
       if: matrix.platform == 'x64'
-      working-directory: ${{github.workspace}}
       shell: pwsh
       run: Copy-Item -Path "$env:SystemRoot\System32\ucrtbase.dll" -Destination out\
-
     - name: Copy ucrtbase.dll (x86)
       if: matrix.platform == 'x86'
-      working-directory: ${{github.workspace}}
       shell: pwsh
       run: Copy-Item -Path "$env:SystemRoot\SysWOW64\ucrtbase.dll" -Destination out\
-
     - name: Upload artifact
       uses: actions/upload-artifact@v6
       with:
@@ -207,18 +125,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-utilities, build-main]
     if: github.ref_type == 'tag'
-
     permissions:
       contents: write
-
     steps:
     - uses: actions/checkout@v6
-
     - name: Download all artifacts
       uses: actions/download-artifact@v7
       with:
         path: ${{github.workspace}}/artifacts
-
     - name: Create ZIP files
       working-directory: ${{github.workspace}}/artifacts
       run: |
@@ -237,7 +151,6 @@ jobs:
         mv main-ARM64/* ARM64/
         zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 Installer.exe -i "*.exe" "*.dll"
         zip -r debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
-
     - name: Create release
       uses: softprops/action-gh-release@v2
       with:
