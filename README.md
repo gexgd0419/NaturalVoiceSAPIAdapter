@@ -1,6 +1,6 @@
 # NaturalVoiceSAPIAdapter
 
-[For the English version, click here](README.md)
+我在尝试将微软新的语音包加入进支持列表中。欢迎讨论！
 
 连接 [Azure AI 语音服务][3]，使第三方程序也能使用微软[自然语音][2]的 [SAPI 5 TTS 引擎][1]。支持如下自然语音：
 
