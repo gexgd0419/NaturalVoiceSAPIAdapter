@@ -9,12 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  # Path to the solution file relative to the root of the project.
   SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -53,7 +48,6 @@ jobs:
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build TtsApplication (Win32)
-      # We have to use Win32 instead of x86 for this project.
       if: matrix.platform == 'x86'
       working-directory: ${{github.workspace}}
       run: |
@@ -104,11 +98,9 @@ jobs:
 
     - name: Build
       working-directory: ${{github.workspace}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ . /t:NaturalVoiceSAPIAdapter
       
     - name: Remove unnecessary DLLs
-      # Remove the codec DLL because it can trigger the 'GStreamer DLL not found' error
-      # However the codec DLL might not exist, so ignore the error code
       working-directory: ${{github.workspace}}\out
       shell: pwsh
       run: |
@@ -120,7 +112,7 @@ jobs:
         $dlls += "NaturalVoiceSAPIAdapter.dll", "Microsoft.CognitiveServices.*.dll"
         Remove-Item * -Include *.dll -Exclude $dlls
         Remove-Item Microsoft.CognitiveServices.Speech.extension.codec.dll -ErrorAction Ignore
-        exit 0   # This is necessary because "-ErrorAction Ignore" doesn't ensure a zero exit code
+        exit 0
 
     - name: Copy ucrtbase.dll (x64)
       if: matrix.platform == 'x64'
@@ -181,4 +173,3 @@ jobs:
         body_path: ${{github.workspace}}/release_notes.md
         files: |
           ${{github.workspace}}/artifacts/*.zip
-      
