@@ -36,8 +36,20 @@ jobs:
     - name: Install ATL for Visual Studio
       shell: pwsh
       run: |
+        # 获取 Visual Studio 的实际安装路径
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
+        Write-Host "Visual Studio path: $vsPath"
+        # 使用 vs_installer 安装 ATL 组件
         $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        & $vsInstaller modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
+        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
+        # 验证 ATL 头文件是否存在
+        $atlBase = Join-Path $vsPath "VC\Tools\MSVC\*\include\atlbase.h"
+        if (Test-Path $atlBase) {
+          Write-Host "ATL installed successfully."
+        } else {
+          Write-Host "ATL not found after installation." -ForegroundColor Red
+          exit 1
+        }
 
     - name: Build AzureSpeechSDKShim
       if: matrix.platform != 'ARM64'
@@ -101,8 +113,17 @@ jobs:
     - name: Install ATL for Visual Studio
       shell: pwsh
       run: |
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
+        Write-Host "Visual Studio path: $vsPath"
         $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        & $vsInstaller modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
+        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
+        $atlBase = Join-Path $vsPath "VC\Tools\MSVC\*\include\atlbase.h"
+        if (Test-Path $atlBase) {
+          Write-Host "ATL installed successfully."
+        } else {
+          Write-Host "ATL not found after installation." -ForegroundColor Red
+          exit 1
+        }
 
     - name: Restore NuGet packages
       working-directory: ${{github.workspace}}
