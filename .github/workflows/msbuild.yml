@@ -36,19 +36,28 @@ jobs:
     - name: Install ATL for Visual Studio
       shell: pwsh
       run: |
-        # 获取 Visual Studio 的实际安装路径
+        # 获取 Visual Studio 2022 安装路径
         $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
         Write-Host "Visual Studio path: $vsPath"
-        # 使用 vs_installer 安装 ATL 组件
+        # 安装 ATL 组件（注意：去除 --quiet 以查看输出，同时保留 --wait）
         $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
-        # 验证 ATL 头文件是否存在
-        $atlBase = Join-Path $vsPath "VC\Tools\MSVC\*\include\atlbase.h"
-        if (Test-Path $atlBase) {
-          Write-Host "ATL installed successfully."
+        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --norestart
+        # 验证 ATL 头文件是否存在（使用 Get-ChildItem 展开通配符）
+        $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($atlHeader) {
+          Write-Host "ATL installed successfully. Found: $($atlHeader.FullName)"
         } else {
-          Write-Host "ATL not found after installation." -ForegroundColor Red
-          exit 1
+          Write-Host "::error::ATL not found after installation. Trying alternative method..."
+          # 尝试使用 choco 安装构建工具（包含 ATL 推荐包）
+          choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.ATL --wait"
+          # 重新验证
+          $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($atlHeader) {
+            Write-Host "ATL installed successfully via choco. Found: $($atlHeader.FullName)"
+          } else {
+            Write-Host "::error::ATL installation failed. Please check logs."
+            exit 1
+          }
         }
 
     - name: Build AzureSpeechSDKShim
@@ -116,13 +125,20 @@ jobs:
         $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -property installationPath -latest
         Write-Host "Visual Studio path: $vsPath"
         $vsInstaller = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --quiet --norestart --wait
-        $atlBase = Join-Path $vsPath "VC\Tools\MSVC\*\include\atlbase.h"
-        if (Test-Path $atlBase) {
-          Write-Host "ATL installed successfully."
+        & $vsInstaller modify --installPath $vsPath --add Microsoft.VisualStudio.Component.VC.ATL --wait --norestart
+        $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($atlHeader) {
+          Write-Host "ATL installed successfully. Found: $($atlHeader.FullName)"
         } else {
-          Write-Host "ATL not found after installation." -ForegroundColor Red
-          exit 1
+          Write-Host "::error::ATL not found after installation. Trying choco..."
+          choco install visualstudio2022buildtools -y --package-parameters "--add Microsoft.VisualStudio.Component.VC.ATL --wait"
+          $atlHeader = Get-ChildItem -Path "$vsPath\VC\Tools\MSVC\*\include\atlbase.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($atlHeader) {
+            Write-Host "ATL installed via choco. Found: $($atlHeader.FullName)"
+          } else {
+            Write-Host "::error::ATL installation failed."
+            exit 1
+          }
         }
 
     - name: Restore NuGet packages
