@@ -9,7 +9,10 @@ on:
   workflow_dispatch:
 
 env:
+  # Path to the solution file relative to the root of the project.
   SOLUTION_FILE_PATH: .
+
+  # Configuration type to build.
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -38,35 +41,35 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         nuget restore AzureSpeechSDKShim
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
 
     - name: Build TtsApplication (non Win32)
       if: matrix.platform != 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build TtsApplication (Win32)
       if: matrix.platform == 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore Arm64XForwarder -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
 
     - name: Build Installer (x86 only)
       if: matrix.platform == 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore Installer -SolutionDirectory .
-        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ Installer
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:PlatformToolset=v142 /p:OutDir=${{github.workspace}}\out\ Installer
 
     - name: Upload artifact
       uses: actions/upload-artifact@v6
