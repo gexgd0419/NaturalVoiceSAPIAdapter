@@ -26,7 +26,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: [x64, ARM64] # 移除了 x86
+        # 恢复 x86 平台
+        platform: [x86, x64, ARM64]
 
     steps:
     - name: Checkout submodules
@@ -60,11 +61,20 @@ jobs:
         nuget restore AzureSpeechSDKShim
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ AzureSpeechSDKShim
 
-    - name: Build TtsApplication
+    - name: Build TtsApplication (non Win32)
+      if: matrix.platform != 'x86'
       working-directory: ${{github.workspace}}
       run: |
         nuget restore TtsApplication
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
+
+    - name: Build TtsApplication (Win32)
+      # 32位项目在 VS 中通常使用 Win32 作为 Platform 标识
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore TtsApplication
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=Win32 /p:OutDir=${{github.workspace}}\out\ TtsApplication\TtsApplication.sln
 
     - name: Build Arm64XForwarder (ARM64 only)
       if: matrix.platform == 'ARM64'
@@ -72,6 +82,14 @@ jobs:
       run: |
         nuget restore Arm64XForwarder -SolutionDirectory .
         msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=ARM64EC /p:OutDir=${{github.workspace}}\out\ Arm64XForwarder
+
+    - name: Build Installer (x86 only)
+      # Installer 只需要在 x86 环境下编译一次
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      run: |
+        nuget restore Installer -SolutionDirectory .
+        msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{matrix.platform}} /p:OutDir=${{github.workspace}}\out\ Installer
 
     - name: Upload artifact
       uses: actions/upload-artifact@v6
@@ -89,7 +107,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: [x64, ARM64] # 移除了 x86
+        # 恢复 x86 平台
+        platform: [x86, x64, ARM64]
 
     steps:
     - name: Checkout
@@ -142,6 +161,12 @@ jobs:
       shell: pwsh
       run: Copy-Item -Path "$env:SystemRoot\System32\ucrtbase.dll" -Destination out\
 
+    - name: Copy ucrtbase.dll (x86)
+      if: matrix.platform == 'x86'
+      working-directory: ${{github.workspace}}
+      shell: pwsh
+      run: Copy-Item -Path "$env:SystemRoot\SysWOW64\ucrtbase.dll" -Destination out\
+
     - name: Upload artifact
       uses: actions/upload-artifact@v6
       with:
@@ -170,20 +195,26 @@ jobs:
         ver="${{github.ref_name}}"
         ver="${ver//\//_}"
         
-        # 打包 x64
+        # 打包 x86 (并提取 Installer.exe 到根目录)
+        mkdir x86
+        mv utilities-x86/* x86/
+        mv main-x86/* x86/
+        mv x86/Installer.exe ./
+        
+        # 打包 x64 并与 x86 合并打成一个 x86_x64 的 ZIP
         mkdir x64
         mv utilities-x64/* x64/
         mv main-x64/* x64/
-        zip -r NaturalVoiceSAPIAdapter_${ver}_x64.zip x64 -i "*.exe" "*.dll"
+        zip -r NaturalVoiceSAPIAdapter_${ver}_x86_x64.zip x86 x64 Installer.exe -i "*.exe" "*.dll"
         
-        # 打包 ARM64
+        # 打包 ARM64 并将 x86/x64/ARM64 以及 Installer 都包含进去（方便旧系统使用）
         mkdir ARM64
         mv utilities-ARM64/* ARM64/
         mv main-ARM64/* ARM64/
-        zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip ARM64 -i "*.exe" "*.dll"
+        zip -r NaturalVoiceSAPIAdapter_${ver}_ARM64.zip x86 x64 ARM64 Installer.exe -i "*.exe" "*.dll"
         
         # 打包 Debug 符号
-        zip -r debug_symbols.zip x64 ARM64 -i "*.pdb"
+        zip -r debug_symbols.zip x86 x64 ARM64 -i "*.pdb"
 
     - name: Create release
       uses: softprops/action-gh-release@v2
