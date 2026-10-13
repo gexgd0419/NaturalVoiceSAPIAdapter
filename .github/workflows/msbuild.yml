@@ -37,6 +37,29 @@ jobs:
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
+      
+    - name: Check ATL installation
+      shell: pwsh
+      run: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    
+        $vs = & $vswhere -latest -version '[18.0,19.0)' -products * -property installationPath
+    
+        if (-not $vs) {
+          throw "Visual Studio 2026 not found"
+        }
+    
+        Write-Host "VS path: $vs"
+    
+        $toolsets = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory
+    
+        foreach ($toolset in $toolsets) {
+          $header = "$($toolset.FullName)\atlmfc\include\atlbase.h"
+    
+          Write-Host "Toolset: $($toolset.Name)"
+          Write-Host "ATL exists: $(Test-Path $header)"
+          Write-Host "Header path: $header"
+        }
 
     - name: Build AzureSpeechSDKShim
       if: matrix.platform != 'ARM64'
