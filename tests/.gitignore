@@ -1,0 +1,6 @@
+*.exe
+*.wav
+*.obj
+*.pdb
+*.log
+__pycache__/
