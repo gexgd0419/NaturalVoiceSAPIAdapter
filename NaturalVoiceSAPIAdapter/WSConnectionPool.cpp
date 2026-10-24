@@ -2,7 +2,7 @@
 #include "WSConnectionPool.h"
 #include "RegKey.h"
 #include "SpeechServiceConstants.h"
-#include <openssl/sha.h>
+#include "EdgeGec.h"
 
 extern TaskScheduler g_taskScheduler;
 
@@ -19,36 +19,18 @@ static void ReplaceString(std::string& str, std::string_view from, const std::st
 	}
 }
 
-static std::string GetGECToken()
-{
-	// algorithm for generating the Sec-MS-GEC token
-	// see: https://github.com/rany2/edge-tts/issues/290#issuecomment-2464956570
+static std::string GetGECToken() {
+    // Sec-MS-GEC v2; see edge-tts 7.3.0 src/edge_tts/drm.py.
 
-	FILETIME ft;
-	GetSystemTimeAsFileTime(&ft);
-	ULARGE_INTEGER ul = { ft.dwLowDateTime, ft.dwHighDateTime };
-	// add the time delta to the local time
-	ul.QuadPart += s_responseTimeDelta.load(std::memory_order_relaxed);
-	ul.QuadPart -= ul.QuadPart % 3'000'000'000;  // round down to the nearest 5 minute
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    ULARGE_INTEGER ul = {ft.dwLowDateTime, ft.dwHighDateTime};
+    // add the time delta to the local time
+    ul.QuadPart += s_responseTimeDelta.load(std::memory_order_relaxed);
+    char result[82];
+    EdgeGec::Generate(ul.QuadPart, result);
 
-	// concatenate ticks & trusted client token into a string
-	// then calculate SHA-256 hash
-	std::string str = std::to_string(ul.QuadPart) + EDGE_TRUSTED_CLIENT_TOKEN;
-	BYTE hash[SHA256_DIGEST_LENGTH];
-	if (!SHA256(reinterpret_cast<const BYTE*>(str.data()), str.size(), hash))
-		throw std::runtime_error("GEC token generation failed");
-
-	// convert the hash to a hexadecimal string
-	std::string result(SHA256_DIGEST_LENGTH * 2, '0');
-	char* pCh = result.data();
-	constexpr const char* HexDigits = "0123456789ABCDEF";
-	for (BYTE byte : hash)
-	{
-		*pCh++ = HexDigits[(byte & 0xF0) >> 4];
-		*pCh++ = HexDigits[byte & 0x0F];
-	}
-
-	return result;
+    return result;
 }
 
 WSConnectionPool::WSConnectionPool()
@@ -265,48 +247,56 @@ WSConnectionPtr WSConnectionPool::MakeConnectionPtr(HostInfo& info, WSConnection
 	return WSConnectionPtr(ptr, ptr->get());
 }
 
-void WSConnectionPool::CreateConnection(
-	std::string url,
-	const std::string& key,
-	HostInfo& info)
-{
-	ReplaceString(url, "{Sec-MS-GEC}", GetGECToken());
+void WSConnectionPool::CreateConnection(std::string url, const std::string& key, HostInfo& info) {
+    const bool isEdge = url.starts_with("wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1?");
+    if (url.find("{Sec-MS-GEC}") != std::string::npos) ReplaceString(url, "{Sec-MS-GEC}", GetGECToken());
 
-	std::error_code ec;
-	auto conn = m_client.get_connection(url, ec);
-	if (ec)
-		throw std::system_error(ec);
+    std::error_code ec;
+    auto conn = m_client.get_connection(url, ec);
+    if (ec) throw std::system_error(ec);
 
-	WSConnectionUPtr wrapper(new WSConnection(conn));
+    WSConnectionUPtr wrapper(new WSConnection(conn));
 
-	SetConnectionHandlers(info, wrapper.get());
+    SetConnectionHandlers(info, wrapper.get());
 
-	conn->append_header("User-Agent", EDGE_USER_AGENT);
+    conn->append_header("User-Agent", EDGE_USER_AGENT);
+    if (isEdge) {
+        conn->append_header("Origin", "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold");
+        conn->append_header("Pragma", "no-cache");
+        conn->append_header("Cache-Control", "no-cache");
+        conn->append_header("Accept-Language", "en-US,en;q=0.9");
+        GUID muid;
+        HRESULT hr = CoCreateGuid(&muid);
+        if (FAILED(hr)) throw std::runtime_error("Cannot generate Edge MUID");
+        const auto* bytes = reinterpret_cast<const unsigned char*>(&muid);
+        char cookie[40] = "muid=";
+        constexpr char hex[] = "0123456789ABCDEF";
+        for (unsigned i = 0; i < sizeof(muid); i++) {
+            cookie[5 + i * 2] = hex[bytes[i] >> 4];
+            cookie[6 + i * 2] = hex[bytes[i] & 15];
+        }
+        cookie[37] = ';';
+        conn->append_header("Cookie", cookie);
+    }
 
-	if (!key.empty())
-		conn->append_header("Ocp-Apim-Subscription-Key", key);
+    if (!key.empty()) conn->append_header("Ocp-Apim-Subscription-Key", key);
 
-	std::string proxy = GetProxyForUrl(url);
-	if (!proxy.empty())
-	{
-		size_t schemeDelimPos = proxy.find("://");
-		if (schemeDelimPos == proxy.npos)
-		{
-			conn->set_proxy("http://" + std::move(proxy));
-		}
-		else
-		{
-			std::string_view scheme(proxy.data(), schemeDelimPos);
-			if (EqualsIgnoreCase(scheme, "http"))
-				conn->set_proxy(proxy);
-		}
-	}
+    std::string proxy = GetProxyForUrl(url);
+    if (!proxy.empty()) {
+        size_t schemeDelimPos = proxy.find("://");
+        if (schemeDelimPos == proxy.npos) {
+            conn->set_proxy("http://" + std::move(proxy));
+        } else {
+            std::string_view scheme(proxy.data(), schemeDelimPos);
+            if (EqualsIgnoreCase(scheme, "http")) conn->set_proxy(proxy);
+        }
+    }
 
-	m_client.connect(conn);
-	info.connections.push_back(std::move(wrapper));
-	info.count++;
-	LogDebug("Connection pool: New connection {} created and put into pool ({}/{})",
-		conn, info.connections.size(), info.count);
+    m_client.connect(conn);
+    info.connections.push_back(std::move(wrapper));
+    info.count++;
+    LogDebug("Connection pool: New connection {} created and put into pool ({}/{})", conn, info.connections.size(),
+             info.count);
 }
 
 void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapper)
