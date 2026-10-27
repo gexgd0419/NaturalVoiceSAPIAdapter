@@ -370,8 +370,7 @@ static std::shared_ptr<DataKeyData> MakeLocalVoiceToken(
                 .path = name + L"\\NaturalVoiceConfig",
                 .values = {
                     { L"ErrorMode", std::to_wstring(static_cast<UINT>(errorMode)) },
-                    { L"Path", std::move(path) },
-                    { L"Key", MS_TTS_KEY }
+                    { L"Path", std::move(path) }
                 }
             } }
         }

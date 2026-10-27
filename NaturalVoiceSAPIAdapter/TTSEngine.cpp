@@ -307,15 +307,15 @@ bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
         MergeIntoCoString(pszKey, L"Key:", pszKey.m_psz);
     else if (CheckHrNotFound(pConfigKey->GetStringValue(L"License", &pszKey)))
     {
-        // When no key or license is given, attempt to figure that out.
-        LogDebug("TTS init: Key/license not set explicitly.");
+        // When no key or license is given, attempt to figure that out ourselves.
+        LogDebug("TTS init: Key/license not set explicitly. Looking for a possible candidate...");
         auto lic = Drm::GetEmbeddedLicForModel(pszPath.m_psz);
         if (!lic)
         {
             LogDebug("TTS init: No key/license could be found.");
             return false;
         }
-        LogDebug("TTS init: Found one possible key/license candidate: {}***", lic->substr(0, 5));
+        LogDebug("TTS init: Found one possible key/license candidate: {}***", lic->substr(0, 4));
         pszKey = lic->c_str();
     }
 
