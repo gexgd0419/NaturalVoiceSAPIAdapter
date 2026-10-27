@@ -128,20 +128,26 @@ public:
 	{
 		m_conn->terminate(ec);
 	}
-	LONGLONG get_response_filetime()
+	std::optional<std::chrono::system_clock::time_point> get_response_time()
 	{
 		auto& datestr = m_conn->get_response_header("Date");
 		if (datestr.empty())
-			return 0;
+			return {};
 
-		SYSTEMTIME st;
-		if (!InternetTimeToSystemTimeA(datestr.c_str(), &st, 0))
-			return 0;
-		FILETIME ftResponse;
-		if (!SystemTimeToFileTime(&st, &ftResponse))
-			return 0;
+		std::istringstream ss(datestr);
+		ss.imbue(std::locale::classic());
+		std::tm tm;
+		ss >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S GMT");
+		if (!ss)
+			return {};
 
-		return ULARGE_INTEGER{ ftResponse.dwLowDateTime, ftResponse.dwHighDateTime }.QuadPart;
+		using namespace std::chrono;
+
+		year_month_day ymd(year(tm.tm_year + 1900), month(tm.tm_mon + 1), day(tm.tm_mday));
+		if (!ymd.ok())
+			return {};
+
+		return sys_seconds(sys_days(ymd) + hours(tm.tm_hour) + minutes(tm.tm_min) + seconds(tm.tm_sec));
 	}
 
 private:

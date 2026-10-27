@@ -2,12 +2,13 @@
 #include "WSConnectionPool.h"
 #include "RegKey.h"
 #include "SpeechServiceConstants.h"
-#include <openssl/sha.h>
+#include "Drm.h"
+#include <chrono>
 
 extern TaskScheduler g_taskScheduler;
 
 // Time delta between the remote server time and the local time.
-static std::atomic<LONGLONG> s_responseTimeDelta = 0;
+static std::atomic<std::chrono::system_clock::duration> s_responseTimeDelta;
 
 static void ReplaceString(std::string& str, std::string_view from, const std::string& to)
 {
@@ -17,38 +18,6 @@ static void ReplaceString(std::string& str, std::string_view from, const std::st
 		str.replace(pos, from.size(), to);
 		pos += to.size();
 	}
-}
-
-static std::string GetGECToken()
-{
-	// algorithm for generating the Sec-MS-GEC token
-	// see: https://github.com/rany2/edge-tts/issues/290#issuecomment-2464956570
-
-	FILETIME ft;
-	GetSystemTimeAsFileTime(&ft);
-	ULARGE_INTEGER ul = { ft.dwLowDateTime, ft.dwHighDateTime };
-	// add the time delta to the local time
-	ul.QuadPart += s_responseTimeDelta.load(std::memory_order_relaxed);
-	ul.QuadPart -= ul.QuadPart % 3'000'000'000;  // round down to the nearest 5 minute
-
-	// concatenate ticks & trusted client token into a string
-	// then calculate SHA-256 hash
-	std::string str = std::to_string(ul.QuadPart) + EDGE_TRUSTED_CLIENT_TOKEN;
-	BYTE hash[SHA256_DIGEST_LENGTH];
-	if (!SHA256(reinterpret_cast<const BYTE*>(str.data()), str.size(), hash))
-		throw std::runtime_error("GEC token generation failed");
-
-	// convert the hash to a hexadecimal string
-	std::string result(SHA256_DIGEST_LENGTH * 2, '0');
-	char* pCh = result.data();
-	constexpr const char* HexDigits = "0123456789ABCDEF";
-	for (BYTE byte : hash)
-	{
-		*pCh++ = HexDigits[(byte & 0xF0) >> 4];
-		*pCh++ = HexDigits[byte & 0x0F];
-	}
-
-	return result;
 }
 
 WSConnectionPool::WSConnectionPool()
@@ -270,7 +239,7 @@ void WSConnectionPool::CreateConnection(
 	const std::string& key,
 	HostInfo& info)
 {
-	ReplaceString(url, "{Sec-MS-GEC}", GetGECToken());
+	ReplaceString(url, "{Sec-MS-GEC}", Drm::GecV1Token(s_responseTimeDelta));
 
 	std::error_code ec;
 	auto conn = m_client.get_connection(url, ec);
@@ -343,9 +312,7 @@ void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapp
 
 	conn->set_fail_handler([&info, wrapper](websocketpp::connection_hdl hdl)
 		{
-			FILETIME ftNow;
-			GetSystemTimeAsFileTime(&ftNow);
-			LONGLONG llNow = ULARGE_INTEGER{ ftNow.dwLowDateTime, ftNow.dwHighDateTime }.QuadPart;
+			const auto local_time = std::chrono::system_clock::now();
 
 			std::lock_guard lock(info.mutex);
 			auto ec = wrapper->get_ec();
@@ -356,9 +323,9 @@ void WSConnectionPool::SetConnectionHandlers(HostInfo& info, WSConnection* wrapp
 			{
 				// The server rejected the connection. The local time may be incorrect.
 				// Re-calculate the time delta so that the next attempt may succeed.
-				LONGLONG llResponse = wrapper->get_response_filetime();
-				if (llResponse != 0)
-					s_responseTimeDelta.store(llResponse - llNow, std::memory_order_relaxed);
+				const auto response_time = wrapper->get_response_time();
+				if (response_time)
+					s_responseTimeDelta.store(*response_time - local_time, std::memory_order_relaxed);
 			}
 			RemoveConnection(info, wrapper);
 			info.connectionChanged.notify_all();
