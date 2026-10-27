@@ -131,7 +131,11 @@ static BOOL MainDlgInit(HWND hDlg)
         ShowWindow(GetDlgItem(hDlg, IDC_UNINSTALL_64BIT), SW_HIDE);
     }
 
-    if (SupportsInstallingNarratorVoices() || IsWindows7OrGreater() || RegOpenConfigKey().GetDword(L"ForceEnableAzureSpeechSDK"))
+    if (SupportsInstallingNarratorVoices())
+    {
+        SetDlgItemTextW(hDlg, IDC_NARRATOR_VOICE_TIP_LINKS, LoadResString(IDS_LOCAL_VOICE_PATH_TIP_WIN11).c_str());
+    }
+    else if (IsWindows7OrGreater() || RegOpenConfigKey().GetDword(L"ForceEnableAzureSpeechSDK"))
     {
         SetDlgItemTextW(hDlg, IDC_NARRATOR_VOICE_TIP_LINKS, LoadResString(IDS_LOCAL_VOICE_PATH_TIP_WIN7).c_str());
     }
