@@ -130,6 +130,9 @@
     <ClInclude Include="BlockingQueue.h">
       <Filter>Header Files\SpeechRestAPI</Filter>
     </ClInclude>
+    <ClInclude Include="Drm.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NaturalVoiceSAPIAdapter_i.c">

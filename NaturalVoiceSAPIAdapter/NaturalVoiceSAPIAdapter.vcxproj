@@ -394,6 +394,7 @@
     <ClInclude Include="AzacException.h" />
     <ClInclude Include="BlockingQueue.h" />
     <ClInclude Include="dllmain.h" />
+    <ClInclude Include="Drm.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LangUtils.h" />
     <ClInclude Include="Logger.h" />

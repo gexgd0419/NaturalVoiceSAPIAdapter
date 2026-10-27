@@ -8,6 +8,7 @@
 #include <VersionHelpers.h>
 #include "RegKey.h"
 #include "wrappers.h"
+#include "Drm.h"
 
 // CTTSEngine
 
@@ -305,7 +306,18 @@ bool CTTSEngine::InitLocalVoice(ISpDataKey* pConfigKey)
     if (!CheckHrNotFound(pConfigKey->GetStringValue(L"Key", &pszKey)))
         MergeIntoCoString(pszKey, L"Key:", pszKey.m_psz);
     else if (CheckHrNotFound(pConfigKey->GetStringValue(L"License", &pszKey)))
-        return false;
+    {
+        // When no key or license is given, attempt to figure that out.
+        LogDebug("TTS init: Key/license not set explicitly.");
+        auto lic = Drm::GetEmbeddedLicForModel(pszPath.m_psz);
+        if (!lic)
+        {
+            LogDebug("TTS init: No key/license could be found.");
+            return false;
+        }
+        LogDebug("TTS init: Found one possible key/license candidate: {}***", lic->substr(0, 5));
+        pszKey = lic->c_str();
+    }
 
     auto path = WStringToUTF8(pszPath.m_psz);
 
