@@ -18,7 +18,7 @@ constexpr inline const char* EDGE_VOICE_LIST_URL = "https://speech.platform.bing
 
 constexpr inline const wchar_t* EDGE_WEBSOCKET_URL
 	= L"wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
-	  L"?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC={Sec-MS-GEC}&Sec-MS-GEC-Version=1-142.0.3595.94";
+	  L"?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&Sec-MS-GEC={Sec-MS-GEC}&Sec-MS-GEC-Version=2-156.0.4314.42";
 
 constexpr inline const char* AZURE_TTS_HOST_AFTER_REGION = ".tts.speech.microsoft.com";
 

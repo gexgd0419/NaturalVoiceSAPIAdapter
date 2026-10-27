@@ -239,7 +239,7 @@ void WSConnectionPool::CreateConnection(
 	const std::string& key,
 	HostInfo& info)
 {
-	ReplaceString(url, "{Sec-MS-GEC}", Drm::GecV1Token(s_responseTimeDelta));
+	ReplaceString(url, "{Sec-MS-GEC}", Drm::GecV2Token(s_responseTimeDelta));
 
 	std::error_code ec;
 	auto conn = m_client.get_connection(url, ec);
